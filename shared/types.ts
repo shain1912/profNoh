@@ -21,6 +21,7 @@ export interface Slide {
   activityId?: string;       // 이 슬라이드에 연결된 활동
   pdfUrl?: string;           // PDF 파일 경로 (layout === 'pdf')
   pageNumber?: number;       // PDF 페이지 번호 (layout === 'pdf')
+  youtubeUrl?: string;       // 유튜브 동영상 링크
 }
 
 export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor';

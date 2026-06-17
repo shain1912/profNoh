@@ -18,9 +18,6 @@ export default function Home() {
         <Link to="/teach" className="btn-ghost py-4 text-lg">
           🧑‍🏫 강사로 시작하기
         </Link>
-        <Link to="/build" className="btn-ghost py-4 text-lg">
-          🛠️ 강의 만들기 (직접 제작)
-        </Link>
       </div>
 
       <p className="mt-8 text-xs text-white/40">

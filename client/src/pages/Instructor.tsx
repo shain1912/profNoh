@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Deck } from '@shared/types';
 import { apiPost } from '../lib/api';
 import { loadDeck } from '../lib/deck';
@@ -22,7 +23,7 @@ export default function Instructor() {
 function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  async function create() {
+  async function createSample() {
     setBusy(true);
     setErr('');
     try {
@@ -36,16 +37,57 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
     }
   }
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col justify-center p-6 text-center">
-      <h1 className="text-2xl font-extrabold">강사 콘솔 🧑‍🏫</h1>
-      <p className="mt-2 text-white/60">새 강의실을 만들면 학생 입장용 코드가 발급돼요.</p>
-      {err && <p className="mt-3 text-down">{err}</p>}
-      <button className="btn-primary mt-8 py-4 text-lg" onClick={create} disabled={busy}>
-        {busy ? '만드는 중…' : '＋ 새 강의실 만들기'}
-      </button>
+    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center p-6 text-center animate-fade-in">
+      <div className="text-sm font-bold uppercase tracking-widest text-brand">AI · AX 특강</div>
+      <h1 className="mt-3 text-3xl font-extrabold leading-tight">🧑‍🏫 강사 콘솔 시작하기</h1>
+      <p className="mt-2 text-white/60 text-sm">
+        수업을 진행할 슬라이드(덱) 종류를 선택해 주세요.
+      </p>
+
+      {err && <p className="mt-4 text-down text-sm">{err}</p>}
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        {/* 샘플 강의 시작 카드 */}
+        <button
+          className="flex flex-col items-center justify-between rounded-2xl border border-brand/20 bg-brand/5 p-6 hover:bg-brand/10 hover:border-brand/40 transition-all hover:scale-[1.02] text-center active:scale-[0.99] disabled:opacity-50"
+          onClick={createSample}
+          disabled={busy}
+        >
+          <div className="flex flex-col items-center">
+            <span className="text-4xl mb-3">🚀</span>
+            <h3 className="text-lg font-bold text-white">기본 샘플 강의</h3>
+            <p className="mt-2 text-xs text-white/50 leading-relaxed">
+              준비된 4시간 특강 강의실을 바로 개설하고 학생들과 퀴즈, 실습을 진행합니다.
+            </p>
+          </div>
+          <span className="btn btn-primary mt-6 w-full py-2.5 text-sm font-semibold">
+            {busy ? '만드는 중…' : '바로 수업 시작'}
+          </span>
+        </button>
+
+        {/* 직접 강의 만들기 카드 */}
+        <Link
+          to="/build"
+          className="flex flex-col items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 hover:border-white/20 transition-all hover:scale-[1.02] text-center active:scale-[0.99]"
+        >
+          <div className="flex flex-col items-center">
+            <span className="text-4xl mb-3">🛠️</span>
+            <h3 className="text-lg font-bold text-white">새 강의 만들기</h3>
+            <p className="mt-2 text-xs text-white/50 leading-relaxed">
+              AI를 활용해 맞춤형 강의안을 생성하거나, 보유하신 PDF 발표 자료를 업로드하여 직접 강의를 빌드합니다.
+            </p>
+          </div>
+          <span className="btn btn-ghost mt-6 w-full py-2.5 text-sm font-semibold border border-white/10">
+            강의 제작/수정
+          </span>
+        </Link>
+      </div>
+
+      <Link to="/" className="mt-8 text-xs text-white/40 hover:text-white/60 transition underline">
+        메인 화면으로 돌아가기
+      </Link>
     </div>
-  );
-}
+  );}
 
 function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => void }) {
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -152,6 +194,12 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
             {paused ? '▶ AI 재개' : '⏸ AI 멈춤'}
           </button>
           <button className="btn bg-white/10 px-3 py-1 text-sm" onClick={onReset}>새 강의실</button>
+          <button
+            className="btn bg-brand/15 hover:bg-brand/25 text-brand px-3 py-1 text-sm font-bold rounded"
+            onClick={() => window.open(`/report/${creds.classroomId}?secret=${creds.instructorSecret}`, '_blank')}
+          >
+            📊 리포트
+          </button>
         </div>
       </header>
 
@@ -166,7 +214,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
         {copied === 'code' && <span className="text-emerald-400">코드 복사됨 ✓</span>}
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden p-3 lg:grid-cols-3">
+      <div className="grid flex-1 grid-cols-1 gap-3 overflow-y-auto lg:overflow-hidden p-3 lg:grid-cols-3">
         {/* 슬라이드 + 컨트롤 */}
         <section className="lg:col-span-2 flex flex-col gap-3 overflow-hidden">
           <div className="card flex-1 overflow-y-auto">

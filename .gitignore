@@ -6,4 +6,7 @@ dist/
 .DS_Store
 client/dist/
 uploads/
+.agents/
+skills-lock.json
+shots/
 

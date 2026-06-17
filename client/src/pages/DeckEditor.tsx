@@ -131,6 +131,7 @@ export default function DeckEditor() {
   const [needPin, setNeedPin] = useState(!getPin(deckId));
   const [pinInput, setPinInput] = useState('');
   const [status, setStatus] = useState('');
+  const [activeTab, setActiveTab] = useState<'slides' | 'edit' | 'ai'>('edit');
 
   // AI 강의 제작 조교 상태
   const [pdfText, setPdfText] = useState('');
@@ -371,18 +372,52 @@ export default function DeckEditor() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
-        <input className="input max-w-xs" value={deck.title} maxLength={80} onChange={(e) => setDeck({ ...deck, title: e.target.value })} />
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-emerald-400">{status}</span>
-          <button className="btn-ghost px-3 py-1" onClick={save}>저장</button>
-          <button className="btn-primary px-3 py-1" onClick={startClass}>이 덱으로 수업 시작 ▶</button>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 px-4 py-3 bg-canvas">
+        <div className="flex items-center gap-2 w-full sm:max-w-xs">
+          <span className="text-lg">🛠️</span>
+          <input className="input py-2 text-sm flex-1" value={deck.title} maxLength={80} onChange={(e) => setDeck({ ...deck, title: e.target.value })} placeholder="강의 제목" />
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+          <span className="text-xs text-emerald-400">{status}</span>
+          <div className="flex gap-2">
+            <button className="btn bg-surface hover:bg-surface-2 text-sm px-4 py-2 ring-1 ring-hairline rounded-lg" onClick={save}>저장</button>
+            <button className="btn-primary text-sm px-4 py-2 rounded-lg" onClick={startClass}>수업 시작 ▶</button>
+          </div>
         </div>
       </header>
 
-      <div className="grid flex-1 grid-cols-[220px_1fr_360px] overflow-hidden">
+      {/* 모바일 전용 탭 바 (lg 미만에서 노출) */}
+      <div className="flex lg:hidden border-b border-white/10 bg-[#14181f] shrink-0">
+        <button
+          className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 ${
+            activeTab === 'slides' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-white/50 hover:text-white'
+          }`}
+          onClick={() => setActiveTab('slides')}
+        >
+          📄 목록 ({deck.slides.length})
+        </button>
+        <button
+          className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 ${
+            activeTab === 'edit' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-white/50 hover:text-white'
+          }`}
+          onClick={() => setActiveTab('edit')}
+        >
+          ✍️ 편집
+        </button>
+        <button
+          className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 ${
+            activeTab === 'ai' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-white/50 hover:text-white'
+          }`}
+          onClick={() => setActiveTab('ai')}
+        >
+          ✨ AI 조교
+          {pdfStatus === 'ready' && <span className="ml-1 text-[8px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-bold">ON</span>}
+        </button>
+      </div>
+
+      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[220px_1fr_360px] overflow-hidden">
         {/* 좌측 슬라이드 리스트 */}
-        <aside className="overflow-y-auto border-r border-white/10 p-2 custom-scrollbar">
+        <aside className={`${activeTab === 'slides' ? 'block' : 'hidden'} lg:block overflow-y-auto border-r border-white/10 p-2 custom-scrollbar`}>
           {deck.slides.map((s, i) => {
             const act = s.activityId ? deck.activities[s.activityId] : null;
             let icon = '📄 ';
@@ -404,22 +439,25 @@ export default function DeckEditor() {
                   'mb-1 block w-full rounded px-2 py-2 text-left text-sm',
                   i === sel ? 'bg-brand/20 text-brand' : 'hover:bg-white/5',
                 ].join(' ')}
-                onClick={() => setSel(i)}
+                onClick={() => {
+                  setSel(i);
+                  setActiveTab('edit');
+                }}
               >
                 <span className="text-white/40">{i + 1}.</span> {icon}{s.title || '(빈 슬라이드)'}
               </button>
             );
           })}
           <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
-            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'slide', sel)); setSel(sel + 1); }}>＋장</button>
-            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'quiz', sel)); setSel(sel + 1); }}>＋퀴즈</button>
-            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'poll', sel)); setSel(sel + 1); }}>＋투표</button>
+            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'slide', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋장</button>
+            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'quiz', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋퀴즈</button>
+            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'poll', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋투표</button>
           </div>
         </aside>
 
         {/* 중앙 편집 폼 */}
-        <main className="overflow-y-auto p-4">
-          <div className="mb-3 flex gap-2 text-sm">
+        <main className={`${activeTab === 'edit' ? 'block' : 'hidden'} lg:block overflow-y-auto p-4`}>
+          <div className="mb-3 flex flex-wrap gap-2 text-sm">
             <button className="btn-ghost px-2 py-1" onClick={() => { setDeck(movePage(deck, sel, -1)); setSel(Math.max(0, sel - 1)); }}>↑ 위로</button>
             <button className="btn-ghost px-2 py-1" onClick={() => { setDeck(movePage(deck, sel, 1)); setSel(Math.min(deck.slides.length - 1, sel + 1)); }}>↓ 아래로</button>
             <button className="btn-ghost px-2 py-1 text-down" onClick={() => { setDeck(deletePage(deck, sel)); setSel(Math.max(0, sel - 1)); }}>🗑 삭제</button>
@@ -431,7 +469,7 @@ export default function DeckEditor() {
         </main>
 
         {/* 우측 AI 조교 패널 */}
-        <aside className="flex flex-col border-l border-white/10 bg-white/5 overflow-hidden">
+        <aside className={`${activeTab === 'ai' ? 'flex' : 'hidden'} lg:flex flex-col border-l border-white/10 bg-white/5 overflow-hidden`}>
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5 bg-gradient-to-r from-brand/5 to-transparent">
             <div className="flex items-center gap-2">
               <span className="text-lg">✨</span>
@@ -610,6 +648,10 @@ function SlideForm({ slide, onChange }: { slide: Slide; onChange: (p: Partial<Sl
         <label className="block text-sm text-white/60">제목 (목록 표시용)
           <input className="input mt-1" value={slide.title ?? ''} maxLength={120} onChange={(e) => onChange({ title: e.target.value })} />
         </label>
+
+        <label className="block text-sm text-white/60">유튜브 동영상 링크 (선택)
+          <input className="input mt-1" placeholder="예: https://www.youtube.com/watch?v=..." value={slide.youtubeUrl ?? ''} onChange={(e) => onChange({ youtubeUrl: e.target.value })} />
+        </label>
         
         <label className="block text-sm text-white/60">강사 노트 (수업 중 본인에게만 표시)
           <textarea className="input mt-1 h-24" value={slide.notes ?? ''} maxLength={400} onChange={(e) => onChange({ notes: e.target.value })} />
@@ -623,6 +665,9 @@ function SlideForm({ slide, onChange }: { slide: Slide; onChange: (p: Partial<Sl
     <div className="space-y-3">
       <label className="block text-sm text-white/60">제목<input className="input mt-1" value={slide.title ?? ''} maxLength={120} onChange={(e) => onChange({ title: e.target.value })} /></label>
       <label className="block text-sm text-white/60">소제목<input className="input mt-1" value={slide.subtitle ?? ''} maxLength={160} onChange={(e) => onChange({ subtitle: e.target.value })} /></label>
+      <label className="block text-sm text-white/60">유튜브 동영상 링크 (선택)
+        <input className="input mt-1" placeholder="예: https://www.youtube.com/watch?v=..." value={slide.youtubeUrl ?? ''} onChange={(e) => onChange({ youtubeUrl: e.target.value })} />
+      </label>
       <label className="block text-sm text-white/60">내용(줄마다 하나)
         <textarea className="input mt-1 h-40" value={bulletsText} onChange={(e) => onChange({ blocks: e.target.value.split('\n').filter(Boolean).map((t) => ({ kind: 'bullet', text: t })) })} />
       </label>

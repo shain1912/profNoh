@@ -15,6 +15,22 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { supabase } from './db';
+
+async function getUserFromRequest(req: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.split(' ')[1];
+  if (!token) return null;
+  if (!supabase) return null;
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return null;
+    return user;
+  } catch {
+    return null;
+  }
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = resolve(here, '../../uploads');
@@ -87,7 +103,10 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const lastUser = [...(body.messages ?? [])].reverse().find((m) => m.role === 'user');
     const safety = checkSafety(lastUser?.content ?? '');
-    if (!safety.ok) return reply.code(400).send({ error: 'safety', message: safety.message });
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
     if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
@@ -120,7 +139,10 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
 
     const safety = checkSafety(body.prompt ?? '');
-    if (!safety.ok) return reply.code(400).send({ error: 'safety', message: safety.message });
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'image');
     if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
@@ -171,7 +193,10 @@ export async function registerRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'bad', message: '실습을 찾을 수 없어.' });
 
     const safety = checkSafety(body.input ?? '');
-    if (!safety.ok) return reply.code(400).send({ error: 'safety', message: safety.message });
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
     if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
@@ -196,15 +221,69 @@ export async function registerRoutes(app: FastifyInstance) {
     }
   });
 
+  // ── 회원가입 & 로그인 ──
+  app.post('/api/auth/signup', async (req, reply) => {
+    const body = (req.body ?? {}) as { email?: string; password?: string };
+    if (!body.email || !body.password) {
+      return reply.code(400).send({ error: 'bad', message: '이메일과 비밀번호를 입력해주세요.' });
+    }
+    if (!supabase) {
+      return reply.code(503).send({ error: 'bad', message: '데이터베이스가 비활성화되어 있습니다.' });
+    }
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: body.email,
+        password: body.password,
+      });
+      if (error) throw error;
+      return {
+        user: data.user,
+        session: data.session,
+      };
+    } catch (e: any) {
+      return reply.code(400).send({ error: 'bad', message: e.message ?? '회원가입 실패' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, reply) => {
+    const body = (req.body ?? {}) as { email?: string; password?: string };
+    if (!body.email || !body.password) {
+      return reply.code(400).send({ error: 'bad', message: '이메일과 비밀번호를 입력해주세요.' });
+    }
+    if (!supabase) {
+      return reply.code(503).send({ error: 'bad', message: '데이터베이스가 비활성화되어 있습니다.' });
+    }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: body.email,
+        password: body.password,
+      });
+      if (error) throw error;
+      return {
+        user: data.user,
+        session: data.session,
+      };
+    } catch (e: any) {
+      return reply.code(400).send({ error: 'bad', message: e.message ?? '로그인 실패' });
+    }
+  });
+
+  app.post('/api/auth/me', async (req, reply) => {
+    const user = await getUserFromRequest(req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized', message: '로그인이 필요합니다.' });
+    return { user: { email: user.email } };
+  });
+
   // ── 덱 저작(빌더) ──
 
   // 새 빈 덱 생성 → 코드+PIN 발급
   app.post('/api/decks', async (req, reply) => {
     const body = (req.body ?? {}) as { title?: string };
+    const user = await getUserFromRequest(req);
     const id = makeDeckId();
     const pin = makePin();
     const deck = blankDeck(id, (body.title ?? '').slice(0, 80) || '새 강의');
-    const ok = await insertDeckRow(deck, pin);
+    const ok = await insertDeckRow(deck, pin, user?.id);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장소(Supabase)가 꺼져 있어 덱을 저장할 수 없어요. (.env 확인)' });
     registerDeck(deck);
     const res: CreateDeckResponse = { deckId: id, editPin: pin };
@@ -215,18 +294,20 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/decks/generate', async (req, reply) => {
     const body = (req.body ?? {}) as GenerateDeckRequest;
     if (!body.topic || !body.topic.trim()) return reply.code(400).send({ error: 'bad', message: '주제를 입력해줘!' });
+    const user = await getUserFromRequest(req);
     const id = makeDeckId();
     const pin = makePin();
     const deck = await generateDeck(body, id);
-    const ok = await insertDeckRow(deck, pin);
+    const ok = await insertDeckRow(deck, pin, user?.id);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장소가 꺼져 있어 저장할 수 없어요. (.env 확인)' });
     registerDeck(deck);
     return { deckId: id, editPin: pin };
   });
 
   // 내 덱 요약 목록
-  app.get('/api/decks', async () => {
-    const list: DeckSummary[] = await listDeckRows();
+  app.get('/api/decks', async (req) => {
+    const user = await getUserFromRequest(req);
+    const list: DeckSummary[] = await listDeckRows(user?.id);
     return list;
   });
 
@@ -234,9 +315,17 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/decks/:id/edit', async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = (req.body ?? {}) as { editPin?: string };
+    const user = await getUserFromRequest(req);
+    const userId = user?.id;
+
     const row = await loadDeckRow(id);
     if (!row) return reply.code(404).send({ error: 'notfound', message: '덱을 찾을 수 없어요.' });
-    if (row.edit_pin !== (body.editPin ?? '')) return reply.code(403).send({ error: 'bad', message: '편집 암호가 달라요.' });
+
+    const isOwner = row.user_id && row.user_id === userId;
+    if (!isOwner && row.edit_pin !== (body.editPin ?? '')) {
+      return reply.code(403).send({ error: 'bad', message: '편집 암호가 달라요.' });
+    }
+
     const res: DeckEditResponse = { deck: row.data, title: row.title };
     return res;
   });
@@ -245,11 +334,20 @@ export async function registerRoutes(app: FastifyInstance) {
   app.put('/api/decks/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = (req.body ?? {}) as SaveDeckRequest;
+    const user = await getUserFromRequest(req);
+    const userId = user?.id;
+
     const row = await loadDeckRow(id);
     if (!row) return reply.code(404).send({ error: 'notfound', message: '덱을 찾을 수 없어요.' });
-    if (row.edit_pin !== (body.editPin ?? '')) return reply.code(403).send({ error: 'bad', message: '편집 암호가 달라요.' });
+
+    const isOwner = row.user_id && row.user_id === userId;
+    if (!isOwner && row.edit_pin !== (body.editPin ?? '')) {
+      return reply.code(403).send({ error: 'bad', message: '편집 권한이 없거나 암호가 다릅니다.' });
+    }
+
     const deck = validateDeck(body.deck, id);
-    const ok = await updateDeckRow(deck);
+    const targetUserId = row.user_id ? row.user_id : (userId || null);
+    const ok = await updateDeckRow(deck, targetUserId);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장에 실패했어요. 잠시 후 다시 시도해줘.' });
     registerDeck(deck);
     return { ok: true };
@@ -312,7 +410,8 @@ export async function registerRoutes(app: FastifyInstance) {
         activities: {},
       };
 
-      const ok = await insertDeckRow(deck, pin);
+      const user = await getUserFromRequest(req);
+      const ok = await insertDeckRow(deck, pin, user?.id);
       if (!ok) {
         return reply.code(503).send({ error: 'bad', message: 'DB에 덱을 저장하는 데 실패했습니다.' });
       }
@@ -428,6 +527,13 @@ ${pdfText}
     const p = c.getBySession(body.sessionId);
     if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
 
+    const lastUser = [...(body.messages ?? [])].reverse().find((m) => m.role === 'user');
+    const safety = checkSafety(lastUser?.content ?? '');
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
+
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'roleplay') {
       return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
@@ -462,6 +568,12 @@ ${pdfText}
     if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
     const p = c.getBySession(body.sessionId);
     if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+
+    const safety = checkSafety(body.topic ?? '');
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
 
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'analogy') {
@@ -519,6 +631,12 @@ ${pdfText}
     const p = c.getBySession(body.sessionId);
     if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
 
+    const safety = checkSafety(body.input ?? '');
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
+
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'writing') {
       return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
@@ -557,6 +675,12 @@ ${pdfText}
     const p = c.getBySession(body.sessionId);
     if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
 
+    const safety = checkSafety(body.input ?? '');
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
+
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'tutor') {
       return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
@@ -588,6 +712,247 @@ ${pdfText}
     } catch (e) {
       app.log.error(e);
       return reply.code(502).send({ error: 'bad', message: 'AI 응답에 실패했습니다.' });
+    }
+  });
+
+  // 강의실 리포트 API (강사 전용)
+  app.get('/api/classrooms/:id/report', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { secret } = req.query as { secret: string };
+    if (!supabase) {
+      return reply.code(503).send({ error: 'bad', message: '데이터베이스가 비활성화되어 있습니다.' });
+    }
+
+    try {
+      // 1. 강의실 조회 및 검증
+      const { data: classroom, error: classroomErr } = await supabase
+        .from('axedu_classrooms')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (classroomErr || !classroom) {
+        return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
+      }
+
+      if (classroom.instructor_secret !== secret) {
+        return reply.code(403).send({ error: 'unauthorized', message: '권한이 없습니다.' });
+      }
+
+      // 2. 덱 정보 로드
+      const deck = (await ensureDeckLoaded(classroom.deck_id)) ?? getDeck(classroom.deck_id);
+
+      // 3. 관련 데이터 병렬 조회
+      const [
+        { data: participants },
+        { data: quizResponses },
+        { data: pollResponses },
+        { data: aiUsages },
+        { data: labRuns }
+      ] = await Promise.all([
+        supabase.from('axedu_participants').select('*').eq('classroom_id', id),
+        supabase.from('axedu_quiz_responses').select('*').eq('classroom_id', id),
+        supabase.from('axedu_poll_responses').select('*').eq('classroom_id', id),
+        supabase.from('axedu_ai_usage').select('*').eq('classroom_id', id),
+        supabase.from('axedu_lab_runs').select('*').eq('classroom_id', id)
+      ]);
+
+      const parts = participants ?? [];
+      const quizzes = quizResponses ?? [];
+      const polls = pollResponses ?? [];
+      const usages = aiUsages ?? [];
+      const labs = labRuns ?? [];
+
+      const participantMap = new Map(parts.map((p) => [p.id, p]));
+
+      // 4. AI 사용량 집계
+      let totalCost = 0;
+      let safetyBlocks = 0;
+      const aiTypeCounts: Record<string, number> = {};
+
+      usages.forEach((u) => {
+        totalCost += Number(u.est_cost ?? 0);
+        if (u.type === 'blocked') {
+          safetyBlocks += 1;
+        } else {
+          aiTypeCounts[u.type] = (aiTypeCounts[u.type] || 0) + (u.units || 1);
+        }
+      });
+
+      // 참가자별 AI 사용량 요약
+      const participantAiMap: Record<string, { chat: number; image: number; analogy: number; roleplay: number; writing: number; tutor: number; cost: number }> = {};
+      usages.forEach((u) => {
+        if (!u.participant_id) return;
+        const part = participantMap.get(u.participant_id);
+        if (!part) return;
+        if (!participantAiMap[part.nickname]) {
+          participantAiMap[part.nickname] = { chat: 0, image: 0, analogy: 0, roleplay: 0, writing: 0, tutor: 0, cost: 0 };
+        }
+        const pData = participantAiMap[part.nickname];
+        if (u.type === 'chat') pData.chat += u.units;
+        else if (u.type === 'image') pData.image += u.units;
+        else if (u.type === 'analogy') pData.analogy += u.units;
+        else if (u.type === 'roleplay') pData.roleplay += u.units;
+        else if (u.type === 'writing') pData.writing += u.units;
+        else if (u.type === 'tutor') pData.tutor += u.units;
+        pData.cost += Number(u.est_cost ?? 0);
+      });
+
+      // 5. 퀴즈 결과 집계
+      const quizSummary: Record<string, any> = {};
+      if (deck) {
+        Object.values(deck.activities).forEach((act: any) => {
+          if (act.type === 'quiz') {
+            act.questions.forEach((q: any) => {
+              quizSummary[q.id] = {
+                questionText: q.question,
+                options: q.options,
+                correctIndex: q.correctIndex,
+                totalAnswers: 0,
+                correctAnswers: 0,
+                correctRate: 0,
+                answers: {},
+                studentDetails: []
+              };
+            });
+          }
+        });
+      }
+
+      quizzes.forEach((qr) => {
+        let qStat = quizSummary[qr.question_id];
+        if (!qStat) {
+          qStat = {
+            questionText: '삭제된 문제',
+            options: [],
+            correctIndex: -1,
+            totalAnswers: 0,
+            correctAnswers: 0,
+            correctRate: 0,
+            answers: {},
+            studentDetails: []
+          };
+          quizSummary[qr.question_id] = qStat;
+        }
+
+        qStat.totalAnswers += 1;
+        if (qr.is_correct) {
+          qStat.correctAnswers += 1;
+        }
+
+        const ansKey = qr.answer ?? '';
+        qStat.answers[ansKey] = (qStat.answers[ansKey] || 0) + 1;
+
+        const part = participantMap.get(qr.participant_id);
+        qStat.studentDetails.push({
+          nickname: part?.nickname ?? '알 수 없음',
+          answer: qr.answer,
+          isCorrect: qr.is_correct,
+          responseMs: qr.response_ms,
+          points: qr.points
+        });
+      });
+
+      Object.keys(quizSummary).forEach((qid) => {
+        const q = quizSummary[qid];
+        if (q.totalAnswers > 0) {
+          q.correctRate = Math.round((q.correctAnswers / q.totalAnswers) * 100);
+        }
+      });
+
+      // 6. 투표 결과 집계
+      const pollSummary: Record<string, any> = {};
+      if (deck) {
+        Object.values(deck.activities).forEach((act: any) => {
+          if (act.type === 'poll') {
+            pollSummary[act.id] = {
+              prompt: act.prompt,
+              mode: act.mode,
+              options: act.options ?? [],
+              totalVotes: 0,
+              votes: {},
+              studentDetails: []
+            };
+          }
+        });
+      }
+
+      polls.forEach((pr) => {
+        let pStat = pollSummary[pr.activity_id];
+        if (!pStat) {
+          pStat = {
+            prompt: '삭제된 투표',
+            mode: 'choice',
+            options: [],
+            totalVotes: 0,
+            votes: {},
+            studentDetails: []
+          };
+          pollSummary[pr.activity_id] = pStat;
+        }
+
+        pStat.totalVotes += 1;
+        const val = pr.value ?? '';
+        pStat.votes[val] = (pStat.votes[val] || 0) + 1;
+
+        const part = participantMap.get(pr.participant_id);
+        pStat.studentDetails.push({
+          nickname: part?.nickname ?? '알 수 없음',
+          value: val
+        });
+      });
+
+      // 7. 비교 실습(Lab) 집계
+      const labSummary = labs.map((l) => {
+        const part = participantMap.get(l.participant_id);
+        return {
+          nickname: part?.nickname ?? '알 수 없음',
+          labType: l.lab_type,
+          input: l.input,
+          config: l.config,
+          output: l.output,
+          createdAt: l.created_at
+        };
+      });
+
+      return {
+        classroom: {
+          id: classroom.id,
+          token: classroom.token,
+          deckId: classroom.deck_id,
+          title: classroom.title,
+          status: classroom.status,
+          createdAt: classroom.created_at
+        },
+        deckSummary: deck ? {
+          id: deck.id,
+          title: deck.title,
+          slideCount: deck.slides.length
+        } : null,
+        stats: {
+          totalParticipants: parts.length,
+          totalCost: Number(totalCost.toFixed(5)),
+          safetyBlocks,
+          aiTypeCounts
+        },
+        participants: parts.map((p) => ({
+          id: p.id,
+          nickname: p.nickname,
+          score: p.score,
+          joinedAt: p.joined_at
+        })),
+        quizSummary,
+        pollSummary,
+        labSummary,
+        participantAiUsages: Object.entries(participantAiMap).map(([nickname, data]) => ({
+          nickname,
+          ...data,
+          cost: Number(data.cost.toFixed(5))
+        }))
+      };
+    } catch (e) {
+      app.log.error(e);
+      return reply.code(500).send({ error: 'bad', message: '리포트 집계 중 서버 오류가 발생했습니다.' });
     }
   });
 }

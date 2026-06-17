@@ -125,6 +125,16 @@ function Block({ b }: { b: SlideBlock }) {
   }
 }
 
+function getYouTubeEmbedUrl(url?: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube.com/embed/${match[2]}`;
+  }
+  return null;
+}
+
 export default function SlideView({ slide, big = false }: { slide: Slide; big?: boolean }) {
   if (slide.layout === 'pdf' && slide.pdfUrl) {
     return (
@@ -137,6 +147,7 @@ export default function SlideView({ slide, big = false }: { slide: Slide; big?: 
   const isSection = slide.layout === 'section';
   const isTitle = slide.layout === 'title';
   const hasBlocks = !!slide.blocks?.length;
+  const embedUrl = getYouTubeEmbedUrl(slide.youtubeUrl);
 
   return (
     // 모든 슬라이드를 수직·수평 중앙 정렬 → 슬라이드 전환 시 위치가 튀지 않음
@@ -161,6 +172,19 @@ export default function SlideView({ slide, big = false }: { slide: Slide; big?: 
 
         {slide.subtitle && (
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-2 sm:text-2xl">{slide.subtitle}</p>
+        )}
+
+        {embedUrl && (
+          <div className="mx-auto mt-6 w-full max-w-2xl aspect-video rounded-2xl overflow-hidden shadow-lg border border-white/10 bg-black/40">
+            <iframe
+              src={embedUrl}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
         )}
 
         {hasBlocks && (

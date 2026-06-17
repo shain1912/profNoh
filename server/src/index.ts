@@ -34,7 +34,22 @@ async function main() {
 
   // 프로덕션: 빌드된 SPA 서빙 + 라우터 폴백
   if (existsSync(clientDist)) {
-    await app.register(fastifyStatic, { root: clientDist, prefix: '/' });
+    await app.register(fastifyStatic, {
+      root: clientDist,
+      prefix: '/',
+      wildcard: false,
+      cacheControl: false,
+      setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        } else {
+          // Vite hashed assets can be cached for 1 year
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    });
     app.setNotFoundHandler((req, reply) => {
       if (req.raw.url && req.raw.url.startsWith('/api')) {
         return reply.code(404).send({ error: 'notfound', message: 'API 경로 없음' });

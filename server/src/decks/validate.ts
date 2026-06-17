@@ -146,6 +146,7 @@ export function validateDeck(input: unknown, id: string): Deck {
       activityId,
       pdfUrl: s.pdfUrl ? clamp(s.pdfUrl, 300) : undefined,
       pageNumber: typeof s.pageNumber === 'number' ? s.pageNumber : undefined,
+      youtubeUrl: s.youtubeUrl ? clamp(s.youtubeUrl, 300) : undefined,
     };
   });
 
