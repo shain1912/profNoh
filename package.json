@@ -1,0 +1,23 @@
+{
+  "name": "ai-ax-edu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI/AX 교육 플랫폼 — 고등학생 대상 4시간 생성형 AI 특강 (강사 동기화 슬라이드 + 실습 + Kahoot형 퀴즈)",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm -w server run dev",
+    "dev:client": "npm -w client run dev",
+    "build": "npm -w client run build",
+    "start": "npm -w server run start"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "concurrently": "^9.1.0",
+    "playwright": "^1.60.0"
+  }
+}

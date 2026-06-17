@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: #0b0e11; /* canvas-dark */
+  color: #eaecef; /* body */
+  font-family: 'Pretendard', BinanceNova, system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 숫자(가격/점수/타이머)는 BinancePlex 대체 모노 */
+.num {
+  font-family: 'IBM Plex Mono', BinancePlex, ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* AI 응답 대기용 무한 진행바 (멈춘 게 아님을 보여줌) */
+@keyframes indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+.progress-indeterminate {
+  animation: indeterminate 1.2s ease-in-out infinite;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-semibold transition active:scale-95 disabled:opacity-40 disabled:active:scale-100;
+  }
+  /* 시그니처 CTA: 옐로우 배경 + 블랙 텍스트 */
+  .btn-primary {
+    @apply btn bg-brand text-on-brand hover:bg-brand-press;
+  }
+  .btn-ghost {
+    @apply btn bg-surface-2 text-body hover:bg-surface-2/70 ring-1 ring-hairline;
+  }
+  .btn-pill {
+    @apply btn rounded-full bg-brand text-on-brand hover:bg-brand-press px-8;
+  }
+  /* 카드: surface-card-dark + 헤어라인, 12px 라운드 */
+  .card {
+    @apply rounded-xl bg-surface ring-1 ring-hairline p-5;
+  }
+  .input {
+    @apply w-full rounded-lg bg-surface-2 px-4 py-3 text-body placeholder-muted outline-none ring-1 ring-hairline focus:ring-2 focus:ring-brand;
+  }
+  .chip {
+    @apply rounded-md bg-surface-2 px-3 py-2 text-sm text-body ring-1 ring-hairline hover:bg-surface-2/70;
+  }
+}

@@ -1,0 +1,55 @@
+#cloud-config
+# Oracle Cloud 컴퓨트(Ubuntu) 부팅 시 자동 실행 — Node/nginx/pm2 설치 + 방화벽 + 리버스 프록시
+package_update: true
+package_upgrade: false
+packages:
+  - nginx
+  - git
+  - iptables-persistent
+
+write_files:
+  - path: /etc/nginx/sites-available/axedu
+    permissions: '0644'
+    content: |
+      server {
+        listen 80 default_server;
+        server_name _;
+        client_max_body_size 12m;
+        location / {
+          proxy_pass http://127.0.0.1:8787;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_read_timeout 120s;
+        }
+      }
+
+runcmd:
+  - export DEBIAN_FRONTEND=noninteractive
+  # 스왑 2GB (1GB 마이크로 인스턴스 안정성)
+  - fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - bash -c 'echo "/swapfile none swap sw 0 0" >> /etc/fstab'
+  # Node 20 (NodeSource)
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+  - npm install -g pm2
+  # nginx 사이트 활성화
+  - ln -sf /etc/nginx/sites-available/axedu /etc/nginx/sites-enabled/axedu
+  - rm -f /etc/nginx/sites-enabled/default
+  - systemctl enable nginx
+  - systemctl restart nginx
+  # Oracle Ubuntu 이미지는 기본적으로 80/443을 막음(REJECT 규칙이 위에 있음).
+  # 위치에 의존하지 않도록: 기존 REJECT 제거 → ACCEPT 추가 → REJECT 다시 맨 끝에 추가
+  - iptables -D INPUT -j REJECT --reject-with icmp-host-prohibited 2>/dev/null || true
+  - iptables -A INPUT -p tcp -m state --state NEW --dport 80 -j ACCEPT
+  - iptables -A INPUT -p tcp -m state --state NEW --dport 443 -j ACCEPT
+  - iptables -A INPUT -p tcp -m state --state NEW --dport 8787 -j ACCEPT
+  - iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
+  - netfilter-persistent save
+  - mkdir -p /opt/axedu && chown ubuntu:ubuntu /opt/axedu

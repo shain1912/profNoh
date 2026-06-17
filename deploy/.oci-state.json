@@ -1,0 +1,13 @@
+{
+    "tenancy":  "ocid1.tenancy.oc1..aaaaaaaax47c2lsibzcy7i2ud2iwydrbro3pmxvv3ub62udur4456lehzlzq",
+    "region":  "ap-chuncheon-1",
+    "ad":  "CTOi:AP-CHUNCHEON-1-AD-1",
+    "image":  "ocid1.image.oc1.ap-chuncheon-1.aaaaaaaauvxjy5tclxvl5nz34arovhumdt37bctdqf23sjuqrlr24vuthkvq",
+    "vcn":  "ocid1.vcn.oc1.ap-chuncheon-1.amaaaaaa2bcjqaiaqzbfiy25ixdulsnwrvwgvldpfvtr54uzn4s56lt5rjfa",
+    "igw":  "ocid1.internetgateway.oc1.ap-chuncheon-1.aaaaaaaam6jrxboma643assttuessmofealk564p7p4vsl25ukgku6c7tmpa",
+    "routeTable":  "ocid1.routetable.oc1.ap-chuncheon-1.aaaaaaaans7pkf4pwk7d7poigabzg3dfpaioch6kw6qxor4c5bg3mq4odmbq",
+    "securityList":  "ocid1.securitylist.oc1.ap-chuncheon-1.aaaaaaaaqisllyhg3flth3conmkmlsw6doanjs7lxn7p6rilqyir2us6fgya",
+    "subnet":  "ocid1.subnet.oc1.ap-chuncheon-1.aaaaaaaafhk5wzvvhueaqt7xrlke4jmqbfp3g2m4v6kh2yzn2zhwanix3iiq",
+    "instance":  "ocid1.instance.oc1.ap-chuncheon-1.an4w4ljr2bcjqaic5mezwbybpdtuipw6yyggktoivwgzse5f622omwbnry4q",
+    "publicIp":  "168.107.44.248"
+}
