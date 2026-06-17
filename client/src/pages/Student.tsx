@@ -10,6 +10,10 @@ import ImageActivity from '../components/activities/ImageActivity';
 import LabActivity from '../components/activities/LabActivity';
 import QuizStudent from '../components/activities/QuizStudent';
 import PollStudent from '../components/activities/PollStudent';
+import RoleplayStudent from '../components/activities/RoleplayStudent';
+import AnalogyStudent from '../components/activities/AnalogyStudent';
+import WritingStudent from '../components/activities/WritingStudent';
+import TutorStudent from '../components/activities/TutorStudent';
 
 export default function Student() {
   const [params] = useSearchParams();
@@ -111,6 +115,39 @@ function ActivityArea({
           activity={act}
           dist={live.polls[act.id] ?? null}
           onVote={(v) => live.socket.emit('student:pollVote', { activityId: act.id, value: v })}
+        />,
+      );
+    case 'roleplay':
+      return wrap(
+        <RoleplayStudent
+          activity={act}
+          token={token}
+          sessionId={sessionId}
+          socket={live.socket}
+        />,
+      );
+    case 'analogy':
+      return wrap(
+        <AnalogyStudent
+          activity={act}
+          token={token}
+          sessionId={sessionId}
+        />,
+      );
+    case 'writing':
+      return wrap(
+        <WritingStudent
+          activity={act}
+          token={token}
+          sessionId={sessionId}
+        />,
+      );
+    case 'tutor':
+      return wrap(
+        <TutorStudent
+          activity={act}
+          token={token}
+          sessionId={sessionId}
         />,
       );
     default:

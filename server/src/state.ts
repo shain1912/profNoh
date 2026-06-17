@@ -46,6 +46,7 @@ export class ClassroomState {
   private quizStartAt = 0;
   private pollAnswers = new Map<string, Map<string, string>>(); // activityId -> (sessionId -> value)
   private usage = new Map<string, number>(); // `${sessionId}|${activityId}|${type}` -> count
+  private roleplayClears = new Set<string>(); // `${sessionId}|${activityId}`
   budgetSpent = 0;
 
   settings = {
@@ -226,6 +227,19 @@ export class ClassroomState {
     const counts: Record<string, number> = {};
     for (const v of map.values()) counts[v] = (counts[v] ?? 0) + 1;
     return { counts, total: map.size };
+  }
+
+  // ── 역할극 미션 완료 ──
+  clearRoleplay(sessionId: string, activityId: string): boolean {
+    const key = `${sessionId}|${activityId}`;
+    if (this.roleplayClears.has(key)) return false;
+    this.roleplayClears.add(key);
+    const p = this.participants.get(sessionId);
+    if (p) {
+      p.score += 500; // 미션 성공 보너스 500점
+      return true;
+    }
+    return false;
   }
 
   // ── 쿼터 / 예산 ──

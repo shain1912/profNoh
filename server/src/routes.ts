@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomResponse, GenerateDeckRequest } from '../../shared/types';
+import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomResponse, GenerateDeckRequest, Deck } from '../../shared/types';
 import { createClassroom, getByToken } from './state';
 import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck } from './decks';
 import { validateDeck, blankDeck, makeDeckId, makePin } from './decks/validate';
@@ -11,6 +11,34 @@ import { generateImage } from './ai/stability';
 import { runLab } from './ai/lab';
 import { generateDeck } from './ai/generateDeck';
 import { persistClassroom, persistUsage, persistLabRun } from './persist';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const uploadsDir = resolve(here, '../../uploads');
+
+function getPdfPageCount(buffer: Buffer): number {
+  const data = buffer.toString('binary');
+  const matches = data.match(/\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/);
+  if (matches && matches[1]) {
+    return parseInt(matches[1], 10);
+  }
+  const countMatches = data.match(/\/Count\s*(\d+)/g);
+  if (countMatches) {
+    let maxCount = 1;
+    for (const m of countMatches) {
+      const numMatch = m.match(/\d+/);
+      if (numMatch) {
+        const count = parseInt(numMatch[0], 10);
+        if (count > maxCount) maxCount = count;
+      }
+    }
+    return maxCount;
+  }
+  return 1;
+}
 
 export async function registerRoutes(app: FastifyInstance) {
   // 헬스체크
@@ -225,5 +253,341 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장에 실패했어요. 잠시 후 다시 시도해줘.' });
     registerDeck(deck);
     return { ok: true };
+  });
+
+  // 업로드된 파일 다운로드/조회
+  app.get('/api/uploads/:filename', async (req, reply) => {
+    const { filename } = req.params as { filename: string };
+    const filePath = resolve(uploadsDir, filename);
+    if (!existsSync(filePath)) {
+      return reply.code(404).send({ error: 'notfound', message: '파일을 찾을 수 없습니다.' });
+    }
+    const buffer = readFileSync(filePath);
+    if (filename.endsWith('.pdf')) {
+      reply.header('Content-Type', 'application/pdf');
+    }
+    return reply.send(buffer);
+  });
+
+  // PDF 파일 업로드 및 덱 생성
+  app.post('/api/decks/upload-pdf', async (req, reply) => {
+    const body = (req.body ?? {}) as { filename: string; base64: string };
+    if (!body.filename || !body.base64) {
+      return reply.code(400).send({ error: 'bad', message: '파일명과 파일 데이터가 필요합니다.' });
+    }
+    if (!body.filename.toLowerCase().endsWith('.pdf')) {
+      return reply.code(400).send({ error: 'bad', message: 'PDF 파일만 업로드할 수 있습니다.' });
+    }
+
+    try {
+      const filename = `${randomUUID()}.pdf`;
+      const filePath = resolve(uploadsDir, filename);
+      const buffer = Buffer.from(body.base64, 'base64');
+      writeFileSync(filePath, buffer);
+
+      const pageCount = getPdfPageCount(buffer);
+      const deckId = makeDeckId();
+      const pin = makePin();
+      
+      const deckTitle = body.filename.replace(/\.[^/.]+$/, "").slice(0, 80);
+      const slides = [];
+      for (let i = 1; i <= pageCount; i++) {
+        slides.push({
+          id: `s_${Math.random().toString(36).slice(2, 10)}`,
+          part: 1,
+          partTitle: 'PDF 슬라이드',
+          layout: 'pdf' as const,
+          title: `${i}페이지`,
+          pdfUrl: `/api/uploads/${filename}`,
+          pageNumber: i,
+          blocks: [],
+          notes: '',
+        });
+      }
+
+      const deck: Deck = {
+        id: deckId,
+        title: deckTitle || 'PDF 강의',
+        slides,
+        activities: {},
+      };
+
+      const ok = await insertDeckRow(deck, pin);
+      if (!ok) {
+        return reply.code(503).send({ error: 'bad', message: 'DB에 덱을 저장하는 데 실패했습니다.' });
+      }
+      registerDeck(deck);
+
+      return { deckId, editPin: pin };
+    } catch (e: any) {
+      app.log.error(e);
+      return reply.code(500).send({ error: 'bad', message: 'PDF 파일 처리 중 오류가 발생했습니다.' });
+    }
+  });
+
+  // AI 강의 제작 조교 에이전트 대화
+  app.post('/api/decks/chat-agent', async (req, reply) => {
+    const body = (req.body ?? {}) as {
+      messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+      deck: Deck;
+      pdfText?: string;
+    };
+
+    if (!body.messages || !Array.isArray(body.messages)) {
+      return reply.code(400).send({ error: 'bad', message: '대화 내역(messages)이 유효하지 않습니다.' });
+    }
+
+    const deck = body.deck;
+    const pdfText = body.pdfText ?? '추출된 PDF 텍스트가 없습니다.';
+
+    const systemPrompt = `너는 강사의 강의 자료 제작 및 보강을 돕는 유능한 'AI 교수 조교' 에이전트야.
+현재 편집 중인 강의 자료(Deck) 정보와 업로드된 PDF 슬라이드의 텍스트 내용이 제공되어 있어.
+
+[현재 강의 자료 정보]
+- 제목: ${deck.title}
+- 현재 슬라이드 목록:
+${deck.slides.map((s, idx) => `  ${idx + 1}. [ID: ${s.id}] layout: ${s.layout}, title: "${s.title ?? ''}", activityId: "${s.activityId ?? ''}"`).join('\n')}
+
+[업로드된 PDF 내용]
+${pdfText}
+
+[중요 지시사항]
+1. 강사의 요청에 따라 강의 자료에 퀴즈(Quiz), 투표(Poll), 역할극(Roleplay), 비유(Analogy), 문학창작(Writing), 튜터(Tutor) 실습 슬라이드를 추가할 수 있어.
+2. 실습 슬라이드를 추가하려면 답변 끝부분에 반드시 \`\`\`json ... \`\`\` 마크다운 코드 블록 형태로 변경 명령(operations) 목록을 작성해 줘.
+3. 슬라이드 뒤에 추가할 위치를 나타내는 'afterSlideIndex'는 0부터 시작하는 슬라이드 인덱스야. (예: 1번째 슬라이드 뒤는 afterSlideIndex: 0)
+4. 각 활동(activity)의 스키마 규칙:
+   - 퀴즈(type: "add_quiz"): activity 내부에 title, questions(배열)를 가져야 해. 각 질문은 question, options(2~4개), correctIndex(정답 번호), timeLimitSec(제한시간), explanation(해설)을 가져야 해.
+   - 투표(type: "add_poll"): activity 내부에 title, prompt, mode("choice" 또는 "wordcloud"), options(choice인 경우 보기 배열)를 가져야 해.
+   - 역할극(type: "add_roleplay"): activity 내부에 title, intro, systemPrompt, missionKeyword(성공 조건 단어), missionDescription(미션 가이드)을 가져야 해.
+   - 비유대조(type: "add_analogy"): activity 내부에 title, intro, topicPlaceholder(힌트), personaA, personaB를 가져야 해.
+   - 문학창작(type: "add_writing"): activity 내부에 title, intro, genre("poem" | "story" | "essay"), promptPlaceholder를 가져야 해.
+   - AI튜터(type: "add_tutor"): activity 내부에 title, intro, subject("math" | "coding" | "general"), taskDescription을 가져야 해.
+5. 한국 고등학생 대상 수업이므로, 실습 구성 및 질문은 PDF 텍스트 내용을 바탕으로 흥미롭고 유익하며 너무 난해하지 않은 수준으로 생성해줘.
+6. 친근하고 공손하게 존댓말로 설명하되, 변경 명령은 예시 JSON 포맷을 완벽하게 준수해서 작성해야 해.
+
+[변경 명령 JSON 예시]
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "add_quiz",
+      "afterSlideIndex": 2,
+      "activity": {
+        "title": "인공지능 윤리 퀴즈",
+        "questions": [
+          {
+            "question": "다음 중 생성형 AI 사용 시 저작권 침해 우려가 없는 행동은?",
+            "options": [
+              "남의 소설을 복사하여 내 책으로 출판하기",
+              "상업용 폰트를 무단 배포하기",
+              "오픈 소스 무료 사용 허가(라이선스) 범위 안에서 코드를 활용하기",
+              "허락 없이 인기 음악을 유튜브 배경음으로 사용하기"
+            ],
+            "correctIndex": 2,
+            "timeLimitSec": 20,
+            "explanation": "오픈 소스의 경우 정해진 라이선스 허용 범위 내에서 정당하게 활용하면 저작권 침해 우려가 없습니다."
+          }
+        ]
+      }
+    },
+    {
+      "type": "add_roleplay",
+      "afterSlideIndex": 4,
+      "activity": {
+        "title": "세종대왕 한글 창제 역할극",
+        "intro": "세종대왕을 설득해 보세요.",
+        "systemPrompt": "너는 조선의 국왕 세종대왕이다. 한글 창제를 반대하는 주장에 맞서, 백성들을 향한 애민정신과 한글의 과학적 이점을 설명하라.",
+        "missionKeyword": "애민정신",
+        "missionDescription": "대화 중 세종대왕이 한글의 창제 이면에 담긴 '애민정신'이라는 단어를 말하도록 유도하세요."
+      }
+    }
+  ]
+}
+\`\`\``;
+
+    // Prepend or replace the system message
+    const formattedMessages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...body.messages.filter((m) => m.role !== 'system')
+    ];
+
+    try {
+      const { text } = await chatComplete(formattedMessages, { temperature: 0.6, maxTokens: 2048 });
+      return { text };
+    } catch (e: any) {
+      app.log.error(e);
+      return reply.code(502).send({ error: 'bad', message: 'AI 조교 응답에 실패했습니다.' });
+    }
+  });
+
+  // AI 역할극 API
+  app.post('/api/ai/roleplay', async (req, reply) => {
+    const body = req.body as { token: string; sessionId: string; activityId: string; messages: any[] };
+    const c = getByToken(body.token);
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    const p = c.getBySession(body.sessionId);
+    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+
+    const act = getActivity(c.deckId, body.activityId);
+    if (!act || act.type !== 'roleplay') {
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+    }
+
+    const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
+    if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
+
+    const sys = [
+      { role: 'system' as const, content: `${act.systemPrompt}\n\n[미션 지침] 당신은 대화 중 학생이 특정 조건을 완료하도록 유도해야 합니다. 단, 인위적으로 정답 키워드를 알려주지 마세요. 학생의 미션: ${act.missionDescription}` }
+    ];
+    const history = (body.messages ?? []).slice(-10);
+
+    try {
+      const { text, cost } = await chatComplete([...sys, ...history]);
+      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.addCost(cost);
+      persistUsage(c, p.id, 'roleplay', 1, cost);
+
+      const cleared = act.missionKeyword && text.toLowerCase().includes(act.missionKeyword.toLowerCase());
+      return { reply: text, missionClear: cleared };
+    } catch (e) {
+      app.log.error(e);
+      return reply.code(502).send({ error: 'bad', message: 'AI 조교 응답에 실패했습니다.' });
+    }
+  });
+
+  // 눈높이 비유 API
+  app.post('/api/ai/analogy', async (req, reply) => {
+    const body = req.body as { token: string; sessionId: string; activityId: string; topic: string };
+    const c = getByToken(body.token);
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    const p = c.getBySession(body.sessionId);
+    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+
+    const act = getActivity(c.deckId, body.activityId);
+    if (!act || act.type !== 'analogy') {
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+    }
+
+    const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
+    if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
+
+    const sys = [
+      {
+        role: 'system' as const,
+        content: `너는 개념을 대조적으로 재미있게 설명해 주는 비유 학습 튜터야.
+사용자가 용어나 개념을 입력하면, 다음 두 가지 캐릭터의 눈높이에 맞춰 친근한 비유로 설명해 줘.
+
+캐릭터 A: ${act.personaA}
+캐릭터 B: ${act.personaB}
+
+답변은 반드시 아래의 JSON 형식으로만 응답해줘. 다른 텍스트는 일체 포함하지 마.
+{
+  "explanationA": "A 캐릭터의 3줄 비유 설명",
+  "explanationB": "B 캐릭터의 3줄 비유 설명"
+}`
+      }
+    ];
+
+    try {
+      const { text, cost } = await chatComplete([...sys, { role: 'user', content: body.topic }], { temperature: 0.7 });
+      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.addCost(cost);
+      persistUsage(c, p.id, 'analogy', 1, cost);
+
+      let explanationA = '비유를 생성할 수 없습니다.';
+      let explanationB = '비유를 생성할 수 없습니다.';
+      try {
+        const parsed = JSON.parse(text.replace(/```json\s*|\s*```/g, '').trim());
+        explanationA = parsed.explanationA;
+        explanationB = parsed.explanationB;
+      } catch {
+        explanationA = text;
+      }
+
+      return { explanationA, explanationB };
+    } catch (e) {
+      app.log.error(e);
+      return reply.code(502).send({ error: 'bad', message: 'AI 응답에 실패했습니다.' });
+    }
+  });
+
+  // 문학 창작 API
+  app.post('/api/ai/writing', async (req, reply) => {
+    const body = req.body as { token: string; sessionId: string; activityId: string; input: string; genre: string };
+    const c = getByToken(body.token);
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    const p = c.getBySession(body.sessionId);
+    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+
+    const act = getActivity(c.deckId, body.activityId);
+    if (!act || act.type !== 'writing') {
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+    }
+
+    const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
+    if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
+
+    const genreText = body.genre === 'poem' ? '감성적이고 운율이 있는 짧은 시' : body.genre === 'story' ? '기승전결이 있는 흥미로운 극적 초단편 소설' : '자신의 생각을 논리적이고 친근하게 풀어낸 에세이 수필';
+    const sys = [
+      {
+        role: 'system' as const,
+        content: `너는 청소년을 위한 문학 창작을 돕는 감성 풍부한 AI 작가야.
+사용자가 주제 키워드나 첫 문장을 입력하면, 그에 어울리는 아름다운 ${genreText}를 지어줘.
+가독성이 좋게 적당한 줄바꿈을 포함하되 너무 길지 않게 250자 내외로 창작해 줘. 존댓말로 친근하게 인사말은 덧붙이지 말고 작품 본문만 즉시 작성해.`
+      }
+    ];
+
+    try {
+      const { text, cost } = await chatComplete([...sys, { role: 'user', content: body.input }], { temperature: 0.8 });
+      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.addCost(cost);
+      persistUsage(c, p.id, 'writing', 1, cost);
+      return { output: text };
+    } catch (e) {
+      app.log.error(e);
+      return reply.code(502).send({ error: 'bad', message: 'AI 응답에 실패했습니다.' });
+    }
+  });
+
+  // AI 튜터 API
+  app.post('/api/ai/tutor', async (req, reply) => {
+    const body = req.body as { token: string; sessionId: string; activityId: string; input: string };
+    const c = getByToken(body.token);
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    const p = c.getBySession(body.sessionId);
+    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+
+    const act = getActivity(c.deckId, body.activityId);
+    if (!act || act.type !== 'tutor') {
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+    }
+
+    const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
+    if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
+
+    const subjectText = act.subject === 'math' ? '수학 문제 풀이' : act.subject === 'coding' ? '프로그래밍 코드' : '학습 문제';
+    const sys = [
+      {
+        role: 'system' as const,
+        content: `너는 학생의 자기주도적 문제 해결을 돕는 친절한 AI 소크라테스 튜터야.
+학생이 ${subjectText}에 관한 문제나 풀이, 코드 질문을 제출할 거야.
+
+[절대 규칙]
+1. 정답이나 올바른 소스 코드를 직접 제공해서는 안 돼.
+2. 어느 부분에 오류가 있거나, 어떤 공식을/원리를 적용해야 하는지 단계별 생각할 수 있는 '힌트'나 '가이드 질문'만 3줄 이내로 대답해줘.
+3. 존댓말로 친절하게 조언해 줘.`
+      }
+    ];
+
+    try {
+      const { text, cost } = await chatComplete([...sys, { role: 'user', content: body.input }], { temperature: 0.5 });
+      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.addCost(cost);
+      persistUsage(c, p.id, 'tutor', 1, cost);
+      return { hint: text };
+    } catch (e) {
+      app.log.error(e);
+      return reply.code(502).send({ error: 'bad', message: 'AI 응답에 실패했습니다.' });
+    }
   });
 }

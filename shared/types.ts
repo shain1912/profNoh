@@ -2,7 +2,7 @@
 
 // ───────────────────────── 콘텐츠(덱) ─────────────────────────
 
-export type SlideLayout = 'title' | 'section' | 'content' | 'big' | 'twocol';
+export type SlideLayout = 'title' | 'section' | 'content' | 'big' | 'twocol' | 'pdf';
 
 export interface SlideBlock {
   kind: 'h' | 'p' | 'bullet' | 'note' | 'quote' | 'callout';
@@ -19,9 +19,11 @@ export interface Slide {
   blocks?: SlideBlock[];
   notes?: string;            // 강사 노트
   activityId?: string;       // 이 슬라이드에 연결된 활동
+  pdfUrl?: string;           // PDF 파일 경로 (layout === 'pdf')
+  pageNumber?: number;       // PDF 페이지 번호 (layout === 'pdf')
 }
 
-export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll';
+export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor';
 
 export interface ChatActivity {
   type: 'chat';
@@ -79,12 +81,54 @@ export interface PollActivity {
   options?: string[];        // mode==='choice' 일 때
 }
 
+export interface RoleplayActivity {
+  type: 'roleplay';
+  id: string;
+  title: string;
+  intro?: string;
+  systemPrompt: string;
+  missionKeyword: string;
+  missionDescription: string;
+}
+
+export interface AnalogyActivity {
+  type: 'analogy';
+  id: string;
+  title: string;
+  intro?: string;
+  topicPlaceholder?: string;
+  personaA: string;
+  personaB: string;
+}
+
+export interface WritingActivity {
+  type: 'writing';
+  id: string;
+  title: string;
+  intro?: string;
+  genre: 'poem' | 'story' | 'essay';
+  promptPlaceholder?: string;
+}
+
+export interface TutorActivity {
+  type: 'tutor';
+  id: string;
+  title: string;
+  intro?: string;
+  subject: 'math' | 'coding' | 'general';
+  taskDescription: string;
+}
+
 export type Activity =
   | ChatActivity
   | ImageActivity
   | LabActivity
   | QuizActivity
-  | PollActivity;
+  | PollActivity
+  | RoleplayActivity
+  | AnalogyActivity
+  | WritingActivity
+  | TutorActivity;
 
 export interface Deck {
   id: string;
@@ -174,6 +218,7 @@ export interface ClientToServerEvents {
   'instructor:quizReveal': () => void;
   'student:quizAnswer': (p: { questionId: string; optionIndex: number }) => void;
   'student:pollVote': (p: { activityId: string; value: string }) => void;
+  'student:roleplayClear': (p: { activityId: string }) => void;
   'instructor:panic': (p: { action: 'pause' | 'resume' }) => void;
   'viewer:join': (p: { token: string }) => void;
 }
@@ -252,4 +297,5 @@ export interface GenerateDeckRequest {
   parts?: number;
   quizPerPart?: number;
   tone?: string;
+  activities?: ('roleplay' | 'analogy' | 'writing' | 'tutor')[];
 }

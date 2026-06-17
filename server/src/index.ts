@@ -4,16 +4,25 @@ import fastifyCors from '@fastify/cors';
 import { Server as SocketIOServer } from 'socket.io';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { env, hasSupabase, hasMiniMax, hasStability } from './env';
 import { registerRoutes } from './routes';
 import { setupSocket } from './socket';
 
 const here = dirname(fileURLToPath(import.meta.url)); // server/src
 const clientDist = resolve(here, '../../client/dist');
+const uploadsDir = resolve(here, '../../uploads');
+
+// Ensure uploads directory exists
+if (!existsSync(uploadsDir)) {
+  mkdirSync(uploadsDir, { recursive: true });
+}
 
 async function main() {
-  const app = Fastify({ logger: { level: 'info', transport: undefined } });
+  const app = Fastify({
+    logger: { level: 'info', transport: undefined },
+    bodyLimit: 50 * 1024 * 1024, // 50MB limit to support large PDF uploads
+  });
 
   await app.register(fastifyCors, {
     origin: env.CLIENT_ORIGIN ? [env.CLIENT_ORIGIN] : true,

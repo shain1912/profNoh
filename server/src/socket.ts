@@ -171,6 +171,22 @@ export function setupSocket(io: IO) {
       if (p) persistPoll(c, p, activityId, value);
     });
 
+    // ── 학생: 역할극 미션 완료 ──
+    socket.on('student:roleplayClear', ({ activityId }) => {
+      const c = getByToken(socket.data.token ?? '');
+      const sid = socket.data.sessionId;
+      if (!c || !sid) return;
+      const success = c.clearRoleplay(sid, activityId);
+      if (success) {
+        const p = c.getBySession(sid);
+        if (p) {
+          persistScore(c, p);
+          broadcastLeaderboard(c);
+          socket.emit('joined', { participantId: p.id, sessionId: p.sessionId, nickname: p.nickname, score: p.score });
+        }
+      }
+    });
+
     socket.on('disconnect', () => {
       const c = getByToken(socket.data.token ?? '');
       if (c && socket.data.role === 'student') broadcastParticipants(c);

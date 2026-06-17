@@ -1,4 +1,99 @@
 import type { Slide, SlideBlock } from '@shared/types';
+import { useEffect, useRef, useState } from 'react';
+
+function PdfSlideView({ pdfUrl, pageNumber }: { pdfUrl: string; pageNumber: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const renderPage = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const pdfjsLib = (window as any).pdfjsLib;
+        if (!pdfjsLib) {
+          throw new Error('PDF 라이브러리를 로드하지 못했습니다.');
+        }
+
+        // Set worker source
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+        if (!active) return;
+
+        const page = await pdf.getPage(pageNumber);
+        if (!active) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const containerWidth = container.clientWidth || 800;
+        const containerHeight = container.clientHeight || 550;
+
+        const scaleWidth = containerWidth / unscaledViewport.width;
+        const scaleHeight = containerHeight / unscaledViewport.height;
+        const scale = Math.min(scaleWidth, scaleHeight, 2.0); // Max scale 2.0 for quality
+
+        const viewport = page.getViewport({ scale });
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        await page.render(renderContext).promise;
+        if (active) setLoading(false);
+      } catch (err: any) {
+        console.error('PDF render error:', err);
+        if (active) {
+          setError(err.message || 'PDF 페이지를 가져올 수 없습니다.');
+          setLoading(false);
+        }
+      }
+    };
+
+    // Delay a bit to let clientWidth/clientHeight settle
+    const timer = setTimeout(() => {
+      renderPage();
+    }, 100);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [pdfUrl, pageNumber]);
+
+  return (
+    <div ref={containerRef} className="relative flex h-full w-full items-center justify-center bg-black/10 overflow-hidden min-h-[300px]">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center text-white/50 bg-black/20">
+          페이지 로딩 중… ⏳
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center text-red-400 bg-black/20 p-4 text-center">
+          ⚠️ {error}
+        </div>
+      )}
+      <canvas ref={canvasRef} className="max-h-full max-w-full object-contain shadow-md rounded" />
+    </div>
+  );
+}
 
 function Block({ b }: { b: SlideBlock }) {
   switch (b.kind) {
@@ -31,6 +126,14 @@ function Block({ b }: { b: SlideBlock }) {
 }
 
 export default function SlideView({ slide, big = false }: { slide: Slide; big?: boolean }) {
+  if (slide.layout === 'pdf' && slide.pdfUrl) {
+    return (
+      <div className="h-full w-full overflow-hidden flex flex-col justify-center items-center">
+        <PdfSlideView pdfUrl={slide.pdfUrl} pageNumber={slide.pageNumber ?? 1} />
+      </div>
+    );
+  }
+
   const isSection = slide.layout === 'section';
   const isTitle = slide.layout === 'title';
   const hasBlocks = !!slide.blocks?.length;
