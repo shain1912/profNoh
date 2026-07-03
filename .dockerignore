@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+dist
+client/dist
+uploads
+.git
+.env
+.env.local
+*.log
+shots
+.agents

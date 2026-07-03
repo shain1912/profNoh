@@ -96,7 +96,7 @@ export default function Build() {
   }, [user]);
 
   const handleGoogleLogin = () => {
-    window.location.href = `https://okgzkzeadjkcgfowugaf.supabase.co/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/build')}`;
+    window.location.href = `https://supabase-axedu.kodekorea.kr/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/build')}`;
   };
 
   const handleLogout = () => {
