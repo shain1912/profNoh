@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createDeck, generateDeck, getMyDecks, rememberDeck, listDecks, getPin, deleteDeck, forgetDeck } from '../lib/buildApi';
+import { createDeck, generateDeck, rememberDeck, listDecks, getPin, deleteDeck, forgetDeck } from '../lib/buildApi';
+import { useUser } from '../components/AuthGate';
 import { apiPost } from '../lib/api';
 
 const TOPIC_CHIPS = ['생성형 AI 입문', 'AI 윤리와 안전', '프롬프트 기초', 'AI와 진로', '딥러닝 쉽게 이해하기'];
@@ -31,7 +32,7 @@ const EXAMPLE_CHIPS = [
 
 export default function Build() {
   const nav = useNavigate();
-  const mine = getMyDecks();
+  const { user, signOut } = useUser();
 
   const [dbDecks, setDbDecks] = useState<any[]>([]);
 
@@ -39,18 +40,8 @@ export default function Build() {
     listDecks().then(setDbDecks).catch(() => {});
   }, []);
 
-  const mergedDecks = [...dbDecks];
-  mine.forEach((m) => {
-    if (!mergedDecks.some((d) => d.id === m.deckId)) {
-      mergedDecks.push({
-        id: m.deckId,
-        title: m.title,
-        slideCount: 0,
-        updatedAt: '',
-        isLocalOnly: true,
-      });
-    }
-  });
+  // Phase 1: 목록은 서버(내 계정의 덱)만 신뢰. localStorage는 편집 PIN 기억용으로만 사용.
+  const mergedDecks = dbDecks;
 
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
@@ -161,9 +152,15 @@ export default function Build() {
 
   return (
     <div className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-extrabold">강의 만들기 🛠️</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-extrabold">강의 만들기 🛠️</h1>
+        <div className="flex items-center gap-2 text-xs text-white/50">
+          <span className="max-w-[160px] truncate">{user.name ?? user.email}</span>
+          <button className="rounded bg-white/10 px-2 py-1 hover:bg-white/20" onClick={signOut}>로그아웃</button>
+        </div>
+      </div>
       <p className="mt-2 text-xs text-white/50">
-        로그인 없이 바로 만들 수 있어요. 만든 강의는 서버에 저장되어 어느 컴퓨터에서든 목록에서 바로 열어 쓸 수 있습니다.
+        만든 강의는 내 계정에 저장되어 어느 컴퓨터에서든 로그인하면 바로 열어 쓸 수 있습니다.
       </p>
 
       {/* AI 생성 */}

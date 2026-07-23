@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomResponse, GenerateDeckRequest, Deck } from '../../shared/types';
 import { createClassroom, getByToken } from './state';
+import { getSessionUser } from './auth/session';
 import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck, unregisterDeck } from './decks';
 import { validateDeck, blankDeck, makeDeckId, makePin } from './decks/validate';
 import { loadDeckRow, insertDeckRow, updateDeckRow, deleteDeckRow, listDeckRows } from './decks/store';
@@ -207,15 +208,17 @@ export async function registerRoutes(app: FastifyInstance) {
     }
   });
 
-  // ── 덱 저작(빌더) ──
+  // ── 덱 저작(빌더) — Phase 1부터 로그인 필수, 덱은 소유자에게 귀속 ──
 
   // 새 빈 덱 생성 → 코드+PIN 발급
   app.post('/api/decks', async (req, reply) => {
+    const user = await getSessionUser(req);
+    if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     const body = (req.body ?? {}) as { title?: string };
     const id = makeDeckId();
     const pin = makePin();
     const deck = blankDeck(id, (body.title ?? '').slice(0, 80) || '새 강의');
-    const ok = await insertDeckRow(deck, pin);
+    const ok = await insertDeckRow(deck, pin, user.id);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장소(Supabase)가 꺼져 있어 덱을 저장할 수 없어요. (.env 확인)' });
     registerDeck(deck);
     const res: CreateDeckResponse = { deckId: id, editPin: pin };
@@ -224,20 +227,24 @@ export async function registerRoutes(app: FastifyInstance) {
 
   // AI 생성: 주제 → 초안 덱 생성 후 저장
   app.post('/api/decks/generate', async (req, reply) => {
+    const user = await getSessionUser(req);
+    if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     const body = (req.body ?? {}) as GenerateDeckRequest;
     if (!body.topic || !body.topic.trim()) return reply.code(400).send({ error: 'bad', message: '주제를 입력해줘!' });
     const id = makeDeckId();
     const pin = makePin();
     const deck = await generateDeck(body, id);
-    const ok = await insertDeckRow(deck, pin);
+    const ok = await insertDeckRow(deck, pin, user.id);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장소가 꺼져 있어 저장할 수 없어요. (.env 확인)' });
     registerDeck(deck);
     return { deckId: id, editPin: pin };
   });
 
-  // 강의 목록 (로그인 없이 공유) — 누구나 만든 강의를 어느 컴퓨터에서든 볼 수 있음
-  app.get('/api/decks', async () => {
-    const list: DeckSummary[] = await listDeckRows();
+  // 내 강의 목록 (로그인 필수 — 내 덱만 보임)
+  app.get('/api/decks', async (req, reply) => {
+    const user = await getSessionUser(req);
+    if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
+    const list: DeckSummary[] = await listDeckRows(user.id);
     return list;
   });
 
@@ -321,6 +328,8 @@ export async function registerRoutes(app: FastifyInstance) {
 
   // PDF 파일 업로드 및 덱 생성
   app.post('/api/decks/upload-pdf', async (req, reply) => {
+    const user = await getSessionUser(req);
+    if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     const body = (req.body ?? {}) as { filename: string; base64: string };
     if (!body.filename || !body.base64) {
       return reply.code(400).send({ error: 'bad', message: '파일명과 파일 데이터가 필요합니다.' });

@@ -47,6 +47,16 @@ export const env = {
   QUOTA_CHAT_PER_ACTIVITY: Number(process.env.QUOTA_CHAT_PER_ACTIVITY ?? 8),
   QUOTA_IMAGE_PER_ACTIVITY: Number(process.env.QUOTA_IMAGE_PER_ACTIVITY ?? 4),
   CLASSROOM_BUDGET_USD: Number(process.env.CLASSROOM_BUDGET_USD ?? 15),
+
+  // ── 인증 (Phase 1: 카카오/구글 원클릭 로그인) ──
+  AUTH_JWT_SECRET: req('AUTH_JWT_SECRET'),
+  APP_ORIGIN: process.env.APP_ORIGIN ?? 'http://localhost:5173',
+  // DEV_LOGIN=1 이면 /api/auth/dev-login 활성화 (로컬 개발 전용 — 프로덕션 금지)
+  DEV_LOGIN: process.env.DEV_LOGIN === '1',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+  KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID ?? '',
+  KAKAO_CLIENT_SECRET: process.env.KAKAO_CLIENT_SECRET ?? '',
 };
 
 export const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
