@@ -9,7 +9,7 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev": "cross-env API_PORT=8788 VITE_DEV_PORT=5174 concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "npm -w server run dev",
     "dev:client": "npm -w client run dev",
     "build": "npm -w client run build",
@@ -20,6 +20,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "concurrently": "^9.1.0",
+    "cross-env": "^10.1.0",
     "playwright": "^1.60.0"
   }
 }
