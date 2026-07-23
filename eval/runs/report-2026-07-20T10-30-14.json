@@ -1,0 +1,165 @@
+{
+  "evaluatedAt": "2026-07-20T10:30:14.255Z",
+  "samplesFrom": "2026-07-20T10-25-25",
+  "groups": [
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": []
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "korean-history",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "korean-history",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": []
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": []
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": []
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": []
+    }
+  ],
+  "summary": {
+    "quiz": {
+      "schemaPass": "100%",
+      "grounded": "n/a",
+      "answerCorrect": "n/a",
+      "answerUnique": "n/a",
+      "distractorQualityAvg": "n/a",
+      "bloomDist": null,
+      "titleMatch": "n/a"
+    },
+    "roleplay": {
+      "factuallyAccurate": "n/a",
+      "keywordReachable": "n/a",
+      "missionClear": "n/a",
+      "grounded": "n/a"
+    },
+    "poll": {
+      "isOpinion": "n/a",
+      "grounded": "n/a",
+      "clear": "n/a",
+      "wordcloudRatio": "0%"
+    }
+  }
+}

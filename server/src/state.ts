@@ -6,6 +6,7 @@ import type {
   LeaderboardEntry,
   PollDistribution,
   ActivityType,
+  QuestionItem,
 } from '../../shared/types';
 import { getDeck, getQuizActivity } from './decks';
 import { env } from './env';
@@ -47,6 +48,7 @@ export class ClassroomState {
   private pollAnswers = new Map<string, Map<string, string>>(); // activityId -> (sessionId -> value)
   private usage = new Map<string, number>(); // `${sessionId}|${activityId}|${type}` -> count
   private roleplayClears = new Set<string>(); // `${sessionId}|${activityId}`
+  private questionList: QuestionItem[] = []; // 익명 질문, 최신순
   budgetSpent = 0;
 
   settings = {
@@ -93,7 +95,7 @@ export class ClassroomState {
     };
   }
 
-  leaderboard(topN = 10): LeaderboardEntry[] {
+  leaderboard(topN = 100): LeaderboardEntry[] {
     const arr = [...this.participants.values()]
       .filter((p) => p.score > 0 || true)
       .sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname));
@@ -225,8 +227,25 @@ export class ClassroomState {
   pollDistribution(activityId: string): PollDistribution {
     const map = this.pollAnswers.get(activityId) ?? new Map();
     const counts: Record<string, number> = {};
-    for (const v of map.values()) counts[v] = (counts[v] ?? 0) + 1;
-    return { counts, total: map.size };
+    const entries: Array<{ nickname: string; value: string }> = [];
+    for (const [sessionId, v] of map.entries()) {
+      counts[v] = (counts[v] ?? 0) + 1;
+      const nickname = this.participants.get(sessionId)?.nickname ?? '익명';
+      entries.push({ nickname, value: v });
+    }
+    return { counts, total: map.size, entries };
+  }
+
+  // ── 익명 질문 (언제든 제출 가능) ──
+  askQuestion(text: string): QuestionItem {
+    const q: QuestionItem = { id: makeId(), text: text.slice(0, 300), createdAt: Date.now() };
+    this.questionList.unshift(q);
+    if (this.questionList.length > 200) this.questionList.length = 200;
+    return q;
+  }
+
+  getQuestions(): QuestionItem[] {
+    return this.questionList;
   }
 
   // ── 역할극 미션 완료 ──

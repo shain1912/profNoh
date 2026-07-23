@@ -1,0 +1,279 @@
+{
+  "evaluatedAt": "2026-07-20T13:22:45.870Z",
+  "samplesFrom": "2026-07-20T13-22-39",
+  "groups": [
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "4번 보기도 '최신 사실 보장 불가' 등 원문과 일치하는 사실상 옳은 진술이라 복수 정답 여지가 있음."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "3번 보기(시스템이 시청 기록을 분석하는 것)도 사용자가 미리 제공하는 컨텍스트가 아니어서 정답이 될 수 있어 복수 정답 여지가 있음."
+        },
+        {
+          "idx": 3,
+          "grounded": 0,
+          "answerCorrect": 0,
+          "answerUnique": 0,
+          "distractorQuality": 1,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "원문은 3단계와 외부 도구를 각각 언급할 뿐 단계별 도구 활용을 명시하지 않아 정답의 근거가 없고, 1·3번 보기도 원문상 오답이라 판단할 근거가 없음."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 1,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "오답 보기들이 명백히 비윤리적 행동이라 변별력이 낮음."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 0,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "원문에는 부산·원산·인천 개항 사실만 있고 '일본과의 무역량이 급격히 증가한 지역'이라는 내용은 없어 문항과 해설이 원문 근거 없이 지어낸 사실에 기반한다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "정답 보기 '러일전쟁의 결과로 일본의 승리로 이어졌다'는 문장이 어색해(주어-서술어 비문) 의미 파악이 다소 혼란스러울 수 있다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "2번 보기는 정답의 단순 역순, 4번 보기는 사실상 무단통치 유지와 같은 의미라 오답이 비교적 뻔한 편이다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judgeError": "Command failed: claude -p --output-format json"
+    }
+  ],
+  "summary": {
+    "quiz": {
+      "schemaPass": "100%",
+      "grounded": "80%",
+      "answerCorrect": "90%",
+      "answerUnique": "70%",
+      "distractorQualityAvg": "2.00",
+      "bloomDist": {
+        "recall": 7,
+        "apply": 2,
+        "analyze": 1
+      },
+      "titleMatch": "100%"
+    },
+    "roleplay": {
+      "factuallyAccurate": "n/a",
+      "keywordReachable": "n/a",
+      "missionClear": "n/a",
+      "grounded": "n/a"
+    },
+    "poll": {
+      "isOpinion": "n/a",
+      "grounded": "n/a",
+      "clear": "n/a",
+      "wordcloudRatio": "n/a"
+    }
+  }
+}

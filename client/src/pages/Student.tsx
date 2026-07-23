@@ -22,6 +22,9 @@ export default function Student() {
   const nickname = getNickname();
   const sessionId = getSessionId();
   const [deck, setDeck] = useState<Deck | null>(null);
+  const [askOpen, setAskOpen] = useState(false);
+  const [askText, setAskText] = useState('');
+  const [askSent, setAskSent] = useState(false);
 
   useEffect(() => {
     if (!token || !nickname) nav(`/join?token=${token}`);
@@ -64,6 +67,51 @@ export default function Student() {
           <ActivityArea deck={deck} live={live} token={token} sessionId={sessionId} />
         )}
       </main>
+
+      {/* 언제든 익명으로 질문하기 */}
+      <button
+        onClick={() => { setAskOpen(true); setAskSent(false); }}
+        className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-on-brand shadow-xl hover:scale-105 active:scale-95 transition-all"
+        title="선생님께 질문하기"
+      >
+        <span className="text-2xl">❓</span>
+      </button>
+
+      {askOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setAskOpen(false)}>
+          <div className="card max-w-sm w-full bg-[#1e1e24] ring-1 ring-brand/40 shadow-2xl p-6 relative" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 text-white/50 hover:text-white text-lg" onClick={() => setAskOpen(false)}>✕</button>
+            <h2 className="text-lg font-bold text-brand">❓ 선생님께 질문하기</h2>
+            <p className="mt-1 text-xs text-white/50">닉네임 없이 익명으로 전달돼요. 궁금한 건 뭐든 물어보세요!</p>
+            {askSent ? (
+              <p className="mt-6 text-center text-emerald-400 font-semibold">질문이 전달됐어요! 🙌</p>
+            ) : (
+              <>
+                <textarea
+                  className="input mt-4 w-full resize-none text-sm"
+                  rows={3}
+                  maxLength={300}
+                  placeholder="예) 아까 말씀하신 부분 다시 설명해주실 수 있나요?"
+                  value={askText}
+                  onChange={(e) => setAskText(e.target.value)}
+                />
+                <button
+                  className="btn-primary mt-3 w-full py-2.5 font-bold disabled:opacity-40"
+                  disabled={!askText.trim()}
+                  onClick={() => {
+                    live.socket.emit('student:askQuestion', { text: askText.trim() });
+                    setAskText('');
+                    setAskSent(true);
+                    setTimeout(() => setAskOpen(false), 1400);
+                  }}
+                >
+                  질문 보내기
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,6 +9,10 @@ export function registerDeck(deck: Deck): void {
   registry.set(deck.id, deck);
 }
 
+export function unregisterDeck(id: string): void {
+  registry.delete(id);
+}
+
 /** 동기: 레지스트리에 있는 덱만 반환 (런타임 socket.ts 용) */
 export function getDeckSync(id: string): Deck | undefined {
   return registry.get(id);

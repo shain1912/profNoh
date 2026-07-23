@@ -51,6 +51,9 @@ export interface LabActivity {
   intro?: string;
   task: string;              // 학생에게 주어지는 과제 설명
   inputPlaceholder?: string;
+  examplePrompts?: string[]; // 원클릭 예시 프롬프트 (칩)
+  // 예시 프롬프트별 고정 결과 (있으면 실시간 AI 호출 없이 이 값을 그대로 보여줌 — 두 결과의 차이를 항상 크게 보장)
+  cannedResults?: Record<string, { outputA: string; outputB: string }>;
   labelA: string;            // 예: "맥락 없음"
   labelB: string;            // 예: "맥락 있음"
 }
@@ -173,6 +176,8 @@ export interface PollDistribution {
   // choice 모드: optionIndex -> count, wordcloud: word -> count
   counts: Record<string, number>;
   total: number;
+  // wordcloud 모드 전용: 학생별 개별 응답 (롤링페이퍼 뷰에 사용)
+  entries?: Array<{ nickname: string; value: string }>;
 }
 
 export interface QuizReveal {
@@ -181,6 +186,12 @@ export interface QuizReveal {
   distribution: Record<string, number>; // optionIndex -> count
   leaderboard: LeaderboardEntry[];
   explanation?: string;
+}
+
+export interface QuestionItem {
+  id: string;
+  text: string;
+  createdAt: number;
 }
 
 // ───────────────────────── Socket 이벤트 ─────────────────────────
@@ -206,6 +217,8 @@ export interface ServerToClientEvents {
   'poll:update': (d: { activityId: string; distribution: PollDistribution }) => void;
   joined: (p: { participantId: string; sessionId: string; nickname: string; score: number }) => void;
   errmsg: (m: { message: string }) => void;
+  'question:new': (q: QuestionItem) => void;
+  'questions:sync': (qs: QuestionItem[]) => void;
 }
 
 export interface ClientToServerEvents {
@@ -222,6 +235,7 @@ export interface ClientToServerEvents {
   'student:roleplayClear': (p: { activityId: string }) => void;
   'instructor:panic': (p: { action: 'pause' | 'resume' }) => void;
   'viewer:join': (p: { token: string }) => void;
+  'student:askQuestion': (p: { text: string }) => void;
 }
 
 // ───────────────────────── REST DTO ─────────────────────────

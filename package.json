@@ -13,7 +13,9 @@
     "dev:server": "npm -w server run dev",
     "dev:client": "npm -w client run dev",
     "build": "npm -w client run build",
-    "start": "npm -w server run start"
+    "start": "npm -w server run start",
+    "eval": "node eval/run-eval.mjs",
+    "eval:collect": "node eval/collect-samples.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",

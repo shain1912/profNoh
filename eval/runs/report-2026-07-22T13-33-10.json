@@ -1,0 +1,377 @@
+{
+  "evaluatedAt": "2026-07-22T13:29:31.265Z",
+  "samplesFrom": "2026-07-22T13-29-31",
+  "groups": [
+    {
+      "subject": "ai-literacy",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 0,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "systemPrompt가 영화 추천 역할만 지시하고 '컨텍스트'라는 단어를 언급하라는 지시가 없어, missionDescription대로 장르·시간 등 정보를 제공해도 AI 답변에 '컨텍스트'가 자연스럽게 등장하기 어렵다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 0,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "systemPrompt의 '2023년 현재'는 원문에 근거가 없고 실제 현재 시점(2026년)과도 맞지 않는 임의의 연도 설정이다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 0,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "갑신정변은 1884년인데 systemPrompt가 '1894년 갑신정변 실패 이후'로 연도를 틀렸고, 원문은 정변 실패 후 청의 내정 간섭이 '심화'되었다고 하는데 활동은 청의 영향력이 '감소'했다는 반대 방향의 설정을 전제하고 있다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "제목과 인트로는 '수요 변화 시나리오 분석'을 표방하지만 실제 systemPrompt와 미션은 5장 가격 탄력성 내용에 집중되어 있어 제목과 활동 내용이 불일치한다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "영화 추천 대화 자체에서는 '컨텍스트'라는 단어가 자연스럽게 나오기 어려워 학생이 메타적인 질문(예: 내가 준 컨텍스트가 도움이 됐는지)을 의도적으로 던져야 키워드가 등장한다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 0,
+          "grounded": 1,
+          "issue": "intro와 missionDescription은 학생을 'AI 윤리 정책 전문가'로 설정하는데 systemPrompt는 AI가 전문가이고 학생이 질문하는 구조라 역할 설정이 서로 모순되어 학생이 누구 역할인지 혼란스럽다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "1919년 당시의 민족대표가 이후의 임시정부 수립과 문화통치 전환까지 설명하는 설정은 가벼운 시점상 모순이 있으나 학습 목적상 문제되지 않는 수준이다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "제목과 소개는 직렬 회로의 전류·전압 분배를 다루는데 미션은 옴의 법칙 질문만 요구해 활동 초점이 다소 어긋난다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 0,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "미션 키워드 '전압은 같음'은 명사형 종결 표현이라 AI가 대화체 답변에서 '전압은 같습니다/같아요'로 말할 가능성이 높아 정확한 문자열 일치가 어렵다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "내용은 정확하나 공급의 법칙(2장) 활동이 afterSlideIndex 1(수요의 법칙 직후)에 배치되어 학습 순서상 다소 이르게 등장할 수 있다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "제목과 intro는 '수요 변화'(4장)를 내세우지만 실제 내용은 가격 탄력성(5장)이라 주제 표기가 불일치하고, systemPrompt의 '2023년 현재'라는 시점 설정은 원문에 근거가 없다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 0,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "systemPrompt에 '정보중심'이라는 개념이나 단어가 전혀 명시되어 있지 않아, 학생이 미션대로 질문해도 AI 답변에 '정보중심'이라는 정확한 문자열(원문에도 없는 조어)이 자연스럽게 등장할 가능성이 낮다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "미션이 AI의 답변에서 키워드를 유도하기보다 학생 스스로 '딥페이크 합성'을 말하도록 안내하고 있으나, 해당 주제로 질문하면 AI 답변에도 키워드가 자연스럽게 포함되므로 큰 문제는 아니다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "quiz": {
+      "schemaPass": "n/a",
+      "grounded": "n/a",
+      "answerCorrect": "n/a",
+      "answerUnique": "n/a",
+      "distractorQualityAvg": "n/a",
+      "bloomDist": null,
+      "titleMatch": "n/a"
+    },
+    "roleplay": {
+      "factuallyAccurate": "92%",
+      "keywordReachable": "88%",
+      "missionClear": "96%",
+      "grounded": "100%"
+    },
+    "poll": {
+      "isOpinion": "n/a",
+      "grounded": "n/a",
+      "clear": "n/a",
+      "wordcloudRatio": "n/a"
+    }
+  }
+}

@@ -34,21 +34,11 @@ export function setNickname(n: string) {
   localStorage.setItem(NICK, n);
 }
 
-// 강사 자격 (브라우저 보관)
-const INST = 'axedu_instructor';
+// 강사 자격은 브라우저에 저장하지 않음 — 페이지를 새로 열 때마다 강의 선택부터 다시 시작한다.
+// (DeckEditor → Instructor 이동처럼 같은 내비게이션 안에서는 router state로 전달됨)
 export interface InstructorCreds {
   token: string;
   instructorSecret: string;
   classroomId: string;
   deckId: string;
-}
-export function getInstructor(): InstructorCreds | null {
-  const raw = localStorage.getItem(INST);
-  return raw ? (JSON.parse(raw) as InstructorCreds) : null;
-}
-export function setInstructor(c: InstructorCreds) {
-  localStorage.setItem(INST, JSON.stringify(c));
-}
-export function clearInstructor() {
-  localStorage.removeItem(INST);
 }

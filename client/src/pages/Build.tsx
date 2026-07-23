@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createDeck, generateDeck, getMyDecks, rememberDeck, listDecks } from '../lib/buildApi';
+import { createDeck, generateDeck, getMyDecks, rememberDeck, listDecks, getPin, deleteDeck, forgetDeck } from '../lib/buildApi';
 import { apiPost } from '../lib/api';
 
 const TOPIC_CHIPS = ['생성형 AI 입문', 'AI 윤리와 안전', '프롬프트 기초', 'AI와 진로', '딥러닝 쉽게 이해하기'];
@@ -33,77 +33,11 @@ export default function Build() {
   const nav = useNavigate();
   const mine = getMyDecks();
 
-  const [user, setUser] = useState<{ email: string } | null>(() => {
-    const saved = localStorage.getItem('axedu_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [continueAsGuest, setContinueAsGuest] = useState(false);
-  const [authSyncing, setAuthSyncing] = useState(false);
   const [dbDecks, setDbDecks] = useState<any[]>([]);
 
-  const loadDbDecks = async () => {
-    try {
-      const list = await listDecks();
-      setDbDecks(list);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const syncUserSession = async (token: string) => {
-    setAuthSyncing(true);
-    try {
-      localStorage.setItem('axedu_auth_token', token);
-      const r = await apiPost<{ user: { email: string } }>('/api/auth/me', {});
-      if (r.user?.email) {
-        localStorage.setItem('axedu_user', JSON.stringify({ email: r.user.email }));
-        setUser({ email: r.user.email });
-      }
-    } catch (err: any) {
-      console.error('Failed to sync session:', err);
-      localStorage.removeItem('axedu_auth_token');
-      localStorage.removeItem('axedu_user');
-      setUser(null);
-    } finally {
-      setAuthSyncing(false);
-    }
-  };
-
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      if (accessToken) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        syncUserSession(accessToken);
-        return;
-      }
-    }
-
-    const existingToken = localStorage.getItem('axedu_auth_token');
-    if (existingToken && !user) {
-      syncUserSession(existingToken);
-    }
+    listDecks().then(setDbDecks).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (user) {
-      loadDbDecks();
-    } else {
-      setDbDecks([]);
-    }
-  }, [user]);
-
-  const handleGoogleLogin = () => {
-    window.location.href = `https://supabase-axedu.kodekorea.kr/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/build')}`;
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('axedu_auth_token');
-    localStorage.removeItem('axedu_user');
-    setUser(null);
-  };
 
   const mergedDecks = [...dbDecks];
   mine.forEach((m) => {
@@ -152,6 +86,33 @@ export default function Build() {
   const [uploadErr, setUploadErr] = useState('');
   const [showPptxModal, setShowPptxModal] = useState(false);
 
+  // 강의 삭제 상태
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletePin, setDeletePin] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState('');
+
+  function startDelete(id: string) {
+    setDeletingId(id);
+    setDeletePin(getPin(id));
+    setDeleteErr('');
+  }
+
+  async function confirmDelete(id: string) {
+    setDeleteBusy(true);
+    setDeleteErr('');
+    try {
+      await deleteDeck(id, deletePin.trim());
+      forgetDeck(id);
+      setDbDecks((prev) => prev.filter((d) => d.id !== id));
+      setDeletingId(null);
+    } catch (e: any) {
+      setDeleteErr(e.message ?? '삭제 실패');
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -198,127 +159,12 @@ export default function Build() {
     }
   }
 
-  if (authSyncing) {
-    return (
-      <div className="mx-auto max-w-md p-6 min-h-[80vh] flex flex-col justify-center items-center animate-fade-in">
-        <div className="text-center space-y-4">
-          <div className="inline-block rounded-2xl bg-brand/10 p-4 text-brand text-3xl mb-1 animate-pulse">
-            🔑
-          </div>
-          <h1 className="text-xl font-bold text-white">Google 로그인 처리 중...</h1>
-          <p className="text-xs text-white/50 font-normal">계정 정보를 동기화하고 있습니다.</p>
-          <div className="mt-3 h-2 w-32 overflow-hidden rounded-full bg-white/10 mx-auto">
-            <div className="progress-indeterminate h-full w-1/3 rounded-full bg-brand" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user && !continueAsGuest) {
-    return (
-      <div className="mx-auto max-w-md p-6 min-h-[80vh] flex flex-col justify-center animate-fade-in">
-        <div className="text-center mb-8">
-          <div className="inline-block rounded-2xl bg-brand/10 p-4 text-brand text-3xl mb-3">
-            🧑‍🏫
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">강사 로그인</h1>
-          <p className="text-sm text-muted mt-2 font-normal">
-            작성하시는 소중한 강의안이 안전하게 저장·동기화됩니다.
-          </p>
-        </div>
-
-        <div className="card space-y-6 text-center">
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 rounded-xl bg-white text-black hover:bg-neutral-100 px-6 py-3.5 text-sm font-bold transition-all shadow-lg hover:shadow-white/5 active:scale-[0.99]"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Google 계정으로 계속하기</span>
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-hairline"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-canvas px-2 text-muted">또는</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="w-full rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 px-6 py-3.5 text-sm font-semibold transition active:scale-[0.99] text-white/90"
-            onClick={() => setContinueAsGuest(true)}
-          >
-            🔑 로그인 없이 비회원으로 계속하기
-          </button>
-          
-          <p className="text-[11px] text-muted leading-relaxed font-normal">
-            비회원으로 진행 시 강의 정보는 이 브라우저(LocalStorage)에만 보관되며,<br />
-            브라우저 캐시를 삭제하거나 기기를 변경할 시 복구가 불가능합니다.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="text-xs text-muted hover:text-body transition underline mt-4 block mx-auto"
-          onClick={() => nav('/teach')}
-        >
-          이전 화면으로 돌아가기
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-xl p-6">
       <h1 className="text-2xl font-extrabold">강의 만들기 🛠️</h1>
-
-      {/* 로그인 상태바 */}
-      <div className="flex items-center justify-between rounded-xl bg-white/5 p-4 ring-1 ring-white/10 mt-3 text-sm">
-        {user ? (
-          <>
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-400">●</span>
-              <span><b>{user.email}</b> 계정으로 로그인됨</span>
-            </div>
-            <button className="text-xs text-white/50 hover:text-white underline" onClick={handleLogout}>
-              로그아웃
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-white/60 text-xs sm:text-sm">
-              🔑 로그인 시 작성하신 강의가 계정에 자동 동기화되어 안전하게 보관됩니다.
-            </div>
-            <button
-              className="btn bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold px-3 py-1.5 rounded-lg shrink-0 ml-2"
-              onClick={handleGoogleLogin}
-            >
-              Google 로그인
-            </button>
-          </>
-        )}
-      </div>
+      <p className="mt-2 text-xs text-white/50">
+        로그인 없이 바로 만들 수 있어요. 만든 강의는 서버에 저장되어 어느 컴퓨터에서든 목록에서 바로 열어 쓸 수 있습니다.
+      </p>
 
       {/* AI 생성 */}
       <div className="card mt-4 space-y-3 ring-1 ring-brand/30">
@@ -466,17 +312,50 @@ export default function Build() {
       ) : (
         <div className="mt-3 grid gap-2">
           {mergedDecks.map((d) => (
-            <button key={d.id} className="btn-ghost justify-between" onClick={() => nav(`/build/${d.id}`)}>
-              <div className="flex items-center gap-2 text-left">
-                <span>{d.title}</span>
-                {d.isLocalOnly && (
-                  <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-normal shrink-0">
-                    로컬 전용
-                  </span>
-                )}
+            <div key={d.id} className="rounded-xl bg-white/5 ring-1 ring-white/10 overflow-hidden">
+              <div className="flex items-stretch">
+                <button className="btn-ghost flex-1 justify-between rounded-none" onClick={() => nav(`/build/${d.id}`)}>
+                  <div className="flex items-center gap-2 text-left">
+                    <span>{d.title}</span>
+                    {d.isLocalOnly && (
+                      <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-normal shrink-0">
+                        로컬 전용
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-white/40">{d.id}</span>
+                </button>
+                <button
+                  className="px-3 text-white/40 hover:text-down hover:bg-down/10 transition shrink-0"
+                  title="강의 삭제"
+                  onClick={() => (deletingId === d.id ? setDeletingId(null) : startDelete(d.id))}
+                >
+                  🗑
+                </button>
               </div>
-              <span className="text-xs text-white/40">{d.id}</span>
-            </button>
+              {deletingId === d.id && (
+                <div className="border-t border-white/10 bg-black/20 p-3 space-y-2">
+                  <p className="text-xs text-down">삭제하면 되돌릴 수 없어요. 편집 PIN을 입력해 확인해주세요.</p>
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1 text-sm"
+                      placeholder="6자리 편집 PIN"
+                      maxLength={6}
+                      value={deletePin}
+                      onChange={(e) => setDeletePin(e.target.value)}
+                    />
+                    <button
+                      className="btn bg-down text-white px-4 text-sm font-bold rounded-lg disabled:opacity-40"
+                      disabled={deleteBusy || deletePin.trim().length !== 6}
+                      onClick={() => confirmDelete(d.id)}
+                    >
+                      {deleteBusy ? '삭제 중…' : '삭제'}
+                    </button>
+                  </div>
+                  {deleteErr && <p className="text-xs text-down">{deleteErr}</p>}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

@@ -24,12 +24,25 @@ export default function LabActivity({
   const [err, setErr] = useState('');
   const [res, setRes] = useState<LabResult | null>(null);
 
-  async function run() {
-    const p = input.trim();
+  // 고정 예시가 있는 활동(하네스 랩)은 실시간 AI 호출 없이 미리 정해둔 결과를 그대로 보여준다.
+  // AI 응답 편차 때문에 두 결과 차이가 매번 크게 나지 않는 문제를 없애기 위함.
+  const cannedOnly = !!activity.cannedResults;
+
+  async function run(promptOverride?: string) {
+    const p = (promptOverride ?? input).trim();
     if (!p || loading) return;
     setErr('');
     setLoading(true);
     setRes(null);
+
+    const canned = activity.cannedResults?.[p];
+    if (canned) {
+      await new Promise((r) => setTimeout(r, 900));
+      setRes({ outputA: canned.outputA, outputB: canned.outputB, labelA: activity.labelA, labelB: activity.labelB });
+      setLoading(false);
+      return;
+    }
+
     try {
       const r = await apiPost<LabResult>('/api/ai/lab', {
         token,
@@ -51,23 +64,45 @@ export default function LabActivity({
       {activity.intro && <p className="mt-1 text-sm text-white/60">{activity.intro}</p>}
       <p className="mt-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70">{activity.task}</p>
 
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          run();
-        }}
-      >
-        <input
-          className="input"
-          placeholder={activity.inputPlaceholder ?? '여기에 입력…'}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-        <button className="btn-primary" disabled={loading}>
-          {loading ? '실험 중…' : '실험!'}
-        </button>
-      </form>
+      {activity.examplePrompts && activity.examplePrompts.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {activity.examplePrompts.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              disabled={loading}
+              className="rounded-full bg-brand/10 border border-brand/20 px-3 py-1 text-xs text-brand hover:bg-brand/20 transition disabled:opacity-40"
+              onClick={() => (cannedOnly ? run(ex) : setInput(ex))}
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!cannedOnly && (
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run();
+          }}
+        >
+          <input
+            className="input"
+            placeholder={activity.inputPlaceholder ?? '여기에 입력…'}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+          <button className="btn-primary" disabled={loading}>
+            {loading ? '실험 중…' : '실험!'}
+          </button>
+        </form>
+      )}
+
+      {cannedOnly && !res && !loading && (
+        <p className="mt-3 text-center text-xs text-white/40">위 예시 중 하나를 눌러보세요 ☝️</p>
+      )}
 
       {err && <p className="mt-2 text-sm text-down">{err}</p>}
 

@@ -34,6 +34,7 @@ export function setupSocket(io: IO) {
       socket.emit('state', c.snapshot());
       socket.emit('leaderboard', c.leaderboard());
       socket.emit('participants', { count: c.participantCount() });
+      socket.emit('questions:sync', c.getQuestions());
     });
 
     // ── 학생 입장 ──
@@ -185,6 +186,15 @@ export function setupSocket(io: IO) {
           socket.emit('joined', { participantId: p.id, sessionId: p.sessionId, nickname: p.nickname, score: p.score });
         }
       }
+    });
+
+    // ── 학생: 언제든 익명 질문 제출 ──
+    socket.on('student:askQuestion', ({ text }) => {
+      const c = getByToken(socket.data.token ?? '');
+      const trimmed = (text ?? '').trim();
+      if (!c || !trimmed) return;
+      const q = c.askQuestion(trimmed);
+      io.to(c.id).emit('question:new', q);
     });
 
     socket.on('disconnect', () => {

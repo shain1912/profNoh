@@ -130,9 +130,9 @@ export default function GuideFloatingMenu() {
             
             <div className="space-y-3.5 pl-1">
               <div className="bg-white/5 rounded-xl p-4 border border-white/5 space-y-1">
-                <h5 className="font-bold text-white text-xs">🔒 강사 회원가입 및 영구 보관 (Supabase Auth)</h5>
+                <h5 className="font-bold text-white text-xs">💾 로그인 없이 영구 보관</h5>
                 <p className="text-xs text-white/60">
-                  강의 만들기 화면에서 로그인을 완료하면 제작하신 소중한 강의가 계정에 연동됩니다. 브라우저 캐시가 날아가거나 디바이스를 바꿔도 영구 보관됩니다.
+                  만든 강의는 로그인 없이도 서버에 저장되어, 강의 목록에서 언제든 다시 열어 어느 컴퓨터에서든 이어서 쓸 수 있습니다.
                 </p>
               </div>
 

@@ -1,0 +1,365 @@
+{
+  "evaluatedAt": "2026-07-20T12:15:14.237Z",
+  "samplesFrom": "2026-07-20T12-15-06",
+  "groups": [
+    {
+      "subject": "ai-literacy",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "원문 2장이 '표현보다 정보가 결과를 가른다'는 정답을 명시하므로 의견 투표가 아니라 정답이 있는 확인 문제에 해당한다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "식민통치 방식을 '긍정적으로 생각한다'는 선택지가 교육 맥락에서 민감하게 받아들여질 수 있다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0.5
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "보기 중 '전기 자동차의 배터리 효율' 등 일부는 원문에서 다루지 않은 소재라 학습자가 근거 없이 선택해야 하며, '전력 소비'와 '전력 관리' 보기가 서로 겹친다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "기기 선택과 전력 분배에 대한 생각 표현이라는 두 가지 요구가 섞여 있고 '어떻게 생각하는지 자유롭게'가 모호해 워드클라우드용 단답으로 무엇을 입력해야 할지 불명확하다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "생산 비용 감소는 공급 증가로 이어져 '균형가격 하락·균형거래량 증가'라는 경제학적 정답이 존재하는 문제이므로 의견 투표로 부적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "질문이 선택 외에 장단점 서술과 의견 나눔까지 요구하지만 choice 모드는 선택만 수집할 수 있어 프롬프트와 형식이 일부 불일치한다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "원문이 '표현보다 정보(무엇을)가 결과를 가른다'고 명시하므로 '제공하는 정보의 질과 양'이 사실상 정답인 지식 확인 문제라 의견 투표로 부적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0.5
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "설계 목적이나 상황이 제시되지 않아 어떤 기준으로 '더 중요한 특성'을 골라야 하는지 모호하고, 앞의 사실 진술(저항이 커지면 전류가 작아짐)과 질문의 연결도 어색하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "가정용 배선이 병렬 연결인 이유는 원문(전압이 일정, 전류가 나뉨)에 근거한 정답이 존재하는 개념 질문이므로 의견 투표로 부적합하다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0.5
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "원문(2장)은 공급의 법칙만 다루고 공급 변화 요인은 직접 설명하지 않으므로 자료보다 앞서가는 질문이지만, 주제 연관성과 의견 수렴형 워드클라우드로서는 적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "프롬프트는 탄력적/비탄력적 상품을 각각 떠올려 이유를 공유하라는 개방형 토론인데 보기들은 둘 중 하나의 범주만 고르게 되어 있어 질문과 선택지가 서로 맞지 않고, 이 활동 의도라면 choice보다 wordcloud나 주관식이 적합하다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "원문 2장이 '표현보다 정보가 결과를 가른다'고 명시적 결론을 제시하므로 사실상 정답이 있는 확인 문제이며, 의견을 묻는 형식만 취하고 있어 투표로 부적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0.5
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "문화통치 전환의 영향은 원문에 일부 사실로 서술되어 있어 의견 수렴보다 정답 확인 문제로 오해될 소지가 약간 있음"
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0.5
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "전류 분배 방식은 원문에 정답(저항에 반비례)이 명시된 사실 질문인 데다, 개념 설명과 일상 적용이라는 두 질문이 하나의 프롬프트에 섞여 있어 워드클라우드 의견 투표로 부적합하다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0.5
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "보기 1·2번과 4번(가격에 따라 유연하게 조정)이 사실상 같은 의미로 겹쳐 선택이 모호하고, 공급의 법칙상 기대되는 답이 사실상 정해져 있어 의견 투표로서의 변별력이 약하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "제목은 '수요 변화 요인'이지만 실제 질문 내용은 5장의 가격탄력성에 해당하며, 한 워드클라우드에 두 종류(수요가 크게 변하는 상품/변하지 않는 상품)를 동시에 물어 응답이 섞일 수 있다."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "quiz": {
+      "schemaPass": "n/a",
+      "grounded": "n/a",
+      "answerCorrect": "n/a",
+      "answerUnique": "n/a",
+      "distractorQualityAvg": "n/a",
+      "bloomDist": null,
+      "titleMatch": "n/a"
+    },
+    "roleplay": {
+      "factuallyAccurate": "n/a",
+      "keywordReachable": "n/a",
+      "missionClear": "n/a",
+      "grounded": "n/a"
+    },
+    "poll": {
+      "isOpinion": "75%",
+      "grounded": "100%",
+      "clear": "79%",
+      "wordcloudRatio": "25%"
+    }
+  }
+}

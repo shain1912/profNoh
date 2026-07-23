@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Deck, Slide, QuizActivity, PollActivity } from '@shared/types';
-import { openDeckForEdit, saveDeck, getPin, rememberDeck } from '../lib/buildApi';
-import { setInstructor } from '../lib/session';
+import { openDeckForEdit, saveDeck, getPin, rememberDeck, deleteDeck, forgetDeck } from '../lib/buildApi';
 import { apiPost } from '../lib/api';
 import {
   pageKind, addPage, deletePage, movePage, updateSlide, updateActivity,
@@ -155,6 +154,24 @@ export default function DeckEditor() {
   // 퀵 액션 개수 선택 상태
   const [quickCount, setQuickCount] = useState(3);
 
+  // 강의 삭제 상태
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState('');
+
+  async function handleDelete() {
+    setDeleteBusy(true);
+    setDeleteErr('');
+    try {
+      await deleteDeck(deckId, pin);
+      forgetDeck(deckId);
+      nav('/build');
+    } catch (e: any) {
+      setDeleteErr(e.message ?? '삭제 실패');
+      setDeleteBusy(false);
+    }
+  }
+
   async function load(p: string) {
     try {
       const r = await openDeckForEdit(deckId, p);
@@ -229,69 +246,33 @@ export default function DeckEditor() {
     if (!deck) return;
     await save();
     const r = await apiPost<{ token: string; instructorSecret: string; classroomId: string; deckId: string }>('/api/classrooms', { deckId });
-    setInstructor(r);
-    nav('/teach');
+    nav('/teach', { state: { creds: r } });
   }
 
-  // 퀵 일괄 추가 기능
+  // 퀵 일괄 추가 기능 — 위치 계획과 항목별 생성을 서버에서 단계적으로 처리하는 전용 엔드포인트 사용
+  const QUICK_TYPE_LABEL: Record<'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor', string> = {
+    quiz: '퀴즈', poll: '투표', roleplay: '역할극', analogy: '비유 대조', writing: '문학 창작', tutor: 'AI 튜터',
+  };
+
   async function handleQuickCreate(type: 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor') {
     if (!deck || chatBusy || pdfStatus !== 'ready') return;
     setChatBusy(true);
 
-    let userMsg = '';
-    let typeLabel = '';
-    if (type === 'quiz') {
-      userMsg = `이 PDF 전체 내용을 학습해서 내용에 어울리는 퀴즈를 총 ${quickCount}개 생성해줘. 각 퀴즈는 PDF 내용의 흐름에 맞춰 서로 다른 슬라이드 번호(afterSlideIndex) 뒤에 골고루 분산하여 배치해줘.`;
-      typeLabel = '퀴즈';
-    } else if (type === 'poll') {
-      userMsg = `이 PDF 전체 내용을 학습해서 학생들이 흥미를 가질 만한 투표를 총 ${quickCount}개 생성해줘. 각 투표는 PDF 내용 흐름에 맞춰 서로 다른 슬라이드 번호(afterSlideIndex) 뒤에 골고루 분산하여 배치해줘.`;
-      typeLabel = '투표';
-    } else if (type === 'roleplay') {
-      userMsg = `이 PDF 전체 내용을 학습해서 학생들이 참여할 수 있는 AI 역할극(roleplay) 활동을 총 ${quickCount}개 생성해줘. 각 역할극은 PDF 내용 흐름에 맞춰 적절한 슬라이드 번호(afterSlideIndex) 뒤에 배치해줘.`;
-      typeLabel = '역할극';
-    } else if (type === 'analogy') {
-      userMsg = `이 PDF 전체 내용을 학습해서 어려운 용어/개념을 비교 분석하는 비유 대조(analogy) 활동을 총 ${quickCount}개 생성해줘. 각 활동은 PDF 내용 흐름에 맞춰 적절한 슬라이드 번호(afterSlideIndex) 뒤에 배치해줘.`;
-      typeLabel = '비유 대조';
-    } else if (type === 'writing') {
-      userMsg = `이 PDF 전체 내용을 학습해서 영감을 주는 릴레이 문학 창작(writing) 활동을 총 ${quickCount}개 생성해줘. 각 활동은 PDF 내용 흐름에 맞춰 적절한 슬라이드 번호(afterSlideIndex) 뒤에 배치해줘.`;
-      typeLabel = '문학 창작';
-    } else if (type === 'tutor') {
-      userMsg = `이 PDF 전체 내용을 학습해서 문제 해결을 돕는 소크라테스 AI 튜터(tutor) 활동을 총 ${quickCount}개 생성해줘. 각 활동은 PDF 내용 흐름에 맞춰 적절한 슬라이드 번호(afterSlideIndex) 뒤에 배치해줘.`;
-      typeLabel = 'AI 튜터';
-    }
-
+    const typeLabel = QUICK_TYPE_LABEL[type];
+    const userMsg = `이 PDF 전체 내용을 학습해서 내용 흐름에 맞는 ${typeLabel} 활동을 총 ${quickCount}개 생성하고, 적절한 위치에 골고루 분산 배치해줘.`;
     const nextMessages = [...messages, { role: 'user' as const, content: userMsg }];
     setMessages(nextMessages);
 
     try {
-      const res = await apiPost<{ text: string }>('/api/decks/chat-agent', {
-        messages: nextMessages,
-        deck,
-        pdfText,
+      const res = await apiPost<{ operations: any[]; message: string }>('/api/decks/quick-generate', {
+        deck, pdfText, type, count: quickCount,
       });
 
-      const jsonMatch = res.text.match(/```json\s*([\s\S]*?)\s*```/);
-      let updatedDeck = { ...deck };
-      let operationsApplied = false;
+      const planRes = applyAIPlan(res.operations ?? [], deck);
+      setMessages([...nextMessages, { role: 'assistant', content: res.message }]);
 
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          const data = JSON.parse(jsonMatch[1]);
-          if (data.operations && Array.isArray(data.operations)) {
-            const planRes = applyAIPlan(data.operations, deck);
-            updatedDeck = planRes.deck;
-            operationsApplied = planRes.applied;
-          }
-        } catch (jsonErr) {
-          console.error('Failed to parse AI operations JSON:', jsonErr);
-        }
-      }
-
-      const cleanContent = res.text.replace(/```json\s*[\s\S]*?\s*```/, '').trim();
-      setMessages([...nextMessages, { role: 'assistant', content: cleanContent || `총 ${quickCount}개의 ${typeLabel} 활동을 일괄 삽입했습니다.` }]);
-
-      if (operationsApplied) {
-        setDeck(updatedDeck);
+      if (planRes.applied) {
+        setDeck(planRes.deck);
         setStatus('에이전트 변경사항 적용됨 ✓');
         setTimeout(() => setStatus(''), 2000);
       }
@@ -314,35 +295,17 @@ export default function DeckEditor() {
     setMessages(nextMessages);
 
     try {
-      const res = await apiPost<{ text: string }>('/api/decks/chat-agent', {
+      const res = await apiPost<{ text: string; operations: any[] }>('/api/decks/chat-agent', {
         messages: nextMessages,
         deck,
         pdfText,
       });
 
-      // JSON 블록 파싱 및 슬라이드 동적 추가
-      const jsonMatch = res.text.match(/```json\s*([\s\S]*?)\s*```/);
-      let updatedDeck = { ...deck };
-      let operationsApplied = false;
+      const planRes = applyAIPlan(res.operations ?? [], deck);
+      setMessages([...nextMessages, { role: 'assistant', content: res.text || '슬라이드 변경을 완료했습니다.' }]);
 
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          const data = JSON.parse(jsonMatch[1]);
-          if (data.operations && Array.isArray(data.operations)) {
-            const planRes = applyAIPlan(data.operations, deck);
-            updatedDeck = planRes.deck;
-            operationsApplied = planRes.applied;
-          }
-        } catch (jsonErr) {
-          console.error('Failed to parse AI operations JSON:', jsonErr);
-        }
-      }
-
-      const cleanContent = res.text.replace(/```json\s*[\s\S]*?\s*```/, '').trim();
-      setMessages([...nextMessages, { role: 'assistant', content: cleanContent || '슬라이드 변경을 완료했습니다.' }]);
-
-      if (operationsApplied) {
-        setDeck(updatedDeck);
+      if (planRes.applied) {
+        setDeck(planRes.deck);
         setStatus('에이전트 변경사항 적용됨 ✓');
         setTimeout(() => setStatus(''), 2000);
       }
@@ -382,9 +345,34 @@ export default function DeckEditor() {
           <div className="flex gap-2">
             <button className="btn bg-surface hover:bg-surface-2 text-sm px-4 py-2 ring-1 ring-hairline rounded-lg" onClick={save}>저장</button>
             <button className="btn-primary text-sm px-4 py-2 rounded-lg" onClick={startClass}>수업 시작 ▶</button>
+            <button
+              className="btn text-sm px-3 py-2 ring-1 ring-hairline rounded-lg text-white/40 hover:text-down hover:ring-down/40"
+              title="강의 삭제"
+              onClick={() => setDeleteConfirm(true)}
+            >
+              🗑
+            </button>
           </div>
         </div>
       </header>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => !deleteBusy && setDeleteConfirm(false)}>
+          <div className="card max-w-sm w-full bg-[#1e1e24] ring-1 ring-down/40 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-down">🗑 강의 삭제</h2>
+            <p className="mt-2 text-sm text-white/70">
+              "{deck.title}" 강의를 정말 삭제할까요? 저장된 슬라이드와 업로드한 PDF가 모두 삭제되며, 되돌릴 수 없습니다.
+            </p>
+            {deleteErr && <p className="mt-2 text-sm text-down">{deleteErr}</p>}
+            <div className="mt-5 flex gap-2">
+              <button className="btn-ghost flex-1" onClick={() => setDeleteConfirm(false)} disabled={deleteBusy}>취소</button>
+              <button className="btn bg-down text-white flex-1 font-bold rounded-lg disabled:opacity-40" onClick={handleDelete} disabled={deleteBusy}>
+                {deleteBusy ? '삭제 중…' : '삭제할게요'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 모바일 전용 탭 바 (lg 미만에서 노출) */}
       <div className="flex lg:hidden border-b border-white/10 bg-[#14181f] shrink-0">

@@ -1,0 +1,513 @@
+{
+  "evaluatedAt": "2026-07-20T10:30:21.616Z",
+  "samplesFrom": "2026-07-20T10-25-25",
+  "groups": [
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "3·4번 보기도 부분적 컨텍스트를 제공하지만 '더 나은'이라는 비교 기준상 정답이 가장 구체적이어서 변별은 유지된다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 0,
+          "issue": "제목은 '컨텍스트 엔지니어링의 5요소'(3장)인데 문항은 하네스의 3단계(4장)를 묻고 있어 제목과 내용이 불일치한다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 1,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "오답이 모두 '~해도 된다'는 명백히 비윤리적인 진술이라 원문을 읽지 않아도 상식만으로 배제 가능해 변별력이 낮다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "제목에 '윤리'가 포함되어 있으나 문항은 진로만 다루어 제목이 실제 범위보다 넓다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 0,
+          "grounded": 1,
+          "issue": "정중한 표현과 직접적 표현을 비교하는 과제와 '정보의 중요성' 키워드를 유도하는 과제가 뒤섞여 있어, 어떤 주제로 질문해야 키워드가 나오는지 연결 고리가 불명확하다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "missionKeyword는 '표절' 하나인데 missionDescription은 '표절·개인정보·편향·딥페이크' 네 키워드를 모두 이끌어내야 완료라고 안내해 실제 판정 조건과 불일치한다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "원문 2장이 이미 '표현보다 정보가 결과를 가른다'는 결론을 제시하므로 사실상 정답('그렇다')이 정해진 확인형 질문이라 의견 투표로 부적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "윤리적으로 적절한 행동을 고르는 정답 있는 퀴즈형이며, 적절한 행동이 1번과 3번 두 개라서 단일 선택 지시('가장 적절한 행동')와 모순되고 제목의 '직업 전망'도 내용에 없다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "오답들이 모두 운동의 결과·전개 과정이라 원인과 결과를 구분해야 하는 좋은 변별력을 가진다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "한 문항에 연도와 박탈된 권리 두 가지를 동시에 묻고 있어 이원적 문항 구조라는 점은 개선 여지가 있다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 1,
+          "bloom": "recall",
+          "titleMatch": 0,
+          "issue": "제목은 '의의와 결과'인데 문항은 단순 연도 암기만 묻고 있으며, 오답이 원문과 무관한 인접 연도 나열이라 뻔하다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 0,
+          "issue": "제목은 '광복 이후의 한반도 상황'인데 문항은 광복 당일의 사건 자체를 묻고 있어 제목과 내용이 어긋난다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 0,
+          "keywordReachable": 0,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "갑신정변 연도를 1894년으로 잘못 표기했고(실제 1884년), 원문은 정변 실패 후 청의 내정 간섭이 '심화'되었다고 하는데 미션 키워드는 정반대인 '청의 영향력 감소'라서 사실에 맞는 AI 답변으로는 키워드가 등장하기 어렵다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 0,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "1919년은 1910년 국권 피탈 이후 일제강점기이므로 '1919년 당시 대한제국에 살고 있는 지식인'이라는 설정과 '대한제국과 일제의 관계 변화'라는 표현은 시대착오적 용어 사용이다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "원문에 '청의 내정 간섭이 심화되었다'는 정답이 명시된 사실 확인 문제라 의견 투표로 부적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "정답이 있는 사실 문제인 데다 보기 네 개가 모두 원문상 사실이거나 사실로 볼 수 있어 '올바른 것' 하나를 고르라는 요구가 모호하다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "정답(합성저항이 각 저항의 합보다 작다)이 원문에 직접 서술되지 않고 공식 1/R=1/R1+1/R2에서 추론해야 하는 내용이다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 0,
+          "issue": "문항은 전력(P=V×I)에서 전류를 구하는 계산인데 title은 '전력량 계산'으로 표기되어 있고, explanation도 P=V×I를 '전력량' 공식이라고 잘못 지칭한다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "미션 설명 마지막 문장의 '문제를 들어'는 '예를 들어'의 오기로 보이는 어색한 표현이지만 수치(10V, 5Ω, 2A)와 내용은 원문과 정확히 일치한다."
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "학생이 '병렬 회로'라는 키워드를 직접 말하도록 지시해 미션 달성이 다소 형식적으로 쉬워지는 점 외에는 문제 없다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "옴의 법칙 계산으로 정답(2A에서 1A로 감소)이 명확히 존재하는 문제라 의견 투표로 부적합하며, 제목의 '직렬 회로'도 실제 내용(옴의 법칙)과 맞지 않다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "정답이 존재하는 지식 확인 문제라 투표로 부적합하고, 프롬프트 설명문에 정답 내용이 그대로 노출되어 있다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 1,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "'수요량은 무작위로 변한다' 등 오답이 지나치게 뻔해 변별력이 낮다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "정답에만 '균형'이라는 단어가 들어 있어 원문을 몰라도 정답을 유추하기 쉽다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "원문이 열등재는 소득이 늘면 수요가 준다고 명시하므로 '소득 감소'도 열등재의 수요를 증가시킬 수 있어 복수 정답 여지가 있다(재화 유형을 정상재로 한정할 필요)."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "오답들이 원문 문장을 단순히 반대로 뒤집은 형태라 원문 암기 확인 수준에 머문다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "'임대료에만 적용된다'는 오답은 다소 뻔하지만, 최저가격제와 혼동을 유도하는 첫 번째 오답은 변별력이 있다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "roleplay",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "factuallyAccurate": 1,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "factuallyAccurate": 0,
+          "keywordReachable": 1,
+          "missionClear": 1,
+          "grounded": 1,
+          "issue": "systemPrompt가 가격 변화에 따른 변화를 '수요량'이 아닌 '수요' 감소로 서술해 원문(1장·4장)의 수요/수요량 구분과 어긋나고, 커피를 탄력적 상품의 예로 단정한 것도 근거가 약하며, 제목은 '수요 변화 사례'인데 실제 내용은 가격 탄력성(5장)이고 미션 목표는 두 용어 모두 사용인데 완료 키워드는 '탄력적' 하나뿐이라는 불일치도 있다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "poll",
+      "requested": 2,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1,
+        "wordcloudRatio": 0
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "isOpinion": 0,
+          "grounded": 1,
+          "clear": 1,
+          "issue": "공급의 법칙이라는 명확한 정답(첫 번째 보기)이 존재하는 지식 확인 문제이므로 의견 투표로 부적합하다."
+        },
+        {
+          "idx": 1,
+          "isOpinion": 1,
+          "grounded": 1,
+          "clear": 0,
+          "issue": "'상대재'는 원문에 없는 모호한 용어(보완재의 오기로 추정)이고, '가격 변화'는 원문상 수요곡선 이동 요인이 아니라 수요량 변화 요인이라 보기 구성이 혼란을 준다."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "quiz": {
+      "schemaPass": "100%",
+      "grounded": "100%",
+      "answerCorrect": "100%",
+      "answerUnique": "95%",
+      "distractorQualityAvg": "2.15",
+      "bloomDist": {
+        "recall": 16,
+        "apply": 3,
+        "analyze": 1
+      },
+      "titleMatch": "80%"
+    },
+    "roleplay": {
+      "factuallyAccurate": "63%",
+      "keywordReachable": "88%",
+      "missionClear": "88%",
+      "grounded": "100%"
+    },
+    "poll": {
+      "isOpinion": "13%",
+      "grounded": "100%",
+      "clear": "63%",
+      "wordcloudRatio": "0%"
+    }
+  }
+}

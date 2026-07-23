@@ -9,56 +9,52 @@ function PdfSlideView({ pdfUrl, pageNumber }: { pdfUrl: string; pageNumber: numb
 
   useEffect(() => {
     let active = true;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    let renderTask: any = null;
 
     const renderPage = async () => {
-      setLoading(true);
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
       setError('');
       try {
         const pdfjsLib = (window as any).pdfjsLib;
         if (!pdfjsLib) {
           throw new Error('PDF 라이브러리를 로드하지 못했습니다.');
         }
-
-        // Set worker source
         if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
           pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
         const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
         if (!active) return;
-
         const page = await pdf.getPage(pageNumber);
         if (!active) return;
 
-        const container = containerRef.current;
-        if (!container) return;
-
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const unscaled = page.getViewport({ scale: 1.0 });
         const containerWidth = container.clientWidth || 800;
         const containerHeight = container.clientHeight || 550;
 
-        const scaleWidth = containerWidth / unscaledViewport.width;
-        const scaleHeight = containerHeight / unscaledViewport.height;
-        const scale = Math.min(scaleWidth, scaleHeight, 2.0); // Max scale 2.0 for quality
+        // 화면에 맞는 CSS 크기
+        const fitScale = Math.min(containerWidth / unscaled.width, containerHeight / unscaled.height);
+        // 실제 렌더는 devicePixelRatio를 곱해 고해상도로 — 프로젝터/레티나에서 흐릿함 방지 (상한 4배)
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const renderScale = Math.min(fitScale * dpr, 4);
 
-        const viewport = page.getViewport({ scale });
-
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        const viewport = page.getViewport({ scale: renderScale });
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        canvas.style.width = `${Math.floor(unscaled.width * fitScale)}px`;
+        canvas.style.height = `${Math.floor(unscaled.height * fitScale)}px`;
 
         const context = canvas.getContext('2d');
         if (!context) return;
 
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        await page.render(renderContext).promise;
+        if (renderTask) renderTask.cancel();
+        renderTask = page.render({ canvasContext: context, viewport });
+        await renderTask.promise;
         if (active) setLoading(false);
       } catch (err: any) {
+        if (err?.name === 'RenderingCancelledException') return;
         console.error('PDF render error:', err);
         if (active) {
           setError(err.message || 'PDF 페이지를 가져올 수 없습니다.');
@@ -67,14 +63,23 @@ function PdfSlideView({ pdfUrl, pageNumber }: { pdfUrl: string; pageNumber: numb
       }
     };
 
-    // Delay a bit to let clientWidth/clientHeight settle
-    const timer = setTimeout(() => {
-      renderPage();
-    }, 100);
+    // 컨테이너 크기가 바뀌면(발표 모드/전체화면 전환 등) 그 크기에 맞춰 다시 렌더
+    let debounce: ReturnType<typeof setTimeout>;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(debounce);
+      debounce = setTimeout(renderPage, 150);
+    });
+    if (containerRef.current) ro.observe(containerRef.current);
+
+    setLoading(true);
+    const timer = setTimeout(renderPage, 100);
 
     return () => {
       active = false;
       clearTimeout(timer);
+      clearTimeout(debounce);
+      ro.disconnect();
+      if (renderTask) renderTask.cancel();
     };
   }, [pdfUrl, pageNumber]);
 

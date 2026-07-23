@@ -10,3 +10,8 @@ uploads/
 skills-lock.json
 shots/
 
+
+# 개인/민감 자료 — 커밋 금지
+income/
+MEMORY.md
+uploads/

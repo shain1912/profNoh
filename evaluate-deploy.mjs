@@ -72,15 +72,17 @@ async function main() {
   const teacherCtx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const teacher = await teacherCtx.newPage();
   watch(teacher, 'teacher');
-  await setLocalStorage(teacher, {
-    axedu_instructor: JSON.stringify({
-      token: classroom.token,
-      instructorSecret: classroom.instructorSecret,
-      classroomId: classroom.classroomId,
-      deckId: classroom.deckId,
-    }),
-  });
+  // 강사 화면은 이제 admin 비밀번호 게이트 + 강의 선택 화면부터 시작한다 (localStorage 자격 주입 불가, 의도된 동작).
   await teacher.goto(`${BASE}/teach`, { waitUntil: 'networkidle' });
+  await teacher.locator('input[type=password]').fill('147147');
+  await teacher.getByText('입장하기').click();
+  await teacher.waitForTimeout(400);
+  await teacher.getByText('시작 ▶').first().click();
+  await teacher.waitForTimeout(1000);
+  const teacherHeader = await teacher.locator('header').innerText().catch(() => '');
+  const tokenMatch = teacherHeader.match(/\b[A-Z0-9]{6}\b/);
+  if (tokenMatch) classroom.token = tokenMatch[0];
+  record('Admin gate + deck picker launches classroom', !!tokenMatch, teacherHeader.slice(0, 120));
   await teacher.screenshot({ path: `${OUT_DIR}/02-teacher-console.png`, fullPage: true });
   const nextStep = teacher.getByTestId('next-step');
   record('Teacher console next-step button', await nextStep.count() === 1, (await visibleText(teacher)).slice(0, 160));

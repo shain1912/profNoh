@@ -5,6 +5,7 @@ import type {
   LeaderboardEntry,
   QuizReveal,
   PollDistribution,
+  QuestionItem,
 } from '@shared/types';
 import { getSocket, type AppSocket } from './socket';
 import type { QuizQuestionPayload } from '../components/activities/QuizStudent';
@@ -24,6 +25,7 @@ export interface ClassroomLive {
   notice: string | null;
   joined: { participantId: string; sessionId: string; nickname: string; score: number } | null;
   error: string | null;
+  questions: QuestionItem[];
 }
 
 export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
@@ -44,6 +46,7 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
   const [notice, setNotice] = useState<string | null>(null);
   const [joined, setJoined] = useState<ClassroomLive['joined']>(null);
   const [error, setError] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<QuestionItem[]>([]);
 
   useEffect(() => {
     const onConnect = () => {
@@ -93,6 +96,8 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
     });
     socket.on('joined', (j) => setJoined(j));
     socket.on('errmsg', (e) => setError(e.message));
+    socket.on('questions:sync', (qs) => setQuestions(qs));
+    socket.on('question:new', (q) => setQuestions((prev) => [q, ...prev].slice(0, 200)));
 
     if (socket.connected) {
       setConnected(true);
@@ -115,6 +120,8 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
       socket.off('notice');
       socket.off('joined');
       socket.off('errmsg');
+      socket.off('questions:sync');
+      socket.off('question:new');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -134,5 +141,6 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
     notice,
     joined,
     error,
+    questions,
   };
 }

@@ -1,0 +1,745 @@
+{
+  "base": "http://localhost:8787",
+  "collectedAt": "2026-07-20T10-38-48",
+  "results": [
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "생성형 AI의 이해",
+            "questions": [
+              {
+                "question": "생성형 AI는 무엇을 기반으로 작동하는가?",
+                "options": [
+                  "이미지 데이터를 기반으로 예측",
+                  "텍스트 데이터를 기반으로 다음 단어를 확률적으로 예측",
+                  "사용자의 감정을 분석해 응답 생성",
+                  "사전에 정의된 규칙에 따라 응답 생성"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "생성형 AI는 방대한 텍스트 데이터를 학습해 다음에 올 단어를 확률적으로 예측하는 방식으로 작동합니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "컨텍스트 엔지니어링 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 컨텍스트의 5요소에 해당하지 않는 것은 무엇인가요?",
+                "options": [
+                  "배경",
+                  "조건",
+                  "예시",
+                  "감정"
+                ],
+                "correctIndex": 3,
+                "timeLimitSec": 15,
+                "explanation": "컨텍스트의 5요소는 배경, 조건, 예시, 역할, 출력 형식입니다. 감정은 포함되지 않습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "AI Literacy: Context Engineering Quiz",
+            "questions": [
+              {
+                "question": "AI에게 복잡한 작업을 지시할 때, 품질을 높이기 위해 어떤 단계로 나누어야 할까요?",
+                "options": [
+                  "계획 수립, 세부 작성, 자체 점검",
+                  "즉시 실행, 결과 검토, 수정",
+                  "데이터 수집, 분석, 보고서 작성",
+                  "문제 정의, 솔루션 탐색, 실행"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 30,
+                "explanation": "AI에게 복잡한 작업을 지시할 때는 '계획 수립, 세부 작성, 자체 점검'의 3단계로 나누어 품질을 높일 수 있습니다. 이를 통해 AI는 더 나은 결과를 도출할 수 있습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 작업 분할과 품질 향상 퀴즈",
+            "questions": [
+              {
+                "question": "AI가 만든 결과물을 그대로 제출할 경우 어떤 문제가 발생할 수 있나요?",
+                "options": [
+                  "표절 문제가 발생할 수 있다.",
+                  "AI가 학습한 데이터의 편향이 결과물에 반영될 수 있다.",
+                  "민감한 개인정보가 노출될 수 있다.",
+                  "결과물의 정확도가 낮아질 수 있다."
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 15,
+                "explanation": "AI가 만든 결과물을 그대로 제출하면 표절 문제가 발생할 수 있습니다. AI의 결과물은 참고 자료로 사용하고, 이를 기반으로 독창적인 작업을 해야 합니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "AI 윤리적 고려사항과 위험성 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 AI 윤리 정책과 관련된 진로의 예시는 무엇인가요?",
+                "options": [
+                  "데이터 분석가",
+                  "AI 윤리 정책 전문가",
+                  "AI 모델 개발자",
+                  "AI 기반 마케팅 전문가"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "AI 윤리 정책 전문가는 AI의 윤리적 문제를 해결하고 정책 수립에 기여하는 역할을 합니다. 이는 AI 윤리적 고려사항을 다루는 중요한 진로입니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "roleplay",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 AI 역할극 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "AI 역할극: 프롬프트의 중요성 감소",
+            "intro": "과거에는 AI와의 대화에서 특정한 프롬프트 표현이 중요하다고 여겨졌지만, 이제는 정보의 질이 더 중요해졌습니다. 이번 활동에서는 AI와의 대화를 통해 '무엇을 말하는가'가 '어떻게 말하는가'보다 결과에 더 큰 영향을 미친다는 점을 경험해봅시다.",
+            "systemPrompt": "당신은 친절하고 경험이 풍부한 AI 어드바이저입니다. 사용자가 요청하는 정보를 정확하고 간결하게 제공합니다. 사용자의 말투에 상관없이 항상 일관된 태도로 답변합니다.",
+            "missionKeyword": "정보의 질",
+            "missionDescription": "AI에게 다양한 주제에 대해 질문을 하면서 '정보의 질'이 결과에 어떤 영향을 미치는지 탐구해보세요. AI의 답변에서 '정보의 질'이라는 문구가 포함된 답변을 이끌어내면 미션 완료입니다. 예를 들어, '어떻게 하면 AI가 더 나은 답변을 제공할 수 있을까요?'라는 질문에 대한 답변에서 '정보의 질'을 포함하도록 유도해보세요."
+          }
+        },
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 윤리 역할극: AI 도구 활용의 윤리적 고려",
+            "intro": "학생들은 AI 도구의 사용이 가져올 수 있는 윤리적 문제를 이해하고, 이를 실제 상황에서 어떻게 해결할 수 있는지 배웁니다. 역할극을 통해 AI의 결과물 활용, 개인정보 보호, 편향성, 딥페이크의 위험성을 탐구합니다.",
+            "systemPrompt": "당신은 AI 챗봇 'AIthics'입니다. 학생들은 당신과 대화하면서 AI 도구 사용에 있어 윤리적 문제를 해결하는 방법을 배우게 됩니다. 당신은 학생들이 당신의 답변에서 '개인정보 보호', 'AI 편향성', '딥페이크', '표절'이라는 단어를 이끌어낼 수 있도록 돕습니다. 학생들이 질문을 하면, AI의 윤리적 사용에 대한 조언을 제공하세요.",
+            "missionKeyword": "개인정보 보호",
+            "missionDescription": "AI 챗봇 'AIthics'와 대화하면서 AI 도구 사용 시 발생할 수 있는 윤리적 문제를 해결하는 방법을 찾아보세요. AI 챗봇과의 대화에서 '개인정보 보호', 'AI 편향성', '딥페이크', '표절'이라는 네 가지 키워드를 모두 이끌어내야 합니다. 각 키워드에 대해 AI가 제공하는 구체적인 예를 참고하여, 어떻게 대처해야 하는지 질문하고 해결책을 모색하세요."
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "poll",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 투표 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "프롬프트의 발전과 현재",
+            "prompt": "과거에는 '전문가인 척 해줘' 같은 프롬프트가 중요하다고 여겨졌지만, 이제는 표현보다 정보가 결과에 더 큰 영향을 미칩니다. 여러분은 AI와의 소통에서 어떤 부분이 가장 중요하다고 생각하나요?",
+            "mode": "choice",
+            "options": [
+              "정중한 말투",
+              "명확한 정보 전달",
+              "명령형 문장 사용",
+              "자연스러운 대화 방식"
+            ]
+          }
+        },
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 윤리와 직업 윤리",
+            "prompt": "다음 중 AI 윤리와 관련된 항목 중 가장 중요하다고 생각하는 것은 무엇인가요?",
+            "mode": "choice",
+            "options": [
+              "AI가 만든 결과물을 통째로 제출하면 표절이 될 수 있다",
+              "민감한 개인정보는 AI에 입력하지 말아야 한다",
+              "AI는 학습 데이터의 편향을 그대로 반영할 수 있다",
+              "타인의 동의 없는 딥페이크 합성은 범죄가 될 수 있다"
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "강화도 조약 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 강화도 조약의 주요 결과로 옳은 것은 무엇인가요?",
+                "options": [
+                  "조선의 완전한 자주권 유지",
+                  "일본의 조선 개항 요구 성공",
+                  "조선의 근대화 시작",
+                  "일본의 조선 침략 중단"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "강화도 조약은 일본의 조선 개항 요구를 받아들인 조약으로, 조선 최초의 근대적 조약이었지만 불평등 조약이었다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "동학농민운동 퀴즈",
+            "questions": [
+              {
+                "question": "1894년 동학농민운동의 직접적인 원인은 무엇이었나요?",
+                "options": [
+                  "고종 황제의 폐정",
+                  "조병갑의 학정",
+                  "청일전쟁의 발발",
+                  "전봉준의 권력욕"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "동학농민운동은 고부 군수 조병갑의 학정에 대한 항의로 시작되었습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "을사늑약의 체결과 영향",
+            "questions": [
+              {
+                "question": "을사늑약이 체결된 해는 언제이며, 그로 인해 대한제국이 잃은 권리는 무엇인가?",
+                "options": [
+                  "1895년, 경제권",
+                  "1905년, 외교권",
+                  "1910년, 군사권",
+                  "1907년, 통치권"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "을사늑약은 1905년에 체결되었으며, 대한제국의 외교권을 박탈하고 일본의 보호국 체제를 도입했습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "3·1 운동의 의의와 결과",
+            "questions": [
+              {
+                "question": "3·1 운동이 일어난 해는 언제인가요?",
+                "options": [
+                  "1918년",
+                  "1919년",
+                  "1920년",
+                  "1921년"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 10,
+                "explanation": "3·1 운동은 1919년 3월 1일에 시작되었습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "광복 이후 분단 상황의 시작",
+            "questions": [
+              {
+                "question": "1945년 8월 15일 일본의 무조건 항복으로 맞이한 사건은 무엇인가요?",
+                "options": [
+                  "한반도의 분단",
+                  "광복",
+                  "남북 정부의 수립",
+                  "한국 전쟁의 시작"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "1945년 8월 15일은 일본의 무조건 항복으로 대한민국이 광복을 맞이한 날입니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "korean-history",
+      "type": "roleplay",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 AI 역할극 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "갑신정변 이후 조선의 정치적 변화",
+            "intro": "갑신정변의 실패 이후 조선의 정치적 상황은 어떻게 변화했는지 알아봅시다. 이번 활동에서는 AI와 역할극을 통해 당시의 상황을 생생하게 경험해봅니다.",
+            "systemPrompt": "당신은 1884년 갑신정변 직후의 조선 왕실 고문관입니다. 청나라의 내정 간섭이 심화되는 상황에서, 왕실의 입장에서 조선의 미래에 대해 고민하고 있습니다. 학생은 당신에게 조언을 구하는 신하의 역할을 맡습니다.",
+            "missionKeyword": "청나라의 내정 간섭",
+            "missionDescription": "AI와 대화하면서 조선의 미래에 대한 조언을 구하세요. 대화 중 '청나라의 내정 간섭'이라는 표현을 자연스럽게 이끌어내어 미션을 완료하세요. AI가 이 표현을 사용하도록 유도하는 것이 목표입니다."
+          }
+        },
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 역할극: 3·1 운동과 임시정부 수립",
+            "intro": "1919년 3·1 운동의 영향과 대한민국 임시정부의 수립 과정을 이해하기 위해 AI와 역할극을 통해 대화해보세요. AI는 당시 상황을 경험한 독립운동가를 연기합니다.",
+            "systemPrompt": "당신은 1919년 3·1 운동에 참여했던 독립운동가입니다. 학생은 당신에게 3·1 운동의 영향과 그 결과로 수립된 임시정부에 대해 질문합니다. 학생의 질문에 대해 상세하고 생생한 경험을 바탕으로 답변해 주세요. 특히, 3·1 운동 이후 일제의 통치 방식 변화와 임시정부의 역할에 대해 강조해 주세요.",
+            "missionKeyword": "문화통치",
+            "missionDescription": "AI와의 대화를 통해 3·1 운동 이후 일제가 '문화통치'로 전환한 이유와 그 영향을 파악하세요. 또한, 대한민국 임시정부가 상하이에 수립된 과정과 그 중요성에 대해 AI로부터 정확한 정보를 얻어보세요. 대화 중 '문화통치'와 '임시정부'라는 단어를 반드시 포함시켜 대화를 이끌어내세요."
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "korean-history",
+      "type": "poll",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 투표 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "갑신정변 이후의 정치적 변화",
+            "prompt": "갑신정변이 실패한 후 청의 내정 간섭이 심화되었다고 하는데, 만약 청의 간섭이 없었다면 조선의 정치적 미래는 어떻게 달라졌을까요?",
+            "mode": "wordcloud",
+            "options": []
+          }
+        },
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "3·1 운동의 영향과 결과",
+            "prompt": "3·1 운동이 일어난 후, 일제가 무단통치에서 문화통치로 전환한 것에 대해 어떻게 생각하시나요?",
+            "mode": "choice",
+            "options": [
+              "긍정적으로 생각한다 - 문화통치가 더 나은 변화를 가져올 수 있다고 본다",
+              "부정적으로 생각한다 - 문화통치도 결국 식민 통치의 일환이라고 본다",
+              "중립적이다 - 변화의 의도는 알겠지만 영향은 미미했다고 본다",
+              "기타 의견"
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "전류와 전압의 기본 개념 이해",
+            "questions": [
+              {
+                "question": "다음 중 전류와 전압에 대한 설명으로 옳은 것은 무엇인가요?",
+                "options": [
+                  "전류는 전위의 차이로, 단위는 볼트(V)이다.",
+                  "전압은 전하의 흐름으로, 단위는 암페어(A)이다.",
+                  "전류는 전하의 흐름으로, 단위는 암페어(A)이다.",
+                  "전압은 전자의 이동 방향과 같은 방향으로 흐른다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 30,
+                "explanation": "전류는 전하의 흐름으로, 단위는 암페어(A)입니다. 전압은 전위의 차이로, 단위는 볼트(V)이며, 전류를 흐르게 하는 원동력입니다. 전류의 방향은 실제로는 전자의 이동 방향과 반대입니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "직렬 연결 회로의 특성 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 직렬 연결 회로의 특성에 대한 설명으로 옳은 것은 무엇인가요?",
+                "options": [
+                  "직렬 회로에서 전류는 각 저항을 지날 때마다 감소한다.",
+                  "직렬 회로에서 합성저항은 각 저항의 합과 같다.",
+                  "직렬 회로에서 전압은 모든 저항에서 동일하게 분배된다.",
+                  "한 저항이 끊어져도 나머지 저항에는 전류가 흐른다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "직렬 연결 회로에서 합성저항은 각 저항의 합과 같으며, 전류는 회로 전체에서 동일하게 흐르고, 전압은 각 저항의 크기에 비례하여 분배됩니다. 한 저항이 끊어지면 회로 전체에 전류가 흐르지 않습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "병렬 연결 회로의 특성 이해하기",
+            "questions": [
+              {
+                "question": "다음 중 병렬 연결 회로의 특성에 대한 설명으로 옳은 것은 무엇인가요?",
+                "options": [
+                  "병렬 회로에서 전압은 각 저항마다 다르다.",
+                  "병렬 회로에서 전류는 모든 저항에서 같다.",
+                  "합성저항의 역수는 각 저항 역수의 합과 같다.",
+                  "가정용 전기 배선은 직렬 연결을 사용한다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 30,
+                "explanation": "병렬 연결 회로에서 합성저항의 역수는 각 저항 역수의 합과 같습니다. 또한, 병렬 회로에서는 전압이 모든 저항에서 같고, 전류는 저항에 반비례하여 나뉩니다. 가정용 전기 배선은 병렬 연결을 사용합니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "전력 계산과 단위 이해 퀴즈",
+            "questions": [
+              {
+                "question": "220V에 연결된 1100W 전열기에 흐르는 전류의 크기는 얼마인가?",
+                "options": [
+                  "2A",
+                  "3A",
+                  "4A",
+                  "5A"
+                ],
+                "correctIndex": 3,
+                "timeLimitSec": 20,
+                "explanation": "전력 P = V × I 공식에 따라, 1100W = 220V × I 이므로 I = 1100 / 220 = 5A 이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "안전한 전기 사용 방법 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 누전의 위험성에 대한 설명으로 옳은 것은 무엇인가요?",
+                "options": [
+                  "누전은 전류가 정상 경로를 벗어나 흐르는 현상으로 감전과 화재의 원인이 된다.",
+                  "누전은 전기 요금을 절약하는 방법이다.",
+                  "누전은 전기 기기의 성능을 향상시킨다.",
+                  "누전은 전기 사용에 아무런 영향을 주지 않는다."
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "누전은 전류가 정상 경로를 벗어나 흐르는 현상으로, 이는 감전과 화재의 주요 원인이 됩니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "roleplay",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 AI 역할극 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "AI 역할극: 옴의 법칙을 활용한 문제 해결",
+            "intro": "옴의 법칙을 이해하고 이를 활용한 문제를 해결하는 연습을 통해 전기 회로의 기본 원리를 익혀보세요. AI와 역할극을 통해 실생활에서 옴의 법칙을 적용하는 방법을 배워보겠습니다.",
+            "systemPrompt": "당신은 전기 회로 전문가 AI '엘렉트로'입니다. 학생이 물어보는 전기 회로 문제에 대해 친절하고 자세하게 설명해 주세요. 예를 들어, 학생이 전압, 전류, 저항 중 두 가지 값을 알려주면 나머지 하나의 값을 계산해 주세요. 또한, 학생이 실생활에서 옴의 법칙을 어떻게 적용할 수 있는지에 대한 예시를 들어 주세요.",
+            "missionKeyword": "옴의 법칙",
+            "missionDescription": "AI '엘렉트로'와 대화하면서 옴의 법칙을 활용한 문제를 해결해 보세요. AI에게 다음과 같은 질문을 던져 보세요:\n1. '10V의 전압과 5Ω의 저항이 있을 때, 흐르는 전류는 얼마인가요?'\n2. '2A의 전류가 흐르고 5Ω의 저항이 있을 때, 필요한 전압은 얼마인가요?'\n3. '20V의 전압과 4A의 전류가 흐를 때, 회로의 저항은 얼마인가요?'\nAI의 답변에서 '옴의 법칙'이라는 단어를 포함하도록 유도하세요. 대화의 마지막에는 실생활에서 옴의 법칙을 어떻게 활용할 수 있는지에 대한 예시를 물어보세요."
+          }
+        },
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "AI 역할극: 직렬 vs 병렬 회로의 차이점 이해하기",
+            "intro": "학생들은 AI와 대화하며 직렬 및 병렬 회로의 차이점을 탐구합니다. 이를 통해 회로의 기본 원리를 실생활과 연결해봅니다.",
+            "systemPrompt": "당신은 전기 회로 전문가로, 학생들에게 직렬 및 병렬 회로의 차이점을 설명하는 역할을 맡고 있습니다. 학생들이 회로의 특성을 잘 이해할 수 있도록 돕고, 특히 가정용 전기 배선이 왜 병렬로 연결되는지 설명해야 합니다.",
+            "missionKeyword": "전압은 어디서나 같다",
+            "missionDescription": "AI와의 대화를 통해 병렬 회로의 특성을 이해하고, '전압은 어디서나 같다'는 문장을 자연스럽게 이끌어내세요. 이를 통해 병렬 회로의 핵심 개념을 파악할 수 있습니다."
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "poll",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 투표 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "직렬 연결 회로의 전류와 전압 분포",
+            "prompt": "직렬 연결 회로에서 전류와 전압의 분포에 대해 여러분의 생각을 자유롭게 표현해 주세요.",
+            "mode": "wordcloud",
+            "options": []
+          }
+        },
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "병렬 연결 회로의 전류와 전압 분포",
+            "prompt": "가정용 전기 배선이 병렬 연결을 사용한다는 사실을 알고 계신가요? 만약 여러분 집의 전기 배선을 설계할 수 있다면, 어떤 점을 가장 중요하게 생각하시겠어요?",
+            "mode": "choice",
+            "options": [
+              "안전성",
+              "효율성",
+              "편리한 유지보수",
+              "비용 절감"
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "수요의 법칙 이해하기",
+            "questions": [
+              {
+                "question": "수요의 법칙에 따르면, 상품의 가격이 상승하면 수요량은 어떻게 변할까요?",
+                "options": [
+                  "수요량은 증가한다",
+                  "수요량은 감소한다",
+                  "수요량은 변하지 않는다",
+                  "수요량은 무작위로 변한다"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "수요의 법칙에 따르면, 다른 조건이 같을 때 가격이 오르면 수요량은 감소하고, 가격이 내리면 수요량은 증가합니다. 따라서 가격이 상승하면 수요량은 감소합니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "공급의 법칙 이해하기",
+            "questions": [
+              {
+                "question": "공급의 법칙에 따르면, 상품의 가격이 오르면 어떻게 될까요?",
+                "options": [
+                  "공급량은 감소한다",
+                  "공급량은 변하지 않는다",
+                  "공급량은 증가한다",
+                  "공급량은 무작위로 변한다"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "공급의 법칙에 따르면, 상품의 가격이 오르면 생산자는 더 많은 이익을 얻을 수 있기 때문에 공급량을 증가시키게 됩니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "시장 균형의 결정 과정",
+            "questions": [
+              {
+                "question": "수요곡선과 공급곡선이 만나는 점에서 결정되는 것은 무엇인가요?",
+                "options": [
+                  "균형가격과 균형거래량",
+                  "공급량과 수요량",
+                  "공급곡선의 기울기와 수요곡선의 기울기",
+                  "시장의 초과공급과 초과수요"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 15,
+                "explanation": "수요곡선과 공급곡선이 교차하는 점에서는 균형가격과 균형거래량이 결정됩니다. 이 교차점은 시장이 균형을 이루는 지점을 나타냅니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "수요 변화 요인 분석 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 수요를 증가시키는 요인은 무엇인가요?",
+                "options": [
+                  "소득 감소",
+                  "대체재 가격 하락",
+                  "보완재 가격 상승",
+                  "선호 증가"
+                ],
+                "correctIndex": 3,
+                "timeLimitSec": 15,
+                "explanation": "선호 증가는 수요를 증가시키는 요인입니다. 소득 감소는 일반적으로 수요를 감소시키고, 대체재 가격 하락과 보완재 가격 상승은 수요를 감소시킬 수 있습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "가격 규제와 시장 반응 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 최고가격제의 결과로 발생할 수 있는 것은 무엇인가요?",
+                "options": [
+                  "시장의 균형가격 유지",
+                  "공급 증가",
+                  "초과수요와 암시장 형성",
+                  "소비자 가격 인하"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "최고가격제는 균형가격보다 낮은 가격 상한을 설정하여 초과수요를 유발하고, 이는 암시장 형성을 초래할 수 있습니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "roleplay",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 AI 역할극 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "AI 역할극: 공급 변화 시나리오",
+            "intro": "이번 활동에서는 AI가 연기하는 생산자와 대화하면서, 가격 변화에 따른 공급량의 변화를 이해하게 됩니다. AI와 상호작용하며 공급의 법칙을 직접 체험해보세요.",
+            "systemPrompt": "당신은 농산물을 생산하는 농부입니다. 학생이 당신에게 가격 변화에 대해 질문할 때, 공급의 법칙에 따라 공급량이 어떻게 변하는지 설명해 주세요. 학생이 가격 상승에 대해 묻는다면 공급량이 증가한다고, 가격 하락에 대해 묻는다면 공급량이 감소한다고 대답하세요.",
+            "missionKeyword": "공급량의 변화",
+            "missionDescription": "AI 농부와 대화하면서, 가격 상승과 하락에 따른 공급량의 변화를 질문하세요. AI가 '공급량의 변화'라는 키워드를 사용하여 올바른 설명을 제공하는지 확인하세요. 예를 들어, '가격이 오르면 공급량은 어떻게 되나요?' 또는 '가격이 내리면 공급량은 어떻게 되나요?'라고 질문할 수 있습니다."
+          }
+        },
+        {
+          "type": "add_roleplay",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 역할극: 수요 변화 사례 분석하기",
+            "intro": "이번 활동에서는 AI와 함께 다양한 상품의 수요 변화 사례를 분석해보세요. AI는 경제학 전문가로 변신하여 여러분의 질문에 답변할 것입니다.",
+            "systemPrompt": "당신은 경제학 전문가로서, 다양한 상품의 수요 변화 사례를 분석하는 역할을 맡고 있습니다. 학생들이 질문할 때, 가격 탄력성 개념을 활용하여 명확하고 구체적인 예를 들어 설명하세요. 예를 들어, 생필품과 사치품의 차이를 설명할 때는 각각의 가격 변화에 따른 수요량 변화를 구체적인 예시로 설명해야 합니다.",
+            "missionKeyword": "비탄력적",
+            "missionDescription": "AI에게 생필품과 사치품의 수요 변화에 대해 질문하고, AI의 답변에서 '비탄력적'과 '탄력적'이라는 단어를 반드시 이끌어내세요. AI가 이 두 단어를 사용하여 설명하도록 유도하는 것이 미션의 목표입니다."
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "poll",
+      "requested": 2,
+      "returned": 2,
+      "message": "PDF 내용을 분석해서 투표 2개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "시장 균형에 대한 생각 공유하기",
+            "prompt": "공급의 법칙에 따르면 가격이 오르면 공급량이 증가합니다. 여러분이 만약 생산자라면, 가격이 오르는 상황에서 어떤 결정을 내릴 것 같나요?",
+            "mode": "choice",
+            "options": [
+              "공급량을 최대한 늘려 더 많은 이익을 얻으려고 할 것",
+              "가격이 더 오를 때까지 기다렸다가 공급량을 늘릴 것",
+              "시장의 다른 요소를 고려하여 공급량을 조절할 것",
+              "가격이 오르는 이유를 분석한 후 결정할 것"
+            ]
+          }
+        },
+        {
+          "type": "add_poll",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "수요 변화 요인에 대한 의견 공유",
+            "prompt": "다음 중 여러분이 생각하기에 가장 큰 수요 변화 요인은 무엇인가요?",
+            "mode": "choice",
+            "options": [
+              "가격 변화",
+              "소비자 소득 변화",
+              "대체재의 가용성",
+              "소비자 선호도 변화",
+              "미래 가격에 대한 기대"
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    }
+  ]
+}

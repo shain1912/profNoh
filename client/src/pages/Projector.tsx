@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Deck } from '@shared/types';
 import { loadDeck } from '../lib/deck';
@@ -14,6 +14,7 @@ const SHAPES = ['▲', '◆', '●', '■'];
 export default function Projector() {
   const { token = '' } = useParams();
   const [deck, setDeck] = useState<Deck | null>(null);
+  const [lbOpen, setLbOpen] = useState(false);
   const live = useClassroom((s) => s.emit('viewer:join', { token: token.toUpperCase() }));
 
   useEffect(() => {
@@ -21,17 +22,66 @@ export default function Projector() {
     if (id && !deck) loadDeck(id).then(setDeck).catch(() => {});
   }, [live.snapshot?.deckId, deck]);
 
+  // F 전체화면 / L 리더보드 서랍 (프로젝터 화면)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.code === 'KeyF') {
+        e.preventDefault();
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else document.documentElement.requestFullscreen().catch(() => {});
+      } else if (e.code === 'KeyL') {
+        e.preventDefault();
+        setLbOpen((v) => !v);
+      } else if (e.code === 'Escape') {
+        setLbOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // 활동이 열리면 리더보드 서랍 자동 닫힘
+  useEffect(() => {
+    if (live.activity) setLbOpen(false);
+  }, [live.activity?.activityId]);
+
   if (!deck)
     return <div className="grid h-full place-items-center text-2xl text-white/40">연결 중… ({token})</div>;
 
   const act = live.activity ? deck.activities[live.activity.activityId] : null;
+
+  // 리더보드 서랍 (L) — 어떤 화면 상태에서도 오른쪽에서 슬라이드 인
+  const lbDrawer = (
+    <div
+      className={[
+        'fixed right-0 top-0 z-40 flex h-full w-96 max-w-[85vw] transform flex-col bg-black/70 shadow-2xl ring-1 ring-white/10 backdrop-blur-lg transition-transform duration-300',
+        lbOpen ? 'translate-x-0' : 'translate-x-full',
+      ].join(' ')}
+    >
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <span className="text-xl font-extrabold">🏆 리더보드</span>
+        <button className="rounded px-2 py-1 text-sm text-white/50 hover:bg-white/10 hover:text-white" onClick={() => setLbOpen(false)}>✕</button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <Leaderboard entries={live.leaderboard} />
+      </div>
+    </div>
+  );
+
+  const withDrawer = (node: ReactNode) => (
+    <>
+      {node}
+      {lbDrawer}
+    </>
+  );
 
   // 퀴즈
   if (act?.type === 'quiz') {
     const showReveal = live.reveal && (!live.question || live.reveal.questionId === live.question.questionId);
     if (showReveal && live.reveal) {
       const correctIdx = live.reveal.correctIndex;
-      return (
+      return withDrawer(
         <div className="grid h-full grid-cols-3 gap-6 p-8">
           <div className="col-span-2 flex flex-col justify-center">
             <h1 className="text-4xl font-extrabold">{live.question?.question ?? '정답 공개'}</h1>
@@ -55,7 +105,7 @@ export default function Projector() {
       );
     }
     if (live.question) {
-      return (
+      return withDrawer(
         <div className="flex h-full flex-col justify-center p-10 text-center">
           <h1 className="text-5xl font-extrabold leading-tight">{live.question.question}</h1>
           <div className="mx-auto my-8 w-1/2">
@@ -73,12 +123,12 @@ export default function Projector() {
         </div>
       );
     }
-    return <div className="grid h-full place-items-center text-3xl text-white/50">퀴즈 준비 중… 🎮</div>;
+    return withDrawer(<div className="grid h-full place-items-center text-3xl text-white/50">퀴즈 준비 중… 🎮</div>);
   }
 
   // 투표
   if (act?.type === 'poll') {
-    return (
+    return withDrawer(
       <div className="flex h-full flex-col justify-center p-10 text-center">
         <h1 className="text-4xl font-extrabold">🗳️ {act.prompt}</h1>
         <div className="mt-8 text-2xl">
@@ -90,9 +140,9 @@ export default function Projector() {
 
   // 슬라이드
   const slide = deck.slides[live.slideIndex] ?? deck.slides[0];
-  return (
+  return withDrawer(
     <div className="h-full">
       <SlideView slide={slide} big />
-    </div>
+    </div>,
   );
 }

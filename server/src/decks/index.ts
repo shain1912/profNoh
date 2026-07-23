@@ -1,7 +1,7 @@
 import type { Deck, Activity } from '../../../shared/types';
 import { getDeckSync } from './registry';
 
-export { ensureDeckLoaded, registerDeck } from './registry';
+export { ensureDeckLoaded, registerDeck, unregisterDeck } from './registry';
 
 export function getDeck(id: string): Deck | undefined {
   return getDeckSync(id);

@@ -122,6 +122,15 @@ export function validateDeck(input: unknown, id: string): Deck {
         intro: clamp(a.intro, 200) || undefined,
         task: clamp(a.task, 500) || '비교 분석해보세요.',
         inputPlaceholder: clamp(a.inputPlaceholder, 100) || undefined,
+        examplePrompts: Array.isArray(a.examplePrompts) ? a.examplePrompts.slice(0, 8).map((s) => clamp(s, 100)) : undefined,
+        cannedResults: a.cannedResults && typeof a.cannedResults === 'object'
+          ? Object.fromEntries(
+              Object.entries(a.cannedResults).slice(0, 8).map(([k, v]: [string, any]) => [
+                clamp(k, 100),
+                { outputA: clamp(v?.outputA, 4000) || '', outputB: clamp(v?.outputB, 4000) || '' },
+              ]),
+            )
+          : undefined,
         labelA: clamp(a.labelA, 60) || 'A안',
         labelB: clamp(a.labelB, 60) || 'B안',
       };

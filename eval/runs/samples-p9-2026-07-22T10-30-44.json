@@ -1,0 +1,1403 @@
+{
+  "base": "http://localhost:8787",
+  "tag": "p9",
+  "types": [
+    "quiz"
+  ],
+  "repeat": 3,
+  "collectedAt": "2026-07-22T10-30-44",
+  "results": [
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "rep": 0,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "생성형 AI의 강점과 한계에 대한 이해",
+            "questions": [
+              {
+                "question": "다음 중 생성형 AI가 잘하는 작업과 관련된 예시는 무엇인가?",
+                "options": [
+                  "최근 일어난 사건에 대한 정확한 보고서 작성",
+                  "의미 있는 문장을 생성하기 위해 단어 간의 확률적 관계를 예측하는 것",
+                  "특정 주제에 대한 모든 최신 정보를 실시간으로 업데이트하는 것",
+                  "사용자의 요청에 대해 항상 100% 사실에 기반한 답변을 제공하는 것"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "생성형 AI는 다음에 올 단어를 예측하는 방식으로 작동하며, 이는 초안 작성, 요약, 번역과 같은 작업에 유용하다. 그러나 최신 사실 보장이나 책임 있는 답변 제공은 한계점이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "프롬프트 표현과 정보의 중요성",
+            "questions": [
+              {
+                "question": "다음 중 AI 모델의 발전에 따라 변화한 점은 무엇인가요?",
+                "options": [
+                  "정중한 말투가 결과 품질에 큰 영향을 미친다.",
+                  "퉁명스러운 말투가 결과 품질에 부정적인 영향을 미친다.",
+                  "프롬프트 표현을 바꾸는 것만으로는 결과가 크게 달라지지 않는다.",
+                  "전문가인 척하는 프롬프트가 여전히 결과에 큰 영향을 미친다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "AI 모델이 발전하면서 프롬프트의 표현 방식보다는 제공되는 정보의 질이 결과에 더 큰 영향을 미치게 되었습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "컨텍스트 엔지니어링의 5요소 이해하기",
+            "questions": [
+              {
+                "question": "다음 중 '컨텍스트 엔지니어링'의 5요소에 해당하지 않는 것은?",
+                "options": [
+                  "배경",
+                  "조건",
+                  "예시",
+                  "제안 방식"
+                ],
+                "correctIndex": 3,
+                "timeLimitSec": 15,
+                "explanation": "컨텍스트 엔지니어링의 5요소는 '배경', '조건', '예시', '역할', '출력 형식'입니다. '제안 방식'은 여기에 포함되지 않습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "AI 작업 설계에서 하네스의 역할",
+            "questions": [
+              {
+                "question": "복잡한 AI 작업을 효과적으로 수행하기 위해 하네스는 어떤 단계로 작업을 나누는가?",
+                "options": [
+                  "계획 수립, 세부 작성, 자체 점검",
+                  "데이터 수집, 모델 학습, 결과 분석",
+                  "문제 정의, 데이터 전처리, 모델 평가",
+                  "모델 선택, 하이퍼파라미터 조정, 결과 해석"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 15,
+                "explanation": "하네스는 AI 작업을 계획 수립, 세부 작성, 자체 점검의 세 단계로 나누어 품질을 높인다. 다른 옵션들은 AI 작업의 다른 측면을 다루고 있다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 윤리적 고려사항 이해도 테스트",
+            "questions": [
+              {
+                "question": "A씨가 AI에 친구의 민감한 개인정보를 입력하여 분석을 요청했습니다. 이 행동이 적절한가요?",
+                "options": [
+                  "네, AI는 정보를 안전하게 처리하므로 문제가 없습니다.",
+                  "아니요, 민감한 개인정보는 AI에 입력하지 말아야 합니다.",
+                  "상황에 따라 다릅니다. 분석 목적이 합법적이면 괜찮습니다.",
+                  "AI가 개인정보를 처리할 수 있는지 여부에 달려 있습니다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "민감한 개인정보는 AI에 입력하지 말아야 한다는 윤리적 원칙에 따라, 친구의 개인정보를 입력하는 것은 적절하지 않습니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "rep": 0,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "강화도 조약의 주요 내용과 영향",
+            "questions": [
+              {
+                "question": "1876년 강화도 조약 체결 이후, 조선이 일본에 개방한 항구는 총 몇 개인가?",
+                "options": [
+                  "1개",
+                  "2개",
+                  "3개",
+                  "4개"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "강화도 조약에 따라 조선은 부산, 원산, 인천 세 항구를 일본에 개방하였다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "동학농민운동의 전개와 결과 이해",
+            "questions": [
+              {
+                "question": "1894년 전봉준이 이끄는 동학농민군이 봉기한 직후 어떤 사건이 일어났는가?",
+                "options": [
+                  "농민군은 서울로 진격하여 관군과 전투를 벌였다",
+                  "전주성을 점령하고 정부와 전주 화약을 체결했다",
+                  "청나라에 군사적 지원을 요청했다",
+                  "일본군이 개입하여 농민군을 진압했다"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "동학농민군은 전주성을 점령한 후 정부와 전주 화약을 체결하고 집강소를 설치하여 폐정개혁을 추진했다. 이는 청일전쟁의 도화선이 되었다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "을사늑약의 체결과 반발",
+            "questions": [
+              {
+                "question": "1905년, 러일전쟁에서 승리한 일본이 대한제국의 외교권을 박탈하기 위해 체결한 조약은?",
+                "options": [
+                  "강화도 조약",
+                  "을사늑약",
+                  "정미조약",
+                  "가쓰라-태프트 밀약"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "을사늑약은 1905년 일본이 대한제국의 외교권을 박탈하기 위해 강제로 체결한 조약으로, 이를 통해 일본은 대한제국에 통감부를 설치하고 이토 히로부미를 초대 통감으로 임명했습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "3·1 운동의 영향과 결과",
+            "questions": [
+              {
+                "question": "3·1 운동 이후 일제가 기존의 무단통치 대신 어떤 통치 방식을 채택했는가?",
+                "options": [
+                  "문화통치",
+                  "강제징용",
+                  "식민지분할",
+                  "무관통치"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 15,
+                "explanation": "3·1 운동 이후 일제는 기존의 강압적인 무단통치 대신 문화통치를 채택하여 일종의 유화 정책을 펼쳤다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "광복 이후의 한반도 분단 상황",
+            "questions": [
+              {
+                "question": "1945년 광복 이후, 미군과 소련군은 어떤 기준으로 한반도를 분할 주둔하였는가?",
+                "options": [
+                  "한반도를 동서로 나누어 미군과 소련군이 각각 주둔하였다.",
+                  "한반도를 북위 38도선을 경계로 분할하여 주둔하였다.",
+                  "한반도를 남쪽과 북쪽으로 나누어 각각 주둔하였다.",
+                  "한반도의 주요 도시를 기준으로 주둔하였다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "1945년 광복 이후, 미군과 소련군은 북위 38도선을 기준으로 한반도를 분할 주둔하였으며, 이는 분단의 시작이 되었다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "rep": 0,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "옴의 법칙을 활용한 전류 계산",
+            "questions": [
+              {
+                "question": "12V의 전압이 가해지는 회로에 4Ω의 저항이 연결되어 있을 때, 흐르는 전류의 크기는 얼마인가?",
+                "options": [
+                  "48A",
+                  "3A",
+                  "8A",
+                  "16A"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "옴의 법칙 V = I × R 을 이용하여 계산하면, I = V / R = 12V / 4Ω = 3A 가 된다. 48A는 전압과 저항을 곱한 값이며, 8A와 16A는 잘못된 계산 결과이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "병렬 연결 회로에서의 전압과 전류 분배",
+            "questions": [
+              {
+                "question": "다음과 같은 병렬 연결 회로에서 각 저항기의 저항 값이 R1=4Ω, R2=6Ω일 때, 회로에 12V의 전압이 가해지면 R2에 흐르는 전류는 얼마인가?",
+                "options": [
+                  "1.5A",
+                  "2A",
+                  "3A",
+                  "6A"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "병렬 연결 회로에서는 모든 저항기에 동일한 전압이 걸리므로, R2에 걸리는 전압은 12V입니다. 옴의 법칙에 따라 I=V/R이므로, I=12V/6Ω=2A입니다. 이는 전류가 저항에 반비례하여 나뉜다는 원리를 적용한 결과입니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "전열기의 전력량 계산",
+            "questions": [
+              {
+                "question": "220V에 연결된 1500W 전열기에 흐르는 전류의 크기는 얼마인가?",
+                "options": [
+                  "5A",
+                  "6.8A",
+                  "10A",
+                  "15A"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "전력량 P = V × I 공식에 따라, 1500W = 220V × I 에서 I = 1500 / 220 ≈ 6.8A이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "전기 회로에서의 안전과 전력량 계산",
+            "questions": [
+              {
+                "question": "한 멀티탭에 1500W의 전기히터, 1000W의 다리미, 500W의 스탠드를 동시에 연결했을 때, 총 전력량은 얼마인가?",
+                "options": [
+                  "2500W",
+                  "3000W",
+                  "1500W",
+                  "3500W"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "총 전력량은 각 기기의 전력량을 합한 값으로, 1500W + 1000W + 500W = 3000W이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "직렬 연결 회로에서의 전류와 전압",
+            "questions": [
+              {
+                "question": "다음 그림과 같이 3Ω의 저항 R1, 5Ω의 저항 R2, 7Ω의 저항 R3가 직렬로 연결되어 있다. 이 회로의 합성저항은 얼마인가?",
+                "options": [
+                  "10Ω",
+                  "12Ω",
+                  "15Ω",
+                  "20Ω"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "직렬 연결된 저항의 합성저항은 각 저항의 합과 같다. 따라서 R = R1 + R2 + R3 = 3Ω + 5Ω + 7Ω = 15Ω이다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "rep": 0,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "수요의 법칙에 대한 이해 확인하기",
+            "questions": [
+              {
+                "question": "어떤 전자제품의 가격이 10% 상승했을 때, 소비자들이 해당 제품을 구매하고자 하는 욕구가 감소하여 수요량이 감소했습니다. 이 현상을 설명하는 경제 법칙은 무엇인가요?",
+                "options": [
+                  "수요의 법칙",
+                  "공급의 법칙",
+                  "수요의 가격 탄력성",
+                  "수요의 소득 탄력성"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "수요의 법칙은 가격이 오르면 수요량이 감소하고, 가격이 내리면 수요량이 증가하는 현상을 설명하는 경제 법칙입니다. 이 예시에서는 가격이 상승하여 수요량이 감소했으므로, 수요의 법칙이 적용됩니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "시장 균형 가격과 거래량 결정",
+            "questions": [
+              {
+                "question": "어떤 상품의 시장 수요곡선과 공급곡선이 만나는 지점에서 가격이 P1, 거래량이 Q1로 결정되었다. 그런데 정부가 가격 상한제를 P1보다 낮은 P2로 설정했다. 이 경우 어떤 일이 발생할까?",
+                "options": [
+                  "거래량은 Q1보다 감소하고, 초과수요가 발생한다",
+                  "거래량은 Q1보다 증가하고, 초과공급이 발생한다",
+                  "거래량은 Q1과 동일하지만, 초과수요가 발생한다",
+                  "거래량은 Q1보다 증가하고, 초과수요가 발생한다"
+                ],
+                "correctIndex": 3,
+                "timeLimitSec": 30,
+                "explanation": "가격 상한제 P2는 균형가격 P1보다 낮으므로 수요가 증가하고 공급이 감소하여 초과수요가 발생한다. 동시에 거래량은 균형거래량 Q1보다 감소하게 된다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "수요 변화 요인 분석",
+            "questions": [
+              {
+                "question": "다음 중 소득 증가가 수요에 미치는 영향을 바르게 설명한 것은?",
+                "options": [
+                  "모든 상품의 수요가 증가한다.",
+                  "정상재의 수요는 증가하지만, 열등재의 수요는 감소한다.",
+                  "열등재의 수요만 증가한다.",
+                  "수요 변화는 소득과 무관하게 가격에 의해 결정된다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "소득이 증가하면 정상재의 수요는 증가하지만, 열등재의 수요는 감소합니다. 이는 열등재가 상대적으로 저렴한 대체재로 대체되기 때문입니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "수요 가격 탄력성 계산하기",
+            "questions": [
+              {
+                "question": "다음 중 어느 상품의 수요 가격 탄력성이 가장 높을까요?",
+                "options": [
+                  "1. 쌀 (필수 생필품)",
+                  "2. 명품 가방 (고급 사치품)",
+                  "3. 치약 (일상 소비재)",
+                  "4. 소금 (필수 생필품)"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "사치품은 대체로 수요 가격 탄력성이 높으며, 가격 변화에 따라 수요량이 크게 변합니다. 반면 생필품은 비탄력적입니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "정부의 가격 규제에 대한 이해",
+            "questions": [
+              {
+                "question": "어떤 도시에서 정부가 임대료 상한제를 도입하여 최고 임대료를 월 50만원으로 설정했다. 이로 인해 발생할 가능성이 가장 높은 결과는 무엇인가?",
+                "options": [
+                  "임대료가 균형가격보다 높아져 수요가 감소한다.",
+                  "임대료가 균형가격보다 낮아져 초과수요가 발생한다.",
+                  "임대료가 균형가격과 동일하게 유지되어 변화가 없다.",
+                  "임대료가 균형가격보다 높아져 공급이 증가한다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "임대료 상한제는 최고가격제로서, 균형가격보다 낮은 수준에서 임대료를 제한한다. 이로 인해 임대료가 균형가격보다 낮아져 수요가 증가하고 공급이 부족해져 초과수요가 발생한다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "rep": 1,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "생성형 AI의 기본 원리와 한계",
+            "questions": [
+              {
+                "question": "다음 중 생성형 AI가 잘하는 작업과 관련된 설명은 무엇인가?",
+                "options": [
+                  "가장 최근의 사실만을 정확히 반영할 수 있다.",
+                  "사용자의 질문에 대해 항상 책임 있는 답변을 제공한다.",
+                  "기존 텍스트를 기반으로 초안 작성, 요약, 번역을 수행한다.",
+                  "환각 현상을 완전히 제거하여 거짓말을 하지 않는다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "생성형 AI는 방대한 텍스트를 학습하여 다음 단어를 예측하는 방식으로 작동하며, 초안 작성, 요약, 번역과 같은 작업을 잘 수행한다. 그러나 최신 사실 반영과 책임 있는 답변 제공은 한계로 남아 있다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "컨텍스트 엔지니어링에 대한 이해",
+            "questions": [
+              {
+                "question": "다음 중 컨텍스트의 5요소를 모두 포함하지 않는 예시는 무엇인가요?",
+                "options": [
+                  "액션 영화를 좋아하고, 2시간 이내, 공포는 싫어. 추천해줘.",
+                  "어제 본 영화가 너무 무서웠어. 다른 걸 추천해줘.",
+                  "로맨스 영화를 좋아하고, 주말에 볼 수 있는 영화를 추천해줘.",
+                  "SF 영화를 좋아하고, 1시간 30분 이내, 웃긴 영화를 추천해줘."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "컨텍스트의 5요소는 배경, 조건, 예시, 역할, 출력 형식입니다. 두 번째 옵션은 조건과 출력 형식을 명확히 제시하지 않았습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "AI Literacy Quiz: Context Engineering",
+            "questions": [
+              {
+                "question": "AI 에이전트가 복잡한 작업을 수행할 때 품질을 높이기 위해 어떤 단계로 나누어야 할까요?",
+                "options": [
+                  "계획 수립, 세부 작성, 자체 점검",
+                  "데이터 수집, 모델 학습, 결과 분석",
+                  "문제 정의, 데이터 전처리, 결과 해석",
+                  "목표 설정, 데이터 수집, 결과 검증"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 30,
+                "explanation": "AI 에이전트가 복잡한 작업을 수행할 때 품질을 높이기 위해서는 작업을 계획 수립, 세부 작성, 자체 점검의 세 단계로 나누어야 합니다. 이는 AI가 일관되고 정확한 결과를 도출할 수 있도록 돕습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 윤리 및 작업 분할 이해도 테스트",
+            "questions": [
+              {
+                "question": "다음 중 AI 윤리적 사용과 관련된 올바른 행동은 무엇인가?",
+                "options": [
+                  "AI가 생성한 내용을 출처 표기 없이 그대로 제출한다",
+                  "민감한 개인정보를 AI 학습에 사용한다",
+                  "AI가 학습한 데이터의 편향을 이해하고 결과를 신중히 검토한다",
+                  "타인의 동의 없이 딥페이크 합성 이미지를 제작한다"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 30,
+                "explanation": "AI가 학습한 데이터의 편향을 이해하고 결과를 신중히 검토하는 것이 윤리적 사용의 핵심이다. 나머지 옵션들은 모두 윤리적 문제를 일으킬 수 있다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "AI 윤리 문제와 해결 방향",
+            "questions": [
+              {
+                "question": "다음 중 AI 윤리 문제를 해결하기 위한 접근 방식이 아닌 것은?",
+                "options": [
+                  "다양한 이해관계자 간의 협력을 통해 윤리 기준을 마련한다",
+                  "AI 시스템의 투명성을 높여 의사 결정 과정을 공개한다",
+                  "AI 윤리 문제를 해결하기 위해 법적 규제만 강화한다",
+                  "AI 개발 과정에서 윤리적 고려 사항을 설계 단계부터 포함시킨다"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 30,
+                "explanation": "AI 윤리 문제를 해결하기 위해서는 법적 규제뿐만 아니라 협업, 투명성, 윤리적 설계 등 다양한 접근 방식이 필요하다. 법적 규제만을 강조하는 것은 문제를 해결하기에 충분하지 않다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "rep": 1,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "강화도 조약의 주요 내용과 영향",
+            "questions": [
+              {
+                "question": "1876년 체결된 강화도 조약의 결과로 다음 중 어떤 변화가 있었는가?",
+                "options": [
+                  "조선의 모든 항구가 동시에 개항되었다.",
+                  "일본은 조선에 치외법권을 인정받았다.",
+                  "조선은 일본과의 무역을 강제로 개시해야 했다.",
+                  "운요호 사건 이후 조선의 군사력이 강화되었다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "강화도 조약으로 인해 조선은 일본에 치외법권을 인정했으며, 부산, 원산, 인천 세 항구가 순차적으로 개항되었다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "동학농민운동의 전개와 결과에 대한 이해",
+            "questions": [
+              {
+                "question": "1894년 고부 군수의 학정에 대한 반발로 시작된 동학농민운동에서, 농민군은 전주성을 점령한 후 어떤 조치를 취했는가?",
+                "options": [
+                  "봉기를 중단하고 자진해산했다",
+                  "정부와 전주 화약을 맺고 집강소를 설치해 폐정개혁을 추진했다",
+                  "바로 다음 해인 1895년까지 봉기를 지속했다",
+                  "일본에 도움을 요청해 청나라 세력을 몰아냈다"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "동학농민군은 전주성을 점령한 후 정부와 전주 화약을 맺고 집강소를 설치해 폐정개혁을 추진했습니다. 이는 농민군의 주요 목표 중 하나였습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "을사늑약의 체결과 그 영향",
+            "questions": [
+              {
+                "question": "1905년 일본이 대한제국의 외교권을 박탈하기 위해 체결한 조약은 무엇인가?",
+                "options": [
+                  "강화도 조약",
+                  "정미칠조약",
+                  "을사늑약",
+                  "한일병합조약"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "을사늑약은 1905년에 체결된 조약으로, 일본이 대한제국의 외교권을 박탈하고 통감부를 설치한 사건이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "3·1 운동의 전개와 결과에 대한 이해",
+            "questions": [
+              {
+                "question": "3·1 운동 이후 일제가 통치 방식을 바꾼 이유는 무엇인가?",
+                "options": [
+                  "민족대표 33인의 강력한 저항으로 인해",
+                  "전국적 만세운동으로 인한 사회적 혼란을 최소화하기 위해",
+                  "상하이에 대한민국 임시정부가 수립된 영향으로",
+                  "문화통치를 통해 경제적 이익을 얻기 위해"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "3·1 운동 이후 일제는 전국적으로 벌어진 만세운동으로 인한 사회적 혼란을 줄이기 위해 무단통치에서 문화통치로 전환했다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "광복 이후 한반도 상황 이해하기",
+            "questions": [
+              {
+                "question": "1945년 광복 이후, 한반도가 분단된 주요 원인은 무엇인가?",
+                "options": [
+                  "미군과 소련군이 북위 38도선을 경계로 분할 주둔한 것",
+                  "남한과 북한 간의 정치적 이견",
+                  "국제 사회의 압력으로 인한 분할",
+                  "한반도 내부의 민족적 갈등"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "1945년 광복 이후, 미군과 소련군이 북위 38도선을 경계로 분할 주둔하면서 한반도의 분단이 시작되었다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "rep": 1,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "전류와 전압의 관계를 이해하고 있는가?",
+            "questions": [
+              {
+                "question": "어떤 회로에서 전압이 6V이고 저항이 3Ω일 때, 전류의 세기는 얼마인가?",
+                "options": [
+                  "0.5A",
+                  "1A",
+                  "2A",
+                  "3A"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 20,
+                "explanation": "옴의 법칙에 따르면 전류는 전압을 저항으로 나눈 값이다. 따라서 6V / 3Ω = 2A이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "옴의 법칙을 이용한 전류 계산",
+            "questions": [
+              {
+                "question": "12V의 전압이 가해지는 회로에 4Ω의 저항이 연결되어 있을 때 흐르는 전류의 크기는 얼마인가?",
+                "options": [
+                  "1A",
+                  "2A",
+                  "3A",
+                  "4A"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "옴의 법칙 V = I × R에 따라 전류 I는 전압 V를 저항 R로 나눈 값이다. 따라서 12V ÷ 4Ω = 3A가 된다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "직렬 연결 회로의 전류와 전압 분배에 대한 이해",
+            "questions": [
+              {
+                "question": "다음과 같은 직렬 연결 회로에서, R1 = 3Ω, R2 = 6Ω, V = 9V일 때, R2에 걸리는 전압은 얼마인가?",
+                "options": [
+                  "3V",
+                  "6V",
+                  "9V",
+                  "12V"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "직렬 회로에서 전압은 저항에 비례하여 분배되므로, R2에 걸리는 전압은 전체 전압의 R2/(R1+R2) 비율에 해당합니다. 따라서, 9V * (6Ω/(3Ω+6Ω)) = 6V입니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "병렬 연결 회로에서의 전류 분배",
+            "questions": [
+              {
+                "question": "다음과 같은 병렬 회로가 있다. R1 = 4Ω, R2 = 6Ω, 그리고 전체 전압은 12V이다. R1과 R2에 흐르는 전류의 비율은 얼마인가?",
+                "options": [
+                  "3:2",
+                  "2:3",
+                  "1:1",
+                  "4:6"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "병렬 회로에서 전류는 저항에 반비례하여 나뉜다. R1과 R2의 저항 비율은 2:3이므로, 전류 비율은 3:2이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "안전한 전기 사용 규칙 퀴즈",
+            "questions": [
+              {
+                "question": "누전 차단기가 작동하는 이유는 무엇인가?",
+                "options": [
+                  "전류가 정상 경로를 벗어나 흐를 때 이를 감지하여 회로를 차단하기 위해",
+                  "전압이 급격히 상승할 때 이를 감지하여 회로를 차단하기 위해",
+                  "전력이 과도하게 소비될 때 이를 감지하여 회로를 차단하기 위해",
+                  "온도가 급격히 상승할 때 이를 감지하여 회로를 차단하기 위해"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "누전 차단기는 전류가 정상 경로를 벗어나 누전될 때 이를 감지하여 회로를 차단함으로써 감전과 화재의 위험을 줄입니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "rep": 1,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "수요의 법칙 이해하기",
+            "questions": [
+              {
+                "question": "어떤 상품의 가격이 10% 상승했을 때, 소비자들이 그 상품을 구매하려는 양이 15% 감소했다면, 이는 수요의 법칙에 어떻게 부합하는가?",
+                "options": [
+                  "수요의 법칙에 따르면 가격이 상승하면 수요량은 감소하므로, 이는 법칙에 부합한다.",
+                  "수요의 법칙은 가격이 상승하면 수요량이 증가한다고 설명하므로, 이는 법칙에 맞지 않는다.",
+                  "수요의 법칙은 가격이 변동에 관계없이 수요량은 항상 일정하다고 설명한다.",
+                  "수요의 법칙은 가격이 상승하면 수요량이 감소하지만, 그 비율은 항상 같아야 한다고 설명한다."
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 30,
+                "explanation": "수요의 법칙은 가격이 오르면 수요량이 감소한다는 것을 설명하며, 이 예시는 그 원칙을 잘 보여준다. 가격이 10% 상승했을 때 수요량이 15% 감소한 것은 수요의 법칙에 부합하는 현상이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "시장 균형의 결정 과정",
+            "questions": [
+              {
+                "question": "어떤 상품의 수요곡선과 공급곡선이 만나는 점이 균형점이라고 할 때, 균형가격보다 높은 가격에서 거래가 이루어지면 어떤 현상이 발생할까요?",
+                "options": [
+                  "공급이 부족해 가격이 상승한다.",
+                  "수요가 증가해 가격이 상승한다.",
+                  "공급이 초과해 가격이 하락한다.",
+                  "수요가 감소해 가격이 하락한다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 20,
+                "explanation": "균형가격보다 높은 가격에서는 공급이 수요보다 많아지는 초과공급 상태가 되어 가격이 하락하게 됩니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "수요 변화 요인에 대한 이해",
+            "questions": [
+              {
+                "question": "다음 중 소득 증가 시 수요가 감소하는 재화는 무엇인가?",
+                "options": [
+                  "정상재",
+                  "열등재",
+                  "보완재",
+                  "대체재"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "열등재는 소득이 증가하면 수요가 감소하는 재화이다. 정상재는 소득 증가 시 수요가 증가하며, 보완재와 대체재는 다른 재화의 가격 변화에 따라 수요가 변한다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "수요의 가격탄력성 계산하기",
+            "questions": [
+              {
+                "question": "다음 중 사치품의 수요 가격탄력성에 대한 설명으로 옳은 것은?",
+                "options": [
+                  "가격이 상승하면 수요량이 크게 감소하여 탄력성이 1보다 작다.",
+                  "가격이 상승해도 수요량은 거의 변하지 않아 비탄력적이다.",
+                  "가격이 상승하면 수요량이 크게 감소하여 탄력성이 1보다 크다.",
+                  "가격 변화에 관계없이 수요량은 일정하게 유지된다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 30,
+                "explanation": "사치품은 대체로 가격탄력성이 높으며, 가격이 상승하면 수요량이 크게 감소하여 탄력성이 1보다 커진다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "정부의 가격 규제 유형과 영향",
+            "questions": [
+              {
+                "question": "어떤 도시에서 주택 임대료가 급등하자, 정부는 시장 균형가격보다 낮은 가격으로 임대료 상한을 설정했다. 이 정책의 가장 가능성 있는 결과는 무엇인가?",
+                "options": [
+                  "주택 공급이 증가하여 균형가격으로 돌아간다.",
+                  "임대료를 낮추려는 집주인들이 암시장 거래를 시작한다.",
+                  "임대 주택의 품질이 개선된다.",
+                  "임대 수요가 감소하여 시장이 안정화된다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "최고가격제는 균형가격보다 낮은 가격을 설정하여 초과수요를 유발한다. 이는 암시장 거래를 촉진할 가능성이 높다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "rep": 2,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "생성형 AI의 기능과 한계 이해",
+            "questions": [
+              {
+                "question": "다음 중 생성형 AI가 잘하는 작업이 아닌 것은 무엇인가?",
+                "options": [
+                  "초안 작성",
+                  "요약",
+                  "최신 사실 보장",
+                  "번역"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "생성형 AI는 초안 작성, 요약, 번역과 같은 작업을 잘하지만, 최신 사실을 보장하는 것은 어렵다. 이는 AI가 과거 데이터를 기반으로 학습하기 때문이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "컨텍스트 엔지니어링 퀴즈",
+            "questions": [
+              {
+                "question": "다음 중 '액션 영화를 좋아하고 2시간 이내, 공포는 싫어'라는 정보를 제공할 때, 가장 효과적인 컨텍스트 요소는 무엇인가?",
+                "options": [
+                  "배경: 액션 영화를 좋아함",
+                  "조건: 2시간 이내, 공포는 싫어함",
+                  "예시: 액션 영화 추천",
+                  "출력 형식: 영화 제목"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "조건은 요청을 구체화하는 데 필요한 정보를 제공하며, '2시간 이내, 공포는 싫어함'은 요청을 명확히 하는 데 중요한 역할을 한다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "AI 활용을 위한 하네스 설계의 이해",
+            "questions": [
+              {
+                "question": "AI에게 복잡한 작업을 시킬 때 품질을 높이기 위해 어떤 단계로 나누어야 할까요?",
+                "options": [
+                  "계획 수립, 세부 작성, 자체 점검",
+                  "데이터 수집, 모델 학습, 결과 분석",
+                  "문제 정의, 데이터 준비, 모델 선택",
+                  "데이터 전처리, 모델 훈련, 하이퍼파라미터 조정"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 30,
+                "explanation": "하네스는 AI에게 일을 시키는 방식의 설계로, 복잡한 작업을 계획 수립, 세부 작성, 자체 점검의 3단계로 나누어 품질을 높일 수 있습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "AI 작업의 단계적 접근법 이해하기",
+            "questions": [
+              {
+                "question": "다음 중 AI 윤리적 고려사항을 가장 잘 반영한 작업 방식은 무엇인가요?",
+                "options": [
+                  "민감한 개인정보를 포함하여 AI에 모든 데이터를 입력하고 결과를 제출한다.",
+                  "AI가 학습한 데이터의 편향을 인지하고 결과를 보정한다.",
+                  "AI의 결과물을 그대로 제출하여 작업 시간을 절약한다.",
+                  "타인의 사진으로 동의 없이 딥페이크 합성을 진행한다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "AI 작업 시 민감한 개인정보 보호, 데이터 편향 인지, 결과물 수정 및 타인 동의 여부 확인 등의 윤리적 고려가 필요합니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "AI 관련 직업의 다양성에 대한 이해",
+            "questions": [
+              {
+                "question": "다음 중 AI 관련 직업 중 하나가 아닌 것은?",
+                "options": [
+                  "데이터 분석가",
+                  "AI 윤리 정책 전문가",
+                  "생성형 AI 모델 개발자",
+                  "의사결정 트리 설계자"
+                ],
+                "correctIndex": 3,
+                "timeLimitSec": 15,
+                "explanation": "의사결정 트리 설계자는 AI 관련 직업이 아닌 전통적인 데이터 과학 분야의 개념이다. AI 관련 직업은 데이터 분석, AI 윤리 정책, 모델 개발 등을 포함한다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "rep": 2,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "강화도 조약의 주요 내용과 영향",
+            "questions": [
+              {
+                "question": "1876년 체결된 강화도 조약의 결과로, 조선은 몇 개의 항구를 개항하게 되었는가?",
+                "options": [
+                  "1개",
+                  "2개",
+                  "3개",
+                  "4개"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "강화도 조약의 결과로 부산, 원산, 인천 세 항구가 개항되었습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "동학농민운동의 전개와 결과에 대한 이해",
+            "questions": [
+              {
+                "question": "1894년 고부 군수의 학정에 항의하여 봉기한 동학농민군이 전주성을 점령한 후, 다음 중 어떤 조치를 취했는가?",
+                "options": [
+                  "전주성을 포기하고 즉시 퇴각했다",
+                  "정부와 전주 화약을 맺고 집강소를 설치하여 폐정개혁을 추진했다",
+                  "청나라에 도움을 요청하여 군사적 지원을 받았다",
+                  "고부 군수를 체포하여 즉각 처형했다"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "동학농민군은 전주성을 점령한 후 정부와 전주 화약을 맺고 집강소를 설치하여 폐정개혁을 추진했습니다. 이는 농민들의 요구를 반영한 개혁을 추진하기 위한 조치였습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "을사늑약의 체결과 그 영향",
+            "questions": [
+              {
+                "question": "1905년 을사늑약 체결 후 대한제국의 외교권이 박탈되고 설치된 기관은?",
+                "options": [
+                  "통감부",
+                  "총독부",
+                  "외무부",
+                  "내각"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 15,
+                "explanation": "을사늑약 체결 후 일본은 대한제국의 외교권을 박탈하고 통감부를 설치하여 대한제국의 내정과 외교를 간섭했습니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "3·1 운동의 전개와 영향에 대한 이해",
+            "questions": [
+              {
+                "question": "3·1 운동 이후 일제의 통치 방식이 어떻게 변화했는가?",
+                "options": [
+                  "무단통치에서 문화통치로 전환했다.",
+                  "문화통치에서 무단통치로 전환했다.",
+                  "통치 방식을 유지하면서 강경 대응을 강화했다.",
+                  "통치 방식을 유지하면서 경제적 지원을 강화했다."
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "3·1 운동을 계기로 일제는 이전의 무단통치에서 문화통치로 전환했다. 이는 민족주의적 저항을 억제하기 위한 전략적 변화였다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "광복 이후의 한반도 상황",
+            "questions": [
+              {
+                "question": "1945년 광복 이후, 북위 38도선을 경계로 미군과 소련군이 분할 주둔하면서 생긴 결과는 무엇인가?",
+                "options": [
+                  "남한과 북한이 각각 독립 국가로 인정받았다.",
+                  "남한과 북한이 하나의 정부를 구성하기로 합의했다.",
+                  "남한과 북한 사이에 분단의 씨앗이 뿌려졌다.",
+                  "남한과 북한이 연합하여 하나의 국가를 형성했다."
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 20,
+                "explanation": "1945년 광복 이후, 미군과 소련군은 북위 38도선을 경계로 분할 주둔하였고, 이는 남한과 북한 사이에 분단의 씨앗을 뿌리는 결과를 초래했다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "rep": 2,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "회로 내 전류와 전압의 관계 파악하기",
+            "questions": [
+              {
+                "question": "어떤 회로에서 전압이 12V이고 저항이 4Ω일 때, 이 회로에 흐르는 전류의 크기는 얼마인가?",
+                "options": [
+                  "0.33A",
+                  "3A",
+                  "48A",
+                  "1A"
+                ],
+                "correctIndex": 0,
+                "timeLimitSec": 20,
+                "explanation": "전류는 전압을 저항으로 나눈 값으로 계산할 수 있다. 12V / 4Ω = 3A가 아니라, 12V / 4Ω = 3A이다. 따라서 정답은 3A이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 1,
+          "activity": {
+            "title": "다음 상황에서 옴의 법칙을 이용하여 전류를 계산하시오.",
+            "questions": [
+              {
+                "question": "12V의 전압이 가해지는 회로에 4Ω의 저항이 연결되어 있을 때, 흐르는 전류는 얼마인가?",
+                "options": [
+                  "2A",
+                  "3A",
+                  "4A",
+                  "6A"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "옴의 법칙 V = I × R에 따라 I = V / R = 12V / 4Ω = 3A이다. 3A가 정답이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "직렬 연결 회로의 특성",
+            "questions": [
+              {
+                "question": "다음과 같은 직렬 연결 회로에서 R1 = 3Ω, R2 = 5Ω, R3 = 2Ω일 때, 회로의 합성저항은 얼마인가?",
+                "options": [
+                  "A) 5Ω",
+                  "B) 7Ω",
+                  "C) 10Ω",
+                  "D) 15Ω"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 20,
+                "explanation": "직렬 연결 회로에서 합성저항은 각 저항의 합과 같습니다. 따라서 R = R1 + R2 + R3 = 3Ω + 5Ω + 2Ω = 10Ω입니다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "병렬 연결 회로에서의 전류 분배",
+            "questions": [
+              {
+                "question": "두 개의 저항 R1 = 6Ω와 R2 = 3Ω가 병렬로 연결되어 있고, 전체 전압이 12V일 때, R2를 통해 흐르는 전류 I2는 얼마인가?",
+                "options": [
+                  "1.0A",
+                  "2.0A",
+                  "4.0A",
+                  "6.0A"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 30,
+                "explanation": "병렬 회로에서 전압은 모든 저항에서 같으므로, I2 = V/R2 = 12V/3Ω = 4.0A이다. 전류는 저항에 반비례하여 나뉘므로, R2의 저항이 작을수록 더 많은 전류가 흐른다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "전기 회로와 안전 수칙",
+            "questions": [
+              {
+                "question": "어떤 상황에서 누전차단기가 작동하여 전류를 차단할까요?",
+                "options": [
+                  "전류가 정상 경로를 통해 흐를 때",
+                  "전류가 정상 경로를 벗어나 감전 위험이 있을 때",
+                  "전류가 너무 약해 전기 기기가 작동하지 않을 때",
+                  "전류가 과열로 인해 전기 기기가 고장날 때"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 20,
+                "explanation": "누전은 전류가 정상 경로를 벗어나 흐르는 현상으로, 감전과 화재의 원인이 됩니다. 누전차단기는 이러한 상황을 감지하여 회로를 차단합니다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "rep": 2,
+      "requested": 5,
+      "returned": 5,
+      "message": "PDF 내용을 분석해서 퀴즈 5개를 적절한 위치에 배치했습니다.",
+      "operations": [
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 0,
+          "activity": {
+            "title": "수요의 법칙을 새로운 상황에 적용해보자",
+            "questions": [
+              {
+                "question": "어떤 도시에서 기름값이 1리터당 2000원에서 2500원으로 올랐다. 이 경우, 다음 중 가장 합리적인 설명은 무엇인가?",
+                "options": [
+                  "기름의 수요량은 증가할 것이다.",
+                  "기름의 수요량은 감소할 것이다.",
+                  "기름의 수요량은 변하지 않을 것이다.",
+                  "기름의 수요량은 처음에는 증가하다가 곧 감소할 것이다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "수요의 법칙에 따르면, 가격이 오르면 수요량은 감소한다. 따라서 기름값이 오르면 기름의 수요량은 감소할 것이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 2,
+          "activity": {
+            "title": "시장 균형 가격과 거래량의 결정 과정",
+            "questions": [
+              {
+                "question": "어떤 상품의 시장 가격이 1000원으로 균형가격보다 높을 때, 다음 중 어떤 현상이 발생할 가능성이 가장 높은가?",
+                "options": [
+                  "공급이 부족해져 가격이 상승한다.",
+                  "공급이 과잉되어 가격이 하락한다.",
+                  "수요가 증가하여 가격이 상승한다.",
+                  "수요가 감소하여 가격이 변동이 없다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "균형가격보다 높은 가격에서는 공급이 과잉되어 초과공급이 발생하고, 이는 가격 하락을 유발한다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 3,
+          "activity": {
+            "title": "수요 변화 요인 분석하기",
+            "questions": [
+              {
+                "question": "다음 중 소득이 증가했을 때 수요가 감소하는 재화는 무엇인가?",
+                "options": [
+                  "보완재",
+                  "대체재",
+                  "열등재",
+                  "정상재"
+                ],
+                "correctIndex": 2,
+                "timeLimitSec": 15,
+                "explanation": "열등재는 소득이 증가할 때 수요가 감소하는 재화이다. 정상재는 소득이 증가할 때 수요가 증가하며, 보완재와 대체재는 다른 재화의 가격 변화에 따라 수요가 변한다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 4,
+          "activity": {
+            "title": "수요의 가격탄력성 계산하기",
+            "questions": [
+              {
+                "question": "다음 중 어느 상품의 수요가 가격 변화에 가장 탄력적일까요?",
+                "options": [
+                  "쌀과 같은 필수 식료품",
+                  "명품 시계와 같은 사치품",
+                  "치약과 같은 생활용품",
+                  "소금과 같은 기초 생필품"
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 15,
+                "explanation": "사치품은 대체로 수요의 가격탄력성이 높으며, 가격 변화에 따라 수요량이 크게 변한다. 필수 식료품, 생활용품, 기초 생필품은 대체로 비탄력적이다."
+              }
+            ]
+          }
+        },
+        {
+          "type": "add_quiz",
+          "afterSlideIndex": 5,
+          "activity": {
+            "title": "정부의 가격 규제에 대한 이해",
+            "questions": [
+              {
+                "question": "어떤 도시에서 정부가 아파트 임대료에 대한 최고가격제를 도입했고, 그 결과로 발생한 현상은?",
+                "options": [
+                  "임대료가 균형가격보다 높아져서 공급이 증가했다.",
+                  "임대료가 균형가격보다 낮아져서 초과수요가 발생했다.",
+                  "임대료가 균형가격과 동일하게 유지되어 변화가 없다.",
+                  "임대료가 급격히 상승하여 암시장이 형성되었다."
+                ],
+                "correctIndex": 1,
+                "timeLimitSec": 30,
+                "explanation": "최고가격제는 균형가격보다 낮은 가격 상한을 설정하여 초과수요를 유발한다. 이로 인해 임대료가 균형가격보다 낮아지고, 공급 부족으로 인해 초과수요가 발생한다."
+              }
+            ]
+          }
+        }
+      ],
+      "slideCount": 6
+    }
+  ]
+}

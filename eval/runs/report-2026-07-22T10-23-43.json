@@ -1,0 +1,789 @@
+{
+  "evaluatedAt": "2026-07-22T10:16:22.894Z",
+  "samplesFrom": "2026-07-20T13-22-39",
+  "groups": [
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "4번 보기('최신 사실을 보장하지 못한다' 포함)도 원문 내용과 대부분 부합해 정답과 명확히 구분되지 않아 복수 정답 여지가 있다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "3번 보기(시스템이 시청 기록을 분석하는 것)는 사용자가 미리 제공하는 컨텍스트가 아니라 시스템 측 동작이므로 이것도 '해당하지 않는 것'으로 볼 수 있어 복수 정답 여지가 있다."
+        },
+        {
+          "idx": 3,
+          "grounded": 0,
+          "answerCorrect": 0,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "원문은 어떤 단계에서 어떤 외부 도구를 쓸 수 있는지 전혀 명시하지 않으므로 정답 근거가 없고, 1·3번 보기(계획 단계 계산기, 점검 단계 번역 도구)도 동등하게 타당해 정답을 특정할 수 없다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 1,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "오답 보기들이 원문 윤리 지침의 명백한 위반 사례라 정답이 너무 쉽게 드러난다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 0,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "원문에는 개항 항구(부산·원산·인천)만 언급될 뿐 '무역량이 급격히 증가한 지역'이라는 근거가 없어 문항 전제와 해설이 원문을 벗어난 추측이다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "정답 보기 '러일전쟁의 결과로 일본의 승리로 이어졌다'의 문장이 어색해(결과로~승리로 이어졌다) 의미 전달이 다소 불명확하다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 0,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "해설대로 전류 증가량은 12/4−12/6=1A이므로 정답은 보기 0('1A 증가한다')인데 correctIndex가 1('2A 증가한다')을 가리켜 정답 인덱스가 틀렸다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 0,
+          "issue": "문항은 전력(P=V×I) 계산인데 title은 '전력량'이라고 표기해 원문이 구분하는 전력/전력량 용어와 불일치하고, '분석'이라 했으나 실제로는 적용(계산) 문항이다."
+        },
+        {
+          "idx": 3,
+          "grounded": 0,
+          "answerCorrect": 0,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "원문은 '멀티탭에 여러 고전력 기기를 동시에 연결하면 과열 위험'이라고 하므로 보기 0이 근거에 부합하는 정답인데 correctIndex는 보기 1을 가리키며, 보기 1의 '과부하 시 누전차단기 작동'은 원문상 누전차단기가 누전을 감지하는 장치라는 서술과 어긋나 근거가 없고 복수 정답 논란도 생긴다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "오답들이 원문 문장을 단순히 뒤집은 형태라 변별력이 높지는 않다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "보기 '20% 감소한다'는 감소 자체는 참이고 감소폭만 원문으로 판정 불가하므로 명확한 오답이라 보기 어려워 복수 정답 시비의 여지가 있다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "원문 3장의 문장을 거의 그대로 되묻는 수준이라 시나리오 형식임에도 사실상 암기 회상 문항이다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "보완재·대체재는 소득 변화와 무관한 범주라 소거가 쉬워 사실상 정상재/열등재 2지선다에 가깝다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "최저가격제의 초과공급을 노동시장(고용=노동수요)에 적용하는 합리적 추론이 필요하나 원문 근거 범위 내로 판단된다."
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "보기 1(발표되지 않은 제품 정보를 '정확히' 기술)이 표현상 모순되어 학생에게 혼란을 줄 수 있다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "원문 결론을 거의 그대로 재진술하는 문항이라 변별력이 낮다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 0,
+          "issue": "보기 3·4도 일부 컨텍스트(조건)를 제공하므로 '적절한 예시'라는 물음에 복수 정답 여지가 있고, 제목의 '5요소'는 문항에서 다뤄지지 않으며 해설의 '예시 제공' 주장도 부정확하다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "보기 텍스트에 번호('1.', '2.')가 중복 표기되어 있고, 해설이 정답 보기가 아닌 '매출 예측' 보기를 중심으로 서술되어 정답 근거 설명이 어긋난다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "보기에만 '1.', '2.' 등 번호 접두어가 붙어 있어 다른 문항과 형식이 불일치하다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "보기 중 '내정을 간섭했다'는 표현은 원문에 명시되지 않은 합리적 추론 수준의 서술이다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "한 문항에 경계선과 결과 두 가지를 동시에 묻고 있어 보기가 사실 조합형으로 단순화되었다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 0,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 0,
+          "issue": "정답은 R=12V/3A=4Ω(인덱스 2)인데 correctIndex가 1(3Ω)을 가리키고 있으며, 제목은 '전류 계산'이지만 실제 문항은 저항을 구하는 문제다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 0,
+          "issue": "제목의 '누전차단기의 역할'은 오답 보기로만 등장할 뿐 문항이 실제로 묻는 내용은 멀티탭 과부하 안전이므로 제목과 문항 내용이 부분적으로만 일치한다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "보기 2번 '저항에 비례하여 균등하게 분배된다'는 원문의 옳은 진술(저항에 비례해 분배)에 '균등하게'만 덧붙인 자기모순 문장이라 학습자에게 혼란을 줄 수 있다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "네 번째 보기(균형가격보다 낮으면 초과수요가 발생해 가격이 올라간다)도 원문 3장에 따라 옳은 설명이므로 복수 정답이 된다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        }
+      ]
+    },
+    {
+      "subject": "ai-literacy",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "2번 보기(1시간 30분 이내)도 선호와 조건을 담은 비교적 좋은 프롬프트여서 '가장 효과적'의 근거가 컨텍스트 요소 개수 차이에만 의존한다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "원문상 편향 반영(2번 보기)도 사실인 진술이어서 '발생할 수 있는 문제'를 묻는 이 질문에는 복수 정답 여지가 있다."
+        },
+        {
+          "idx": 4,
+          "grounded": 0,
+          "answerCorrect": 0,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "원문은 AI 진로의 스펙트럼을 나열할 뿐 어떤 역할이 '가장 필수적'인지 근거를 제시하지 않아 정답이 주관적 판단에 불과하다."
+        }
+      ]
+    },
+    {
+      "subject": "korean-history",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "정답 보기가 원문 문장을 거의 그대로 옮겨 원문을 본 학생에게는 변별력이 낮다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 0,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "을사늑약(외교권 박탈)이 곧 보호국화이므로 3번 보기를 '결과가 아닌 것'으로 단정하기 어렵고, 해설의 '보호국이 아닌 식민지로 만들기 시작했다'는 설명도 역사적으로 부정확하다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "analyze",
+          "titleMatch": 1,
+          "issue": "반사실 가정 문항이라 '더 강한 무력 진압' 같은 다른 추측성 보기를 완전히 배제하기 어려운 여지가 있다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "미군·소련군의 남북 주둔 위치가 원문에 명시되지 않아 3·4번 보기의 판별에는 원문 밖 배경지식이 일부 필요하다."
+        }
+      ]
+    },
+    {
+      "subject": "physics-circuit",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 0,
+          "answerCorrect": 0,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "정답으로 지정된 보기가 '전류의 방향은 (-)극에서 (+)극으로 정의된다'고 서술해 원문의 정의((+)극에서 (-)극)와 모순되며, 결과적으로 네 보기 중 완전히 옳은 진술이 없고 문두의 9V/3A 수치도 풀이와 무관한 군더더기다."
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "제목은 '분석'을 표방하지만 실제로는 원문 문장을 그대로 재인하는 회상 수준 문항이다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 0,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "옴의 법칙으로 계산하면 R1: 3A, R2: 2A(보기 0)가 정답인데 correctIndex가 1(R1: 2A, R2: 3A)을 가리키고 있어 해설과도 모순된다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 0,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "보기 3(차단 후 수동 재설정)도 실제 누전차단기 동작상 틀렸다고 보기 어려워 복수 정답 여지가 있고, 보기 0에는 '전기를 공급을 유지한다'라는 비문이 있다."
+        }
+      ]
+    },
+    {
+      "subject": "econ-supply-demand",
+      "type": "quiz",
+      "requested": 5,
+      "metrics": {
+        "countFulfilled": 1,
+        "positionDistinctRatio": 1,
+        "schemaPassRatio": 1
+      },
+      "issues": [],
+      "judge": [
+        {
+          "idx": 0,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": ""
+        },
+        {
+          "idx": 1,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "초과수요·초과공급을 뒤바꾼 오답 보기가 변별력은 있으나 문항 자체는 원문 서술을 그대로 확인하는 수준이다."
+        },
+        {
+          "idx": 2,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "recall",
+          "titleMatch": 1,
+          "issue": "제목은 '분석하기'이지만 실제로는 열등재 정의를 묻는 단순 회상 문항이다."
+        },
+        {
+          "idx": 3,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 3,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "원문에는 탄력성 정의만 있고 계산 예시는 없으나 정의로부터 합리적으로 도출 가능한 문항이다."
+        },
+        {
+          "idx": 4,
+          "grounded": 1,
+          "answerCorrect": 1,
+          "answerUnique": 1,
+          "distractorQuality": 2,
+          "bloom": "apply",
+          "titleMatch": 1,
+          "issue": "'주택을 무료로 제공한다'는 보기가 지나치게 비현실적이어서 오답 변별력을 떨어뜨린다."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "quiz": {
+      "schemaPass": "100%",
+      "grounded": "92%",
+      "answerCorrect": "87%",
+      "answerUnique": "80%",
+      "distractorQualityAvg": "2.30",
+      "bloomDist": {
+        "recall": 30,
+        "apply": 25,
+        "analyze": 5
+      },
+      "titleMatch": "93%"
+    },
+    "roleplay": {
+      "factuallyAccurate": "n/a",
+      "keywordReachable": "n/a",
+      "missionClear": "n/a",
+      "grounded": "n/a"
+    },
+    "poll": {
+      "isOpinion": "n/a",
+      "grounded": "n/a",
+      "clear": "n/a",
+      "wordcloudRatio": "n/a"
+    }
+  }
+}

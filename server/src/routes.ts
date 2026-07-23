@@ -1,36 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomResponse, GenerateDeckRequest, Deck } from '../../shared/types';
 import { createClassroom, getByToken } from './state';
-import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck } from './decks';
+import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck, unregisterDeck } from './decks';
 import { validateDeck, blankDeck, makeDeckId, makePin } from './decks/validate';
-import { loadDeckRow, insertDeckRow, updateDeckRow, listDeckRows } from './decks/store';
+import { loadDeckRow, insertDeckRow, updateDeckRow, deleteDeckRow, listDeckRows } from './decks/store';
 import type { SaveDeckRequest, CreateDeckResponse, DeckEditResponse, DeckSummary } from '../../shared/types';
 import { checkSafety, safeImagePrompt } from './ai/safety';
 import { chatComplete, type ChatMessage } from './ai/minimax';
 import { generateImage } from './ai/stability';
 import { runLab } from './ai/lab';
 import { generateDeck } from './ai/generateDeck';
+import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent';
 import { persistClassroom, persistUsage, persistLabRun } from './persist';
-import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { supabase } from './db';
-
-async function getUserFromRequest(req: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.split(' ')[1];
-  if (!token) return null;
-  if (!supabase) return null;
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return null;
-    return user;
-  } catch {
-    return null;
-  }
-}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = resolve(here, '../../uploads');
@@ -221,69 +207,15 @@ export async function registerRoutes(app: FastifyInstance) {
     }
   });
 
-  // ── 회원가입 & 로그인 ──
-  app.post('/api/auth/signup', async (req, reply) => {
-    const body = (req.body ?? {}) as { email?: string; password?: string };
-    if (!body.email || !body.password) {
-      return reply.code(400).send({ error: 'bad', message: '이메일과 비밀번호를 입력해주세요.' });
-    }
-    if (!supabase) {
-      return reply.code(503).send({ error: 'bad', message: '데이터베이스가 비활성화되어 있습니다.' });
-    }
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: body.email,
-        password: body.password,
-      });
-      if (error) throw error;
-      return {
-        user: data.user,
-        session: data.session,
-      };
-    } catch (e: any) {
-      return reply.code(400).send({ error: 'bad', message: e.message ?? '회원가입 실패' });
-    }
-  });
-
-  app.post('/api/auth/login', async (req, reply) => {
-    const body = (req.body ?? {}) as { email?: string; password?: string };
-    if (!body.email || !body.password) {
-      return reply.code(400).send({ error: 'bad', message: '이메일과 비밀번호를 입력해주세요.' });
-    }
-    if (!supabase) {
-      return reply.code(503).send({ error: 'bad', message: '데이터베이스가 비활성화되어 있습니다.' });
-    }
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: body.email,
-        password: body.password,
-      });
-      if (error) throw error;
-      return {
-        user: data.user,
-        session: data.session,
-      };
-    } catch (e: any) {
-      return reply.code(400).send({ error: 'bad', message: e.message ?? '로그인 실패' });
-    }
-  });
-
-  app.post('/api/auth/me', async (req, reply) => {
-    const user = await getUserFromRequest(req);
-    if (!user) return reply.code(401).send({ error: 'unauthorized', message: '로그인이 필요합니다.' });
-    return { user: { email: user.email } };
-  });
-
   // ── 덱 저작(빌더) ──
 
   // 새 빈 덱 생성 → 코드+PIN 발급
   app.post('/api/decks', async (req, reply) => {
     const body = (req.body ?? {}) as { title?: string };
-    const user = await getUserFromRequest(req);
     const id = makeDeckId();
     const pin = makePin();
     const deck = blankDeck(id, (body.title ?? '').slice(0, 80) || '새 강의');
-    const ok = await insertDeckRow(deck, pin, user?.id);
+    const ok = await insertDeckRow(deck, pin);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장소(Supabase)가 꺼져 있어 덱을 저장할 수 없어요. (.env 확인)' });
     registerDeck(deck);
     const res: CreateDeckResponse = { deckId: id, editPin: pin };
@@ -294,20 +226,18 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/decks/generate', async (req, reply) => {
     const body = (req.body ?? {}) as GenerateDeckRequest;
     if (!body.topic || !body.topic.trim()) return reply.code(400).send({ error: 'bad', message: '주제를 입력해줘!' });
-    const user = await getUserFromRequest(req);
     const id = makeDeckId();
     const pin = makePin();
     const deck = await generateDeck(body, id);
-    const ok = await insertDeckRow(deck, pin, user?.id);
+    const ok = await insertDeckRow(deck, pin);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장소가 꺼져 있어 저장할 수 없어요. (.env 확인)' });
     registerDeck(deck);
     return { deckId: id, editPin: pin };
   });
 
-  // 내 덱 요약 목록
-  app.get('/api/decks', async (req) => {
-    const user = await getUserFromRequest(req);
-    const list: DeckSummary[] = await listDeckRows(user?.id);
+  // 강의 목록 (로그인 없이 공유) — 누구나 만든 강의를 어느 컴퓨터에서든 볼 수 있음
+  app.get('/api/decks', async () => {
+    const list: DeckSummary[] = await listDeckRows();
     return list;
   });
 
@@ -315,14 +245,11 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/decks/:id/edit', async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = (req.body ?? {}) as { editPin?: string };
-    const user = await getUserFromRequest(req);
-    const userId = user?.id;
 
     const row = await loadDeckRow(id);
     if (!row) return reply.code(404).send({ error: 'notfound', message: '덱을 찾을 수 없어요.' });
 
-    const isOwner = row.user_id && row.user_id === userId;
-    if (!isOwner && row.edit_pin !== (body.editPin ?? '')) {
+    if (row.edit_pin !== (body.editPin ?? '')) {
       return reply.code(403).send({ error: 'bad', message: '편집 암호가 달라요.' });
     }
 
@@ -334,22 +261,47 @@ export async function registerRoutes(app: FastifyInstance) {
   app.put('/api/decks/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = (req.body ?? {}) as SaveDeckRequest;
-    const user = await getUserFromRequest(req);
-    const userId = user?.id;
 
     const row = await loadDeckRow(id);
     if (!row) return reply.code(404).send({ error: 'notfound', message: '덱을 찾을 수 없어요.' });
 
-    const isOwner = row.user_id && row.user_id === userId;
-    if (!isOwner && row.edit_pin !== (body.editPin ?? '')) {
+    if (row.edit_pin !== (body.editPin ?? '')) {
       return reply.code(403).send({ error: 'bad', message: '편집 권한이 없거나 암호가 다릅니다.' });
     }
 
     const deck = validateDeck(body.deck, id);
-    const targetUserId = row.user_id ? row.user_id : (userId || null);
-    const ok = await updateDeckRow(deck, targetUserId);
+    const ok = await updateDeckRow(deck);
     if (!ok) return reply.code(503).send({ error: 'bad', message: '저장에 실패했어요. 잠시 후 다시 시도해줘.' });
     registerDeck(deck);
+    return { ok: true };
+  });
+
+  // 삭제: PIN 검증 후 덱과 (있다면) 업로드된 PDF 원본 파일까지 함께 삭제
+  app.delete('/api/decks/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as { editPin?: string };
+
+    const row = await loadDeckRow(id);
+    if (!row) return reply.code(404).send({ error: 'notfound', message: '덱을 찾을 수 없어요.' });
+
+    if (row.edit_pin !== (body.editPin ?? '')) {
+      return reply.code(403).send({ error: 'bad', message: '편집 암호가 달라요.' });
+    }
+
+    const ok = await deleteDeckRow(id);
+    if (!ok) return reply.code(503).send({ error: 'bad', message: '삭제에 실패했어요. 잠시 후 다시 시도해줘.' });
+    unregisterDeck(id);
+
+    // 이 덱이 참조하던 업로드 PDF 원본도 정리 (여러 페이지 슬라이드가 같은 파일을 공유하므로 중복 제거)
+    const pdfFilenames = new Set(
+      (row.data.slides ?? [])
+        .filter((s) => s.layout === 'pdf' && s.pdfUrl?.startsWith('/api/uploads/'))
+        .map((s) => s.pdfUrl!.replace('/api/uploads/', '')),
+    );
+    for (const filename of pdfFilenames) {
+      try { unlinkSync(resolve(uploadsDir, filename)); } catch { /* 이미 없거나 접근 불가하면 무시 */ }
+    }
+
     return { ok: true };
   });
 
@@ -410,8 +362,7 @@ export async function registerRoutes(app: FastifyInstance) {
         activities: {},
       };
 
-      const user = await getUserFromRequest(req);
-      const ok = await insertDeckRow(deck, pin, user?.id);
+      const ok = await insertDeckRow(deck, pin);
       if (!ok) {
         return reply.code(503).send({ error: 'bad', message: 'DB에 덱을 저장하는 데 실패했습니다.' });
       }
@@ -437,85 +388,32 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     const deck = body.deck;
-    const pdfText = body.pdfText ?? '추출된 PDF 텍스트가 없습니다.';
-
-    const systemPrompt = `너는 강사의 강의 자료 제작 및 보강을 돕는 유능한 'AI 교수 조교' 에이전트야.
-현재 편집 중인 강의 자료(Deck) 정보와 업로드된 PDF 슬라이드의 텍스트 내용이 제공되어 있어.
-
-[현재 강의 자료 정보]
-- 제목: ${deck.title}
-- 현재 슬라이드 목록:
-${deck.slides.map((s, idx) => `  ${idx + 1}. [ID: ${s.id}] layout: ${s.layout}, title: "${s.title ?? ''}", activityId: "${s.activityId ?? ''}"`).join('\n')}
-
-[업로드된 PDF 내용]
-${pdfText}
-
-[중요 지시사항]
-1. 강사의 요청에 따라 강의 자료에 퀴즈(Quiz), 투표(Poll), 역할극(Roleplay), 비유(Analogy), 문학창작(Writing), 튜터(Tutor) 실습 슬라이드를 추가할 수 있어.
-2. 실습 슬라이드를 추가하려면 답변 끝부분에 반드시 \`\`\`json ... \`\`\` 마크다운 코드 블록 형태로 변경 명령(operations) 목록을 작성해 줘.
-3. 슬라이드 뒤에 추가할 위치를 나타내는 'afterSlideIndex'는 0부터 시작하는 슬라이드 인덱스야. (예: 1번째 슬라이드 뒤는 afterSlideIndex: 0)
-4. 각 활동(activity)의 스키마 규칙:
-   - 퀴즈(type: "add_quiz"): activity 내부에 title, questions(배열)를 가져야 해. 각 질문은 question, options(2~4개), correctIndex(정답 번호), timeLimitSec(제한시간), explanation(해설)을 가져야 해.
-   - 투표(type: "add_poll"): activity 내부에 title, prompt, mode("choice" 또는 "wordcloud"), options(choice인 경우 보기 배열)를 가져야 해.
-   - 역할극(type: "add_roleplay"): activity 내부에 title, intro, systemPrompt, missionKeyword(성공 조건 단어), missionDescription(미션 가이드)을 가져야 해.
-   - 비유대조(type: "add_analogy"): activity 내부에 title, intro, topicPlaceholder(힌트), personaA, personaB를 가져야 해.
-   - 문학창작(type: "add_writing"): activity 내부에 title, intro, genre("poem" | "story" | "essay"), promptPlaceholder를 가져야 해.
-   - AI튜터(type: "add_tutor"): activity 내부에 title, intro, subject("math" | "coding" | "general"), taskDescription을 가져야 해.
-5. 한국 고등학생 대상 수업이므로, 실습 구성 및 질문은 PDF 텍스트 내용을 바탕으로 흥미롭고 유익하며 너무 난해하지 않은 수준으로 생성해줘.
-6. 친근하고 공손하게 존댓말로 설명하되, 변경 명령은 예시 JSON 포맷을 완벽하게 준수해서 작성해야 해.
-
-[변경 명령 JSON 예시]
-\`\`\`json
-{
-  "operations": [
-    {
-      "type": "add_quiz",
-      "afterSlideIndex": 2,
-      "activity": {
-        "title": "인공지능 윤리 퀴즈",
-        "questions": [
-          {
-            "question": "다음 중 생성형 AI 사용 시 저작권 침해 우려가 없는 행동은?",
-            "options": [
-              "남의 소설을 복사하여 내 책으로 출판하기",
-              "상업용 폰트를 무단 배포하기",
-              "오픈 소스 무료 사용 허가(라이선스) 범위 안에서 코드를 활용하기",
-              "허락 없이 인기 음악을 유튜브 배경음으로 사용하기"
-            ],
-            "correctIndex": 2,
-            "timeLimitSec": 20,
-            "explanation": "오픈 소스의 경우 정해진 라이선스 허용 범위 내에서 정당하게 활용하면 저작권 침해 우려가 없습니다."
-          }
-        ]
-      }
-    },
-    {
-      "type": "add_roleplay",
-      "afterSlideIndex": 4,
-      "activity": {
-        "title": "세종대왕 한글 창제 역할극",
-        "intro": "세종대왕을 설득해 보세요.",
-        "systemPrompt": "너는 조선의 국왕 세종대왕이다. 한글 창제를 반대하는 주장에 맞서, 백성들을 향한 애민정신과 한글의 과학적 이점을 설명하라.",
-        "missionKeyword": "애민정신",
-        "missionDescription": "대화 중 세종대왕이 한글의 창제 이면에 담긴 '애민정신'이라는 단어를 말하도록 유도하세요."
-      }
-    }
-  ]
-}
-\`\`\``;
-
-    // Prepend or replace the system message
-    const formattedMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...body.messages.filter((m) => m.role !== 'system')
-    ];
+    const pdfText = body.pdfText ?? '';
+    const chatOnly = body.messages.filter((m): m is { role: 'user' | 'assistant'; content: string } => m.role !== 'system');
 
     try {
-      const { text } = await chatComplete(formattedMessages, { temperature: 0.6, maxTokens: 2048 });
-      return { text };
+      const result = await chatWithAgent({ deck, pdfText, messages: chatOnly });
+      return result;
     } catch (e: any) {
       app.log.error(e);
       return reply.code(502).send({ error: 'bad', message: 'AI 조교 응답에 실패했습니다.' });
+    }
+  });
+
+  // AI 슬라이드 자동 일괄 생성 — 위치 계획(plan) 후 항목별로 병렬 생성(generate)하는 2단계 파이프라인.
+  // (단일 호출로 전체를 한번에 만들면 토큰 한도에 걸려 통째로 실패하는 문제가 있어 분리함)
+  app.post('/api/decks/quick-generate', async (req, reply) => {
+    const body = (req.body ?? {}) as { deck: Deck; pdfText?: string; type: QuickGenType; count: number };
+    const validTypes: QuickGenType[] = ['quiz', 'poll', 'roleplay', 'analogy', 'writing', 'tutor'];
+    if (!body.deck || !Array.isArray(body.deck.slides) || !validTypes.includes(body.type)) {
+      return reply.code(400).send({ error: 'bad', message: '요청 형식이 올바르지 않습니다.' });
+    }
+    try {
+      const result = await quickGenerate({ deck: body.deck, pdfText: body.pdfText ?? '', type: body.type, count: body.count });
+      return result;
+    } catch (e: any) {
+      app.log.error(e);
+      return reply.code(502).send({ error: 'bad', message: 'AI 슬라이드 생성에 실패했습니다.' });
     }
   });
 
@@ -553,7 +451,9 @@ ${pdfText}
       c.addCost(cost);
       persistUsage(c, p.id, 'roleplay', 1, cost);
 
-      const cleared = act.missionKeyword && text.toLowerCase().includes(act.missionKeyword.toLowerCase());
+      // 공백 무시 매칭: 키워드가 "병렬회로"로 생성돼도 AI 답변의 "병렬 회로"와 일치하도록 (반대 방향도 동일)
+      const normalizeForMatch = (s: string) => s.toLowerCase().replace(/\s+/g, '');
+      const cleared = act.missionKeyword && normalizeForMatch(text).includes(normalizeForMatch(act.missionKeyword));
       return { reply: text, missionClear: cleared };
     } catch (e) {
       app.log.error(e);

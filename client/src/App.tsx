@@ -8,6 +8,7 @@ import Build from './pages/Build';
 import DeckEditor from './pages/DeckEditor';
 import Report from './pages/Report';
 import GuideFloatingMenu from './components/GuideFloatingMenu';
+import AdminGate from './components/AdminGate';
 
 export default function App() {
   return (
@@ -16,10 +17,10 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/join" element={<Join />} />
         <Route path="/play" element={<Student />} />
-        <Route path="/teach" element={<Instructor />} />
+        <Route path="/teach" element={<AdminGate><Instructor /></AdminGate>} />
         <Route path="/screen/:token" element={<Projector />} />
-        <Route path="/build" element={<Build />} />
-        <Route path="/build/:deckId" element={<DeckEditor />} />
+        <Route path="/build" element={<AdminGate><Build /></AdminGate>} />
+        <Route path="/build/:deckId" element={<AdminGate><DeckEditor /></AdminGate>} />
         <Route path="/report/:classroomId" element={<Report />} />
         <Route path="*" element={<Home />} />
       </Routes>
