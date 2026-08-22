@@ -1,6 +1,7 @@
 import type { Deck, Slide, Activity, GenerateDeckRequest } from '../../../shared/types';
 import { validateDeck } from '../decks/validate';
 import { chatComplete } from './minimax';
+import { ACTIVITY_GEN_SPECS, GEN_TYPES, type GenType } from './activitySpecs';
 
 function rid() { return Math.random().toString(36).slice(2, 10); }
 
@@ -18,13 +19,15 @@ export function buildPrompt(opts: GenerateDeckRequest): { system: string; user: 
   let actSchemaStr = '';
   let actRuleStr = '';
   if (reqActs.length > 0) {
-    actSchemaStr = `, "activities": [{"id": string, "type": "roleplay"|"analogy"|"writing"|"tutor", "title": string, "intro": string` +
-      `, "systemPrompt": string, "missionKeyword": string, "missionDescription": string` + // roleplay
-      `, "topicPlaceholder": string, "personaA": string, "personaB": string` + // analogy
-      `, "genre": "poem"|"story"|"essay", "promptPlaceholder": string` + // writing
-      `, "subject": "math"|"coding"|"general", "taskDescription": string` + // tutor
-      `}]`;
-    actRuleStr = `\n또한, 다음 타입의 AI 실습 활동을 각각 1개씩 반드시 생성하여 'activities' 배열에 포함하고, 각 실습을 적절한 슬라이드의 'activityId'에 연결해줘: ${reqActs.join(', ')}. 각 활동 타입에 맞는 필수 구체 필드들을 작성해줘.`;
+    // 활동별 스키마는 레지스트리(activitySpecs.ts)에서 가져온다 — 새 활동은 스펙 등록만으로 원버튼 생성에 포함됨
+    const typeUnion = reqActs.map((t) => `"${t}"`).join('|');
+    const fieldLines = reqActs
+      .map((t) => `- type "${t}" (${ACTIVITY_GEN_SPECS[t].label}) 추가 필드: ${ACTIVITY_GEN_SPECS[t].oneShot}`)
+      .join('\n');
+    actSchemaStr = `, "activities": [{"id": string, "type": ${typeUnion}, "title": string, "intro": string, ...타입별 추가 필드}]`;
+    actRuleStr =
+      `\n또한, 다음 타입의 AI 실습 활동을 각각 1개씩 반드시 생성하여 'activities' 배열에 포함하고, 각 실습을 적절한 슬라이드의 'activityId'에 연결해줘: ${reqActs.join(', ')}.\n` +
+      `타입별 추가 필드:\n${fieldLines}`;
   }
 
   return {
@@ -58,49 +61,14 @@ export function parseDeckJson(text: string, id: string, fallbackTitle: string): 
   const realTitle = (parsed?.title || title).slice(0, 80);
   slides[0].title = realTitle;
 
-  // 1. AI 실습 활동 파싱
+  // 1. AI 실습 활동 파싱 — 레지스트리(activitySpecs.ts)의 normalize 로 타입별 정규화
   (parsed?.activities ?? []).forEach((act: any) => {
     if (!act || !act.type || !act.id) return;
-    const key = act.id;
-    if (act.type === 'roleplay') {
-      activities[key] = {
-        type: 'roleplay',
-        id: key,
-        title: act.title || 'AI 역할극',
-        intro: act.intro || undefined,
-        systemPrompt: act.systemPrompt || '너는 가이드야.',
-        missionKeyword: act.missionKeyword || '',
-        missionDescription: act.missionDescription || '',
-      };
-    } else if (act.type === 'analogy') {
-      activities[key] = {
-        type: 'analogy',
-        id: key,
-        title: act.title || '눈높이 비유',
-        intro: act.intro || undefined,
-        topicPlaceholder: act.topicPlaceholder || undefined,
-        personaA: act.personaA || '7세 아동 눈높이 비유',
-        personaB: act.personaB || '고등학생 맞춤 일상 비유',
-      };
-    } else if (act.type === 'writing') {
-      activities[key] = {
-        type: 'writing',
-        id: key,
-        title: act.title || '문학 창작',
-        intro: act.intro || undefined,
-        genre: ['poem', 'story', 'essay'].includes(act.genre) ? act.genre : 'poem',
-        promptPlaceholder: act.promptPlaceholder || undefined,
-      };
-    } else if (act.type === 'tutor') {
-      activities[key] = {
-        type: 'tutor',
-        id: key,
-        title: act.title || 'AI 튜터',
-        intro: act.intro || undefined,
-        subject: ['math', 'coding', 'general'].includes(act.subject) ? act.subject : 'general',
-        taskDescription: act.taskDescription || '문제를 입력해 보세요.',
-      };
-    }
+    const t = act.type as GenType;
+    if (!GEN_TYPES.includes(t)) return;
+    const norm = ACTIVITY_GEN_SPECS[t].normalize(act);
+    if (!norm) return;
+    activities[act.id] = { type: t, id: act.id, ...norm } as Activity;
   });
 
   // 2. 섹션 및 슬라이드 파싱

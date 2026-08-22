@@ -13,6 +13,7 @@ import { generateImage } from './ai/stability';
 import { runLab } from './ai/lab';
 import { generateDeck } from './ai/generateDeck';
 import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent';
+import { GEN_TYPES } from './ai/activitySpecs';
 import { persistClassroom, persistUsage, persistLabRun } from './persist';
 import { writeFileSync, readFileSync, existsSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -417,7 +418,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // (단일 호출로 전체를 한번에 만들면 토큰 한도에 걸려 통째로 실패하는 문제가 있어 분리함)
   app.post('/api/decks/quick-generate', async (req, reply) => {
     const body = (req.body ?? {}) as { deck: Deck; pdfText?: string; type: QuickGenType; count: number };
-    const validTypes: QuickGenType[] = ['quiz', 'poll', 'roleplay', 'analogy', 'writing', 'tutor'];
+    const validTypes: QuickGenType[] = GEN_TYPES;
     if (!body.deck || !Array.isArray(body.deck.slides) || !validTypes.includes(body.type)) {
       return reply.code(400).send({ error: 'bad', message: '요청 형식이 올바르지 않습니다.' });
     }

@@ -5,15 +5,7 @@ import { loadDeck } from '../lib/deck';
 import { getNickname, getSessionId } from '../lib/session';
 import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
-import ChatActivity from '../components/activities/ChatActivity';
-import ImageActivity from '../components/activities/ImageActivity';
-import LabActivity from '../components/activities/LabActivity';
-import QuizStudent from '../components/activities/QuizStudent';
-import PollStudent from '../components/activities/PollStudent';
-import RoleplayStudent from '../components/activities/RoleplayStudent';
-import AnalogyStudent from '../components/activities/AnalogyStudent';
-import WritingStudent from '../components/activities/WritingStudent';
-import TutorStudent from '../components/activities/TutorStudent';
+import { activityDef } from '../activities/registry';
 
 export default function Student() {
   const [params] = useSearchParams();
@@ -138,67 +130,13 @@ function ActivityArea({
     );
   }
 
-  const wrap = (node: React.ReactNode) => <div className="card h-full overflow-hidden">{node}</div>;
-
-  switch (act.type) {
-    case 'chat':
-      return wrap(<ChatActivity activity={act} token={token} sessionId={sessionId} />);
-    case 'image':
-      return wrap(<ImageActivity activity={act} token={token} sessionId={sessionId} />);
-    case 'lab':
-      return wrap(<LabActivity activity={act} token={token} sessionId={sessionId} />);
-    case 'quiz':
-      return wrap(
-        <QuizStudent
-          question={live.question}
-          reveal={live.reveal}
-          onAnswer={(i) =>
-            live.question && live.socket.emit('student:quizAnswer', { questionId: live.question.questionId, optionIndex: i })
-          }
-        />,
-      );
-    case 'poll':
-      return wrap(
-        <PollStudent
-          activity={act}
-          dist={live.polls[act.id] ?? null}
-          onVote={(v) => live.socket.emit('student:pollVote', { activityId: act.id, value: v })}
-        />,
-      );
-    case 'roleplay':
-      return wrap(
-        <RoleplayStudent
-          activity={act}
-          token={token}
-          sessionId={sessionId}
-          socket={live.socket}
-        />,
-      );
-    case 'analogy':
-      return wrap(
-        <AnalogyStudent
-          activity={act}
-          token={token}
-          sessionId={sessionId}
-        />,
-      );
-    case 'writing':
-      return wrap(
-        <WritingStudent
-          activity={act}
-          token={token}
-          sessionId={sessionId}
-        />,
-      );
-    case 'tutor':
-      return wrap(
-        <TutorStudent
-          activity={act}
-          token={token}
-          sessionId={sessionId}
-        />,
-      );
-    default:
-      return null;
-  }
+  // 학생 렌더러는 활동 레지스트리(activities/registry.ts)에서 타입별로 가져온다 — 기존 컴포넌트 재사용 래퍼
+  const def = activityDef(act.type);
+  if (!def) return null;
+  const StudentView = def.Student;
+  return (
+    <div className="card h-full overflow-hidden">
+      <StudentView activity={act} ctx={{ token, sessionId, live }} />
+    </div>
+  );
 }

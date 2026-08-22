@@ -312,5 +312,5 @@ export interface GenerateDeckRequest {
   parts?: number;
   quizPerPart?: number;
   tone?: string;
-  activities?: ('roleplay' | 'analogy' | 'writing' | 'tutor')[];
+  activities?: ('roleplay' | 'analogy' | 'writing' | 'tutor' | 'chat' | 'image' | 'lab')[];
 }
