@@ -7,6 +7,7 @@ import {
   pageKind, addPage, deletePage, movePage, updateSlide, updateActivity,
 } from '../lib/deckDraft';
 import SlideView from '../components/SlideView';
+import EmbedSlideForm from '../components/EmbedSlideForm';
 
 function applyAIPlan(operations: any[], currentDeck: Deck): { deck: Deck; applied: boolean } {
   let updatedDeck = { ...currentDeck };
@@ -409,6 +410,8 @@ export default function DeckEditor() {
           {deck.slides.map((s, i) => {
             const act = s.activityId ? deck.activities[s.activityId] : null;
             let icon = '📄 ';
+            if (s.layout === 'embed') icon = '🔗 ';
+            else if (s.layout === 'image') icon = '🖼 ';
             if (act) {
               if (act.type === 'quiz') icon = '🎮 ';
               else if (act.type === 'poll') icon = '🗳️ ';
@@ -436,10 +439,11 @@ export default function DeckEditor() {
               </button>
             );
           })}
-          <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
+          <div className="mt-2 grid grid-cols-4 gap-1 text-xs">
             <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'slide', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋장</button>
             <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'quiz', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋퀴즈</button>
             <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'poll', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋투표</button>
+            <button className="btn-ghost py-1" title="Google Slides·Canva 등 외부 슬라이드 임베드" onClick={() => { setDeck(addPage(deck, 'embed', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋임베드</button>
           </div>
         </aside>
 
@@ -620,6 +624,34 @@ export default function DeckEditor() {
 }
 
 function SlideForm({ slide, onChange }: { slide: Slide; onChange: (p: Partial<Slide>) => void }) {
+  if (slide.layout === 'embed') {
+    return <EmbedSlideForm slide={slide} onChange={onChange} />;
+  }
+
+  if (slide.layout === 'image') {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-brand">🖼 이미지 슬라이드 미리보기</h3>
+            <span className="text-xs text-white/40">원본 화질 그대로 표시</span>
+          </div>
+          <div className="border border-white/10 rounded-lg overflow-hidden h-[300px] bg-black/20">
+            <SlideView slide={slide} />
+          </div>
+        </div>
+
+        <label className="block text-sm text-white/60">제목 (목록 표시용)
+          <input className="input mt-1" value={slide.title ?? ''} maxLength={120} onChange={(e) => onChange({ title: e.target.value })} />
+        </label>
+
+        <label className="block text-sm text-white/60">강사 노트 (수업 중 본인에게만 표시)
+          <textarea className="input mt-1 h-24" value={slide.notes ?? ''} maxLength={400} onChange={(e) => onChange({ notes: e.target.value })} />
+        </label>
+      </div>
+    );
+  }
+
   if (slide.layout === 'pdf') {
     return (
       <div className="space-y-4">

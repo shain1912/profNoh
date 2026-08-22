@@ -10,7 +10,15 @@ const makeActId = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 const clamp = (s: unknown, max: number): string =>
   (typeof s === 'string' ? s : '').slice(0, max);
 
-const LAYOUTS: SlideLayout[] = ['title', 'section', 'content', 'big', 'twocol', 'pdf'];
+const LAYOUTS: SlideLayout[] = ['title', 'section', 'content', 'big', 'twocol', 'pdf', 'embed', 'image'];
+
+/** 임베드/이미지 URL 정규화 — http(s) 또는 서버 업로드 경로만 허용 (javascript: 등 차단) */
+const safeUrl = (u: unknown, max: number): string | undefined => {
+  const s = clamp(u, max);
+  if (!s) return undefined;
+  if (s.startsWith('/api/uploads/') || /^https?:\/\//i.test(s)) return s;
+  return undefined;
+};
 
 export function blankSlide(): Slide {
   return { id: makeActId(), part: 0, partTitle: '', layout: 'content', title: '', subtitle: '', blocks: [], notes: '' };
@@ -156,6 +164,8 @@ export function validateDeck(input: unknown, id: string): Deck {
       pdfUrl: s.pdfUrl ? clamp(s.pdfUrl, 300) : undefined,
       pageNumber: typeof s.pageNumber === 'number' ? s.pageNumber : undefined,
       youtubeUrl: s.youtubeUrl ? clamp(s.youtubeUrl, 300) : undefined,
+      embedUrl: safeUrl(s.embedUrl, 500),
+      imageUrl: safeUrl(s.imageUrl, 300),
     };
   });
 

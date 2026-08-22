@@ -1,5 +1,51 @@
 import type { Slide, SlideBlock } from '@shared/types';
 import { useEffect, useRef, useState } from 'react';
+import { isSafeEmbedSrc } from '../lib/embed';
+
+// 외부 슬라이드 임베드 (Google Slides·Canva 등) — 내부 페이지 넘김은 임베드 자체 컨트롤 사용.
+// iframe이 포커스를 가져가면 앱 단축키(←/→/Space/F)가 먹지 않으므로, 키보드 조작 후에는
+// 앱 영역을 한 번 클릭하라는 안내를 툴바에 표시한다.
+function EmbedSlideView({ src, title }: { src: string; title?: string }) {
+  return (
+    <div className="flex h-full w-full flex-col">
+      <iframe
+        src={src}
+        title={title || '외부 슬라이드'}
+        className="h-full w-full flex-1 border-0 bg-black/20"
+        allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+        allowFullScreen
+        referrerPolicy="no-referrer"
+        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
+      />
+      <div className="shrink-0 bg-black/40 px-3 py-1 text-center text-[10px] text-white/40">
+        임베드 슬라이드 — 페이지 넘김은 임베드 안의 컨트롤을 사용하세요 · 앱 단축키(←/→/F)는 임베드 바깥을 클릭한 뒤 동작합니다
+      </div>
+    </div>
+  );
+}
+
+// 업로드 이미지 슬라이드 — 원본 화질 그대로 표시 (PDF 렌더보다 선명)
+function ImageSlideView({ src, title }: { src: string; title?: string }) {
+  const [error, setError] = useState(false);
+  if (error) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-red-400 bg-black/20 p-4 text-center">
+        ⚠️ 이미지를 불러올 수 없습니다.
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-full w-full items-center justify-center overflow-hidden bg-black/10">
+      <img
+        src={src}
+        alt={title || '슬라이드 이미지'}
+        className="max-h-full max-w-full object-contain shadow-md rounded"
+        draggable={false}
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+}
 
 function PdfSlideView({ pdfUrl, pageNumber }: { pdfUrl: string; pageNumber: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -141,6 +187,14 @@ function getYouTubeEmbedUrl(url?: string): string | null {
 }
 
 export default function SlideView({ slide, big = false }: { slide: Slide; big?: boolean }) {
+  if (slide.layout === 'embed' && isSafeEmbedSrc(slide.embedUrl)) {
+    return <EmbedSlideView src={slide.embedUrl} title={slide.title} />;
+  }
+
+  if (slide.layout === 'image' && slide.imageUrl) {
+    return <ImageSlideView src={slide.imageUrl} title={slide.title} />;
+  }
+
   if (slide.layout === 'pdf' && slide.pdfUrl) {
     return (
       <div className="h-full w-full overflow-hidden flex flex-col justify-center items-center">

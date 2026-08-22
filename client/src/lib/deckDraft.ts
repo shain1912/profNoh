@@ -14,11 +14,13 @@ export function newSlide(): Slide {
   return { id: rid(), part: 0, partTitle: '', layout: 'content', title: '새 슬라이드', subtitle: '', blocks: [], notes: '' };
 }
 
-export function addPage(deck: Deck, kind: PageKind, at: number): Deck {
+export function addPage(deck: Deck, kind: PageKind | 'embed', at: number): Deck {
   const slides = [...deck.slides];
   const activities = { ...deck.activities };
   const slide = newSlide();
-  if (kind === 'quiz') {
+  if (kind === 'embed') {
+    slide.layout = 'embed'; slide.title = '임베드 슬라이드'; slide.embedUrl = '';
+  } else if (kind === 'quiz') {
     const id = 'q_' + rid();
     const q: QuizActivity = { type: 'quiz', id, title: '새 퀴즈', questions: [{ id: rid(), question: '', options: ['', ''], correctIndex: 0, timeLimitSec: 20, explanation: '' }] };
     activities[id] = q; slide.activityId = id; slide.title = '퀴즈';
