@@ -931,7 +931,8 @@ export async function registerRoutes(app: FastifyInstance) {
           id: p.id,
           nickname: p.nickname,
           score: p.score,
-          joinedAt: p.joined_at
+          // DB 컬럼은 created_at (joined_at 없음) — 리포트 '참가 일자' Invalid Date 버그 수정
+          joinedAt: p.created_at
         })),
         quizSummary,
         pollSummary,
