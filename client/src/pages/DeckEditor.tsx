@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Deck, Slide, QuizActivity, PollActivity } from '@shared/types';
+import type { Deck, Slide } from '@shared/types';
 import { openDeckForEdit, saveDeck, getPin, rememberDeck, deleteDeck, forgetDeck } from '../lib/buildApi';
 import { apiPost } from '../lib/api';
 import {
   pageKind, addPage, deletePage, movePage, updateSlide, updateActivity,
 } from '../lib/deckDraft';
 import SlideView from '../components/SlideView';
+import { ACTIVITY_TYPES, AI_QUICK_TYPES, ACTIVITY_DEFS, activityDef } from '../activities/registry';
 
 function applyAIPlan(operations: any[], currentDeck: Deck): { deck: Deck; applied: boolean } {
   let updatedDeck = { ...currentDeck };
@@ -19,87 +20,15 @@ function applyAIPlan(operations: any[], currentDeck: Deck): { deck: Deck; applie
   });
 
   for (const op of sortedOps) {
-    if (!op.activity) continue;
-    let actId = '';
-    let actObj: any = null;
-    let slidePartTitle = '';
+    if (!op.activity || typeof op.type !== 'string' || !op.type.startsWith('add_')) continue;
+    // 활동 생성은 레지스트리(activities/registry.ts)의 fromAI 로 일원화 — 새 활동 타입은 def 등록만으로 적용됨
+    const def = activityDef(op.type.slice(4));
+    if (!def) continue;
+    const actId = def.type.slice(0, 2) + '_' + Math.random().toString(36).slice(2, 10);
+    const actObj = def.fromAI(op.activity, actId);
+    const slidePartTitle = `AI ${def.label}`;
 
-    if (op.type === 'add_quiz') {
-      actId = 'q_' + Math.random().toString(36).slice(2, 10);
-      actObj = {
-        type: 'quiz',
-        id: actId,
-        title: op.activity.title || '퀴즈',
-        questions: (op.activity.questions || []).map((q: any) => ({
-          id: Math.random().toString(36).slice(2, 10),
-          question: q.question,
-          options: q.options || ['', ''],
-          correctIndex: q.correctIndex ?? 0,
-          timeLimitSec: q.timeLimitSec ?? 20,
-          explanation: q.explanation || '',
-        })),
-      };
-      slidePartTitle = 'AI 퀴즈';
-    } else if (op.type === 'add_poll') {
-      actId = 'p_' + Math.random().toString(36).slice(2, 10);
-      actObj = {
-        type: 'poll',
-        id: actId,
-        title: op.activity.title || '투표',
-        prompt: op.activity.prompt || '',
-        mode: op.activity.mode || 'wordcloud',
-        options: op.activity.options || [],
-      };
-      slidePartTitle = 'AI 투표';
-    } else if (op.type === 'add_roleplay') {
-      actId = 'rp_' + Math.random().toString(36).slice(2, 10);
-      actObj = {
-        type: 'roleplay',
-        id: actId,
-        title: op.activity.title || 'AI 역할극',
-        intro: op.activity.intro,
-        systemPrompt: op.activity.systemPrompt || '너는 가이드야.',
-        missionKeyword: op.activity.missionKeyword || '',
-        missionDescription: op.activity.missionDescription || '',
-      };
-      slidePartTitle = 'AI 역할극';
-    } else if (op.type === 'add_analogy') {
-      actId = 'an_' + Math.random().toString(36).slice(2, 10);
-      actObj = {
-        type: 'analogy',
-        id: actId,
-        title: op.activity.title || '눈높이 비유',
-        intro: op.activity.intro,
-        topicPlaceholder: op.activity.topicPlaceholder,
-        personaA: op.activity.personaA || '어린이',
-        personaB: op.activity.personaB || '전문가',
-      };
-      slidePartTitle = '눈높이 비유';
-    } else if (op.type === 'add_writing') {
-      actId = 'wr_' + Math.random().toString(36).slice(2, 10);
-      actObj = {
-        type: 'writing',
-        id: actId,
-        title: op.activity.title || '문학 창작',
-        intro: op.activity.intro,
-        genre: ['poem', 'story', 'essay'].includes(op.activity.genre) ? op.activity.genre : 'poem',
-        promptPlaceholder: op.activity.promptPlaceholder,
-      };
-      slidePartTitle = '문학 창작';
-    } else if (op.type === 'add_tutor') {
-      actId = 'tu_' + Math.random().toString(36).slice(2, 10);
-      actObj = {
-        type: 'tutor',
-        id: actId,
-        title: op.activity.title || 'AI 튜터',
-        intro: op.activity.intro,
-        subject: ['math', 'coding', 'general'].includes(op.activity.subject) ? op.activity.subject : 'general',
-        taskDescription: op.activity.taskDescription || '문제를 해결해 보세요.',
-      };
-      slidePartTitle = 'AI 튜터';
-    }
-
-    if (actId && actObj) {
+    {
       updatedDeck.activities[actId] = actObj;
       const newSlideObj = {
         id: 's_' + Math.random().toString(36).slice(2, 10),
@@ -140,7 +69,7 @@ export default function DeckEditor() {
       role: 'assistant',
       content:
         '안녕하세요! 강의 자료 편집을 돕는 AI 조교입니다. 💡\n\n' +
-        'PDF 내용을 학습하여 퀴즈, 투표, 역할극, 비유 대조, 문학 창작, 튜터링 슬라이드를 원하는 위치에 자동 생성해 드립니다.\n\n' +
+        'PDF 내용을 학습하여 퀴즈, 투표, 역할극, 비유 대조, 문학 창작, AI 튜터, AI 자유 대화, 이미지 생성, 비교 실습 랩 슬라이드를 원하는 위치에 자동 생성해 드립니다.\n\n' +
         '💬 이런 식으로 요청해보세요:\n' +
         '- "3페이지 뒤에 퀴즈 추가해줘"\n' +
         '- "5페이지 뒤에 역할극 실습 추가해줘"\n' +
@@ -250,15 +179,12 @@ export default function DeckEditor() {
   }
 
   // 퀵 일괄 추가 기능 — 위치 계획과 항목별 생성을 서버에서 단계적으로 처리하는 전용 엔드포인트 사용
-  const QUICK_TYPE_LABEL: Record<'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor', string> = {
-    quiz: '퀴즈', poll: '투표', roleplay: '역할극', analogy: '비유 대조', writing: '문학 창작', tutor: 'AI 튜터',
-  };
-
-  async function handleQuickCreate(type: 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor') {
+  // 생성 가능한 타입/라벨은 레지스트리(activities/registry.ts)에서 가져온다
+  async function handleQuickCreate(type: (typeof AI_QUICK_TYPES)[number]) {
     if (!deck || chatBusy || pdfStatus !== 'ready') return;
     setChatBusy(true);
 
-    const typeLabel = QUICK_TYPE_LABEL[type];
+    const typeLabel = ACTIVITY_DEFS[type].label;
     const userMsg = `이 PDF 전체 내용을 학습해서 내용 흐름에 맞는 ${typeLabel} 활동을 총 ${quickCount}개 생성하고, 적절한 위치에 골고루 분산 배치해줘.`;
     const nextMessages = [...messages, { role: 'user' as const, content: userMsg }];
     setMessages(nextMessages);
@@ -408,18 +334,7 @@ export default function DeckEditor() {
         <aside className={`${activeTab === 'slides' ? 'block' : 'hidden'} lg:block overflow-y-auto border-r border-white/10 p-2 custom-scrollbar`}>
           {deck.slides.map((s, i) => {
             const act = s.activityId ? deck.activities[s.activityId] : null;
-            let icon = '📄 ';
-            if (act) {
-              if (act.type === 'quiz') icon = '🎮 ';
-              else if (act.type === 'poll') icon = '🗳️ ';
-              else if (act.type === 'roleplay') icon = '🎭 ';
-              else if (act.type === 'analogy') icon = '🔍 ';
-              else if (act.type === 'writing') icon = '✍️ ';
-              else if (act.type === 'tutor') icon = '🧮 ';
-              else if (act.type === 'chat') icon = '💬 ';
-              else if (act.type === 'image') icon = '🎨 ';
-              else if (act.type === 'lab') icon = '🔬 ';
-            }
+            const icon = act ? `${activityDef(act.type)?.icon ?? '📄'} ` : '📄 ';
             return (
               <button
                 key={s.id}
@@ -436,10 +351,20 @@ export default function DeckEditor() {
               </button>
             );
           })}
-          <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
-            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'slide', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋장</button>
-            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'quiz', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋퀴즈</button>
-            <button className="btn-ghost py-1" onClick={() => { setDeck(addPage(deck, 'poll', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋투표</button>
+          <div className="mt-2 space-y-1 text-xs">
+            <button className="btn-ghost w-full py-1" onClick={() => { setDeck(addPage(deck, 'slide', sel)); setSel(sel + 1); setActiveTab('edit'); }}>＋ 슬라이드</button>
+            <div className="grid grid-cols-3 gap-1">
+              {ACTIVITY_TYPES.map((t) => (
+                <button
+                  key={t}
+                  className="btn-ghost py-1"
+                  title={`${ACTIVITY_DEFS[t].label} 추가`}
+                  onClick={() => { setDeck(addPage(deck, t, sel)); setSel(sel + 1); setActiveTab('edit'); }}
+                >
+                  {ACTIVITY_DEFS[t].icon} {ACTIVITY_DEFS[t].label}
+                </button>
+              ))}
+            </div>
           </div>
         </aside>
 
@@ -451,9 +376,19 @@ export default function DeckEditor() {
             <button className="btn-ghost px-2 py-1 text-down" onClick={() => { setDeck(deletePage(deck, sel)); setSel(Math.max(0, sel - 1)); }}>🗑 삭제</button>
           </div>
 
-          {kind === 'slide' && <SlideForm slide={slide} onChange={(p) => setDeck(updateSlide(deck, sel, p))} />}
-          {kind === 'quiz' && <QuizForm act={deck.activities[slide.activityId!] as QuizActivity} onChange={(a) => setDeck(updateActivity(deck, slide.activityId!, a))} />}
-          {kind === 'poll' && <PollForm act={deck.activities[slide.activityId!] as PollActivity} onChange={(a) => setDeck(updateActivity(deck, slide.activityId!, a))} />}
+          {kind === 'slide' ? (
+            <SlideForm slide={slide} onChange={(p) => setDeck(updateSlide(deck, sel, p))} />
+          ) : (() => {
+            // 활동 편집 폼은 레지스트리(activities/defs/*.tsx)에서 타입별로 가져온다
+            const def = ACTIVITY_DEFS[kind];
+            const ActEditor = def.Editor;
+            return (
+              <div className="space-y-3">
+                <div className="text-sm font-bold text-brand">{def.icon} {def.label} 편집</div>
+                <ActEditor act={deck.activities[slide.activityId!]} onChange={(a: any) => setDeck(updateActivity(deck, slide.activityId!, a))} />
+              </div>
+            );
+          })()}
         </main>
 
         {/* 우측 AI 조교 패널 */}
@@ -522,38 +457,17 @@ export default function DeckEditor() {
                   </div>
                 </div>
                 <div className="grid grid-cols-4 gap-1">
-                  <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
-                    onClick={() => handleQuickCreate('roleplay')}
-                    disabled={chatBusy}
-                    title="AI 역할극 실습 추가"
-                  >
-                    🎭 역할극
-                  </button>
-                  <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
-                    onClick={() => handleQuickCreate('analogy')}
-                    disabled={chatBusy}
-                    title="눈높이 비유 대조 추가"
-                  >
-                    🔍 비유
-                  </button>
-                  <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
-                    onClick={() => handleQuickCreate('writing')}
-                    disabled={chatBusy}
-                    title="문학 창작 실습 추가"
-                  >
-                    ✍️ 창작
-                  </button>
-                  <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
-                    onClick={() => handleQuickCreate('tutor')}
-                    disabled={chatBusy}
-                    title="AI 튜터 힌트 대화 추가"
-                  >
-                    🧮 튜터
-                  </button>
+                  {AI_QUICK_TYPES.filter((t) => t !== 'quiz' && t !== 'poll').map((t) => (
+                    <button
+                      key={t}
+                      className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
+                      onClick={() => handleQuickCreate(t)}
+                      disabled={chatBusy}
+                      title={`${ACTIVITY_DEFS[t].label} 추가`}
+                    >
+                      {ACTIVITY_DEFS[t].icon} {ACTIVITY_DEFS[t].label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -660,55 +574,6 @@ function SlideForm({ slide, onChange }: { slide: Slide; onChange: (p: Partial<Sl
         <textarea className="input mt-1 h-40" value={bulletsText} onChange={(e) => onChange({ blocks: e.target.value.split('\n').filter(Boolean).map((t) => ({ kind: 'bullet', text: t })) })} />
       </label>
       <label className="block text-sm text-white/60">강사 노트<input className="input mt-1" value={slide.notes ?? ''} maxLength={400} onChange={(e) => onChange({ notes: e.target.value })} /></label>
-    </div>
-  );
-}
-
-function QuizForm({ act, onChange }: { act: QuizActivity; onChange: (a: QuizActivity) => void }) {
-  const setQ = (qi: number, patch: Partial<QuizActivity['questions'][number]>) =>
-    onChange({ ...act, questions: act.questions.map((q, i) => (i === qi ? { ...q, ...patch } : q)) });
-  return (
-    <div className="space-y-4">
-      <input className="input" value={act.title} maxLength={80} onChange={(e) => onChange({ ...act, title: e.target.value })} />
-      {act.questions.map((q, qi) => (
-        <div key={q.id} className="card space-y-2">
-          <input className="input" placeholder="문제" value={q.question} maxLength={200} onChange={(e) => setQ(qi, { question: e.target.value })} />
-          {q.options.map((o, oi) => (
-            <div key={oi} className="flex items-center gap-2">
-              <input type="radio" checked={q.correctIndex === oi} onChange={() => setQ(qi, { correctIndex: oi })} title="정답" />
-              <input className="input" placeholder={`보기 ${oi + 1}`} value={o} maxLength={120} onChange={(e) => setQ(qi, { options: q.options.map((x, i) => (i === oi ? e.target.value : x)) })} />
-              {q.options.length > 2 && <button className="text-down" onClick={() => setQ(qi, { options: q.options.filter((_, i) => i !== oi), correctIndex: 0 })}>✕</button>}
-            </div>
-          ))}
-          {q.options.length < 4 && <button className="btn-ghost px-2 py-1 text-sm" onClick={() => setQ(qi, { options: [...q.options, ''] })}>＋ 보기</button>}
-          <input className="input" placeholder="해설(정답 공개 시 표시)" value={q.explanation ?? ''} maxLength={300} onChange={(e) => setQ(qi, { explanation: e.target.value })} />
-          {act.questions.length > 1 && <button className="text-sm text-down" onClick={() => onChange({ ...act, questions: act.questions.filter((_, i) => i !== qi) })}>문제 삭제</button>}
-        </div>
-      ))}
-      <button className="btn-ghost" onClick={() => onChange({ ...act, questions: [...act.questions, { id: Math.random().toString(36).slice(2, 10), question: '', options: ['', ''], correctIndex: 0, timeLimitSec: 20, explanation: '' }] })}>＋ 문제 추가</button>
-    </div>
-  );
-}
-
-function PollForm({ act, onChange }: { act: PollActivity; onChange: (a: PollActivity) => void }) {
-  return (
-    <div className="space-y-3">
-      <input className="input" placeholder="투표 질문" value={act.prompt} maxLength={200} onChange={(e) => onChange({ ...act, prompt: e.target.value })} />
-      <div className="flex gap-2 text-sm">
-        <button className={['btn-ghost px-3 py-1', act.mode === 'wordcloud' ? 'text-brand' : ''].join(' ')} onClick={() => onChange({ ...act, mode: 'wordcloud' })}>워드클라우드</button>
-        <button className={['btn-ghost px-3 py-1', act.mode === 'choice' ? 'text-brand' : ''].join(' ')} onClick={() => onChange({ ...act, mode: 'choice' })}>객관식</button>
-      </div>
-      {act.mode === 'choice' && (
-        <div className="space-y-2">
-          {(act.options ?? []).map((o, i) => (
-            <div key={i} className="flex gap-2">
-              <input className="input" placeholder={`보기 ${i + 1}`} value={o} maxLength={60} onChange={(e) => onChange({ ...act, options: (act.options ?? []).map((x, j) => (j === i ? e.target.value : x)) })} />
-              <button className="text-down" onClick={() => onChange({ ...act, options: (act.options ?? []).filter((_, j) => j !== i) })}>✕</button>
-            </div>
-          ))}
-          <button className="btn-ghost px-2 py-1 text-sm" onClick={() => onChange({ ...act, options: [...(act.options ?? []), ''] })}>＋ 보기</button>
-        </div>
-      )}
     </div>
   );
 }

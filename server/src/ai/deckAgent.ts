@@ -1,7 +1,9 @@
 import type { Deck, Slide } from '../../../shared/types';
 import { chatComplete } from './minimax';
+import { ACTIVITY_GEN_SPECS, GEN_TYPES, type GenType } from './activitySpecs';
 
-export type QuickGenType = 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor';
+// 생성 가능한 활동 타입 = 레지스트리(activitySpecs.ts)에 등록된 모든 타입
+export type QuickGenType = GenType;
 
 interface PlanItem { afterSlideIndex: number; topic: string; style?: QuizStyle }
 
@@ -54,9 +56,9 @@ function contextTextFor(slides: Slide[], afterSlideIndex: number, pageTexts: Map
   return '';
 }
 
-const TYPE_LABEL: Record<QuickGenType, string> = {
-  quiz: '퀴즈', poll: '투표', roleplay: 'AI 역할극', analogy: '눈높이 비유 대조', writing: '문학 창작', tutor: 'AI 튜터',
-};
+const TYPE_LABEL: Record<QuickGenType, string> = Object.fromEntries(
+  GEN_TYPES.map((t) => [t, ACTIVITY_GEN_SPECS[t].label]),
+) as Record<QuickGenType, string>;
 
 /** 1단계: 어느 슬라이드 뒤에 몇 개를 넣을지만 결정 (작은 출력 → 잘릴 위험이 거의 없음) */
 async function planInsertions(
@@ -147,118 +149,13 @@ async function planInsertions(
 }
 
 function schemaFor(type: QuickGenType): { fields: string; example: string } {
-  switch (type) {
-    case 'quiz':
-      return {
-        fields: 'title(string — 문항이 실제로 묻는 내용과 일치할 것), questions(길이 1인 배열: [{question, options(정확히 4개), correctIndex(0~3), timeLimitSec(5~60), explanation}]). ' +
-          '출제 규칙: 1) 원문 문장을 그대로 되묻는 암기 확인 대신, 개념을 "새로운 상황·예시"에 적용하거나 계산하는 문항을 우선하라. 원문에 있는 예시 수치·사례는 그대로 쓰지 말고 바꿔라. ' +
-          '2) 정답은 하나뿐이어야 한다: 다른 보기가 특정 조건(예: 열등재, 예외 상황)에서 옳을 수 있다면 문두에서 조건을 한정하라. ' +
-          '3) 정답 보기에만 문제 속 핵심 단어가 들어가서 안 읽고도 풀리는 문항 금지. ' +
-          '오답(3개) 생성 규칙 — 각 오답은 반드시 다음 중 한 유형에서 만들어라: ' +
-          '(a) 헷갈리는 인접 개념 (b) 조건 하나를 빠뜨렸을 때 나올 법한 결론. ' +
-          '오답 금지 목록: "모든/항상/절대" 같은 절대 표현, 원문 문장의 단순 부정, 서로 사실상 같은 말인 보기, 명백히 터무니없는 보기("무작위로 변한다" 등). ' +
-          '보기 4개의 길이와 문체를 비슷하게 맞춰서 길이만으로 정답이 드러나지 않게 하라.',
-        example: '{"title":"...","questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":2,"timeLimitSec":20,"explanation":"..."}]}',
-      };
-    case 'poll':
-      return {
-        fields: 'title(string), prompt(string), mode("wordcloud"|"choice"), options(mode가 choice일 때만 2~6개 배열). ' +
-          '투표는 퀴즈가 아니다 — 반드시 정답이 존재하지 않는 질문이어야 한다: 학생 개인의 의견·선호·경험·예측·가치판단을 묻는 것만 허용. ' +
-          '지식 확인 문제(옳은 것 고르기, 계산, 사실 확인)는 절대 금지. 원문 내용이 이미 답을 제시한 확인형 질문도 금지. ' +
-          '한 단어로 자유롭게 답하게 하려면 mode를 "wordcloud"로 (options는 빈 배열), 입장을 고르게 하려면 "choice"로. ' +
-          '좋은 예: "이 기술이 10년 뒤 여러분 직업에 어떤 영향을 줄까요?", "가장 흥미로웠던 개념을 한 단어로!" / ' +
-          '나쁜 예: "다음 중 옳은 설명을 고르세요"',
-        example: '{"title":"...","prompt":"이 내용 중 내 생활과 가장 관련 깊다고 느낀 것은?","mode":"choice","options":["...","...","..."]}',
-      };
-    case 'roleplay':
-      return {
-        fields: 'title, intro, systemPrompt(AI가 연기할 캐릭터/상황 지시문 — 원문의 연도·명칭·인과를 정확히 따를 것), ' +
-          'missionKeyword(대화 중 AI가 말하도록 유도할 핵심어 — 반드시 10자 이내의 짧은 명사(구) "하나". 문장·서술형 금지, 쉼표 나열 금지. ' +
-          '어미가 변해도 그대로 포함될 단어여야 함. 좋은 예: "애민정신", "문화통치", "옴의 법칙" / 나쁜 예: "전압은 어디서나 같다", "청의 영향력 감소". ' +
-          '학생이 AI 답변에서 정확히 그 문자열을 이끌어내야 미션 완료 처리되며, missionDescription의 완료 조건도 이 키워드 하나와 일치해야 함), ' +
-          'missionDescription(학생에게 보여줄 미션 설명 — 어떤 주제로 질문해야 키워드가 자연스럽게 나오는지 힌트 포함)',
-        example: '{"title":"...","intro":"...","systemPrompt":"...","missionKeyword":"...","missionDescription":"..."}',
-      };
-    case 'analogy':
-      return {
-        fields: 'title, intro, topicPlaceholder, personaA(예: 7세 아동 눈높이 비유), personaB(예: 고등학생 맞춤 비유)',
-        example: '{"title":"...","intro":"...","topicPlaceholder":"...","personaA":"...","personaB":"..."}',
-      };
-    case 'writing':
-      return {
-        fields: 'title, intro, genre("poem"|"story"|"essay"), promptPlaceholder',
-        example: '{"title":"...","intro":"...","genre":"poem","promptPlaceholder":"..."}',
-      };
-    case 'tutor':
-      return {
-        fields: 'title, intro, subject("math"|"coding"|"general"), taskDescription',
-        example: '{"title":"...","intro":"...","subject":"general","taskDescription":"..."}',
-      };
-  }
+  const spec = ACTIVITY_GEN_SPECS[type];
+  return { fields: spec.fields, example: spec.example };
 }
 
 function normalizeActivity(type: QuickGenType, a: any): any | null {
   if (!a || typeof a !== 'object') return null;
-  switch (type) {
-    case 'quiz': {
-      const q0 = Array.isArray(a.questions) ? a.questions[0] : null;
-      if (!q0 || !clamp(q0.question, 200)) return null;
-      let options = (Array.isArray(q0.options) ? q0.options : []).map((o: unknown) => clamp(o, 120)).slice(0, 4);
-      while (options.length < 2) options.push('');
-      let ci = typeof q0.correctIndex === 'number' ? q0.correctIndex : 0;
-      if (ci < 0 || ci >= options.length) ci = 0;
-      let t = typeof q0.timeLimitSec === 'number' ? q0.timeLimitSec : 20;
-      t = Math.min(120, Math.max(5, t));
-      return {
-        title: clamp(a.title, 80) || '퀴즈',
-        questions: [{ question: clamp(q0.question, 200), options, correctIndex: ci, timeLimitSec: t, explanation: clamp(q0.explanation, 300) }],
-      };
-    }
-    case 'poll': {
-      const prompt = clamp(a.prompt, 200);
-      if (!prompt) return null;
-      const mode = a.mode === 'choice' ? 'choice' : 'wordcloud';
-      const options = mode === 'choice' ? (Array.isArray(a.options) ? a.options : []).slice(0, 8).map((o: unknown) => clamp(o, 60)).filter(Boolean) : [];
-      return { title: clamp(a.title, 80) || '투표', prompt, mode, options };
-    }
-    case 'roleplay': {
-      const systemPrompt = clamp(a.systemPrompt, 1000);
-      // 모델이 쉼표로 여러 단어를 나열하면 정확 문자열 매칭(routes.ts)이 사실상 성립 불가능해지므로 첫 항목만 취한다
-      const missionKeyword = clamp(a.missionKeyword, 100).split(/[,、]/)[0]?.trim() ?? '';
-      // missionKeyword가 비면 학생 대화에서 미션이 영원히 "완료" 처리되지 않는다 (routes.ts의 text.includes(missionKeyword) 검사가 빈 문자열엔 항상 false) → 재시도/드롭 대상
-      if (!systemPrompt || !missionKeyword) return null;
-      // 문장형 키워드("전압은 어디서나 같다")는 AI가 어미만 바꿔도 매칭이 깨진다 → 탈락시켜 재생성 유도
-      if (missionKeyword.length > 15 || /[다요임함]\s*$/.test(missionKeyword)) return null;
-      return {
-        title: clamp(a.title, 80) || 'AI 역할극', intro: clamp(a.intro, 200) || undefined,
-        systemPrompt, missionKeyword, missionDescription: clamp(a.missionDescription, 300),
-      };
-    }
-    case 'analogy': {
-      const personaA = clamp(a.personaA, 300) || '7세 아동 눈높이 비유';
-      const personaB = clamp(a.personaB, 300) || '고등학생 맞춤 일상 비유';
-      return {
-        title: clamp(a.title, 80) || '눈높이 비유', intro: clamp(a.intro, 200) || undefined,
-        topicPlaceholder: clamp(a.topicPlaceholder, 100) || undefined, personaA, personaB,
-      };
-    }
-    case 'writing': {
-      return {
-        title: clamp(a.title, 80) || '문학 창작', intro: clamp(a.intro, 200) || undefined,
-        genre: ['poem', 'story', 'essay'].includes(a.genre) ? a.genre : 'poem',
-        promptPlaceholder: clamp(a.promptPlaceholder, 100) || undefined,
-      };
-    }
-    case 'tutor': {
-      const taskDescription = clamp(a.taskDescription, 500);
-      if (!taskDescription) return null;
-      return {
-        title: clamp(a.title, 80) || 'AI 튜터', intro: clamp(a.intro, 200) || undefined,
-        subject: ['math', 'coding', 'general'].includes(a.subject) ? a.subject : 'general',
-        taskDescription,
-      };
-    }
-  }
+  return ACTIVITY_GEN_SPECS[type].normalize(a);
 }
 
 /**
@@ -424,7 +321,7 @@ async function generateOneActivity(type: QuickGenType, deckTitle: string, topic:
 }
 
 interface ChatPlanItem { type: QuickGenType; afterSlideIndex: number; topic: string }
-const CHAT_ACTIVITY_TYPES: QuickGenType[] = ['quiz', 'poll', 'roleplay', 'analogy', 'writing', 'tutor'];
+const CHAT_ACTIVITY_TYPES: QuickGenType[] = GEN_TYPES;
 
 /**
  * 자유 대화형 AI 조교. 예전엔 "답변 + 실제 활동 콘텐츠 전체"를 한 번에 출력시켜서, 강사가 여러 개/여러 종류를
@@ -441,7 +338,7 @@ export async function chatWithAgent(opts: {
     .join('\n');
 
   const system =
-    `너는 강사의 강의 자료 제작을 돕는 'AI 교수 조교'야. 강사와 대화하며 슬라이드에 퀴즈/투표/역할극/비유대조/문학창작/AI튜터 활동을 추가해줄 수 있어.\n\n` +
+    `너는 강사의 강의 자료 제작을 돕는 'AI 교수 조교'야. 강사와 대화하며 슬라이드에 퀴즈/투표/역할극/비유대조/문학창작/AI튜터/AI자유대화/이미지생성/비교실습랩 활동을 추가해줄 수 있어.\n\n` +
     `[현재 강의 자료]\n- 제목: ${deck.title}\n- 슬라이드 목록 (인덱스: 정보):\n${slideList}\n\n` +
     `[중요 규칙]\n` +
     `1. 강사가 활동 추가를 요청하면, 실제 활동 "내용"은 여기서 쓰지 말고 무엇을 어디에 넣을지 "계획"만 세워. 실제 콘텐츠는 각 항목별로 이후 단계에서 따로 생성돼.\n` +
@@ -451,7 +348,7 @@ export async function chatWithAgent(opts: {
     `5. topic 필드에는 그 항목이 다뤄야 할 구체적인 소재/질문 방향을 한국어 1~2문장으로 적어 — 다음 단계에서 이 topic만 보고 콘텐츠를 만들 거라 최대한 구체적으로.\n` +
     `6. 활동 추가 요청이 아니라 일반 질문/편집 상담이면 plan은 빈 배열로 둬.\n` +
     `7. 반드시 이 JSON 형식 하나만 출력해, 그 외 텍스트 금지:\n` +
-    `{"reply": "강사에게 보여줄 친근한 답변", "plan": [{"type": "quiz"|"poll"|"roleplay"|"analogy"|"writing"|"tutor", "afterSlideIndex": number, "topic": string}]}`;
+    `{"reply": "강사에게 보여줄 친근한 답변", "plan": [{"type": "quiz"|"poll"|"roleplay"|"analogy"|"writing"|"tutor"|"chat"|"image"|"lab", "afterSlideIndex": number, "topic": string}]}`;
 
   const chatMessages = [
     { role: 'system' as const, content: system },

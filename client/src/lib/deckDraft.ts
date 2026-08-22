@@ -1,13 +1,14 @@
-import type { Deck, Slide, QuizActivity, PollActivity } from '@shared/types';
+import type { Activity, ActivityType, Deck, Slide } from '@shared/types';
+import { ACTIVITY_DEFS } from '../activities/registry';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 
-export type PageKind = 'slide' | 'quiz' | 'poll';
+export type PageKind = ActivityType | 'slide';
 
 export function pageKind(deck: Deck, slide: Slide): PageKind {
   if (!slide.activityId) return 'slide';
   const a = deck.activities[slide.activityId];
-  return a?.type === 'quiz' ? 'quiz' : a?.type === 'poll' ? 'poll' : 'slide';
+  return a ? a.type : 'slide';
 }
 
 export function newSlide(): Slide {
@@ -18,14 +19,13 @@ export function addPage(deck: Deck, kind: PageKind, at: number): Deck {
   const slides = [...deck.slides];
   const activities = { ...deck.activities };
   const slide = newSlide();
-  if (kind === 'quiz') {
-    const id = 'q_' + rid();
-    const q: QuizActivity = { type: 'quiz', id, title: '새 퀴즈', questions: [{ id: rid(), question: '', options: ['', ''], correctIndex: 0, timeLimitSec: 20, explanation: '' }] };
-    activities[id] = q; slide.activityId = id; slide.title = '퀴즈';
-  } else if (kind === 'poll') {
-    const id = 'p_' + rid();
-    const p: PollActivity = { type: 'poll', id, title: '새 투표', prompt: '', mode: 'wordcloud', options: [] };
-    activities[id] = p; slide.activityId = id; slide.title = '투표';
+  if (kind !== 'slide') {
+    const def = ACTIVITY_DEFS[kind];
+    const id = kind.slice(0, 2) + '_' + rid();
+    const act = def.blank(id);
+    activities[id] = act;
+    slide.activityId = id;
+    slide.title = act.title;
   }
   slides.splice(at + 1, 0, slide);
   return { ...deck, slides, activities };
@@ -49,6 +49,6 @@ export function updateSlide(deck: Deck, index: number, patch: Partial<Slide>): D
   return { ...deck, slides };
 }
 
-export function updateActivity(deck: Deck, activityId: string, next: QuizActivity | PollActivity): Deck {
+export function updateActivity(deck: Deck, activityId: string, next: Activity): Deck {
   return { ...deck, activities: { ...deck.activities, [activityId]: next } };
 }

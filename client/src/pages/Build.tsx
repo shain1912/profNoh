@@ -60,7 +60,7 @@ export default function Build() {
   const [audience, setAudience] = useState('고등학교 1학년');
   const [parts, setParts] = useState(3);
   const [quizPerPart, setQuizPerPart] = useState(1);
-  const [selectedActs, setSelectedActs] = useState<Array<'roleplay' | 'analogy' | 'writing' | 'tutor'>>(['roleplay', 'analogy']);
+  const [selectedActs, setSelectedActs] = useState<Array<'roleplay' | 'analogy' | 'writing' | 'tutor' | 'chat' | 'image' | 'lab'>>(['roleplay', 'analogy']);
   const [genBusy, setGenBusy] = useState(false);
   const [genErr, setGenErr] = useState('');
   async function makeAi() {
@@ -219,6 +219,9 @@ export default function Build() {
                   { id: 'analogy', label: '🔍 눈높이 비유' },
                   { id: 'writing', label: '✍️ 문학 창작' },
                   { id: 'tutor', label: '🧮 AI 튜터' },
+                  { id: 'chat', label: '💬 AI 자유 대화' },
+                  { id: 'image', label: '🎨 이미지 생성' },
+                  { id: 'lab', label: '🔬 비교 실습 랩' },
                 ].map((act) => {
                   const active = selectedActs.includes(act.id as any);
                   return (
