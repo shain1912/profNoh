@@ -41,7 +41,7 @@ export async function upsertUser(p: {
     }
 
     // 같은 이메일 계정이 이미 있으면(다른 provider로 가입) 소셜 정보를 그 계정에 연결.
-    // email은 UNIQUE라 INSERT가 불가하고, google/kakao 이메일은 검증된 값이라 연결이 안전하다.
+    // email은 UNIQUE라 INSERT가 불가하고, google 이메일은 검증된 값이라 연결이 안전하다.
     const byEmail = await sb.from('axedu_users').select('*').eq('email', p.email).maybeSingle();
     if (byEmail.error) throw byEmail.error;
     if (byEmail.data) {

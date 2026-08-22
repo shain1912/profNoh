@@ -50,12 +50,6 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (u: Me) => void }) {
 
       <div className="mt-8 space-y-3">
         <a
-          href={loginStartUrl('kakao')}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] py-3 font-bold text-[#191919] transition hover:brightness-95 active:scale-[0.99]"
-        >
-          <span>💬</span> 카카오로 시작하기
-        </a>
-        <a
           href={loginStartUrl('google')}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-bold text-[#1f1f1f] ring-1 ring-hairline shadow-sm transition hover:brightness-95 active:scale-[0.99]"
         >

@@ -48,7 +48,7 @@ export const env = {
   QUOTA_IMAGE_PER_ACTIVITY: Number(process.env.QUOTA_IMAGE_PER_ACTIVITY ?? 4),
   CLASSROOM_BUDGET_USD: Number(process.env.CLASSROOM_BUDGET_USD ?? 15),
 
-  // ── 인증 (Phase 1: 카카오/구글 원클릭 로그인) ──
+  // ── 인증 (구글 원클릭 로그인) ──
   AUTH_JWT_SECRET: req('AUTH_JWT_SECRET'),
   APP_ORIGIN: process.env.APP_ORIGIN ?? 'http://localhost:5173',
   // DEV_LOGIN=1 이면 /api/auth/dev-login 활성화 (로컬 개발 전용 — 프로덕션 금지)
@@ -59,8 +59,6 @@ export const env = {
   TOSS_SECRET_KEY: process.env.TOSS_SECRET_KEY ?? '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
-  KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID ?? '',
-  KAKAO_CLIENT_SECRET: process.env.KAKAO_CLIENT_SECRET ?? '',
   // 콤마 구분 이메일 목록 — 해당 이메일 로그인 시 자동 super_admin 승격 (첫 관리자 부트스트랩)
   ADMIN_EMAILS: (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
 };

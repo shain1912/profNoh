@@ -36,7 +36,7 @@ docker rm -f axedu-dev && docker run -d --name axedu-dev --restart unless-stoppe
 env는 컨테이너 생성 시점에 주입되므로 `docker restart`만으로는 반영되지 않습니다.
 시크릿 키는 서버 전용 — 절대 클라이언트/저장소에 노출 금지.
 
-## 카카오/구글 로그인 활성화 — 남은 콘솔 작업
+## 구글 로그인 활성화 — 남은 콘솔 작업
 
 코드는 준비돼 있고, 외부 콘솔 설정만 남았습니다.
 
@@ -46,12 +46,10 @@ env는 컨테이너 생성 시점에 주입되므로 `docker restart`만으로�
 2. **승인된 리디렉션 URI**에 추가: `https://axedu-dev.kodekorea.kr/api/auth/google/callback`
 3. `axedu-dev.env`의 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` 확인 후 컨테이너 재생성.
 
-### 카카오
+### 카카오 (미지원)
 
-1. [developers.kakao.com](https://developers.kakao.com)에서 앱 생성.
-2. REST API 키 발급 → `KAKAO_CLIENT_ID`, 보안 > Client Secret 발급 → `KAKAO_CLIENT_SECRET`.
-3. 카카오 로그인 활성화 + Redirect URI 등록: `https://axedu-dev.kodekorea.kr/api/auth/kakao/callback`
-4. `axedu-dev.env`에 키 반영 후 컨테이너 재생성.
+카카오 로그인은 사업자 요건 문제로 제품에서 제거되었습니다 (2026-08).
+관련 라우트(`/api/auth/kakao/*`)와 `KAKAO_*` 환경변수는 더 이상 존재하지 않습니다.
 
 ## dev DB 직접 접근
 

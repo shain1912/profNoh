@@ -6,8 +6,9 @@ import { setSessionCookie, clearSessionCookie, getSessionUser } from './session'
 import { processLogin } from '../admin/bootstrap';
 
 /**
- * 카카오/구글 OAuth2 인가코드 플로우 직접 구현 (외부 인증 서버 의존 없음).
+ * 구글 OAuth2 인가코드 플로우 직접 구현 (외부 인증 서버 의존 없음).
  * 학생은 로그인 없이 코드 입장 유지 — 이 라우트들은 강사 전용.
+ * 카카오 로그인은 사업자 요건으로 제거됨 (2026-08).
  */
 
 interface ProviderConf {
@@ -33,28 +34,6 @@ const PROVIDERS: Record<string, ProviderConf> = {
       if (!r.ok) throw new Error('google userinfo ' + r.status);
       const j: any = await r.json();
       return { providerId: j.sub, email: j.email, name: j.name, avatarUrl: j.picture };
-    },
-  },
-  kakao: {
-    authorizeUrl: 'https://kauth.kakao.com/oauth/authorize',
-    tokenUrl: 'https://kauth.kakao.com/oauth/token',
-    clientId: () => env.KAKAO_CLIENT_ID,
-    clientSecret: () => env.KAKAO_CLIENT_SECRET,
-    scope: 'account_email profile_nickname profile_image',
-    profile: async (token) => {
-      const r = await fetch('https://kapi.kakao.com/v2/user/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error('kakao userinfo ' + r.status);
-      const j: any = await r.json();
-      const acc = j.kakao_account ?? {};
-      if (!acc.email) throw new Error('kakao 계정에 이메일 제공 동의가 필요합니다');
-      return {
-        providerId: String(j.id),
-        email: acc.email,
-        name: acc.profile?.nickname,
-        avatarUrl: acc.profile?.profile_image_url,
-      };
     },
   },
 };

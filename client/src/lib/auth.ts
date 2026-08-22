@@ -18,7 +18,7 @@ export async function fetchMe(): Promise<Me | null> {
   }
 }
 
-export function loginStartUrl(provider: 'google' | 'kakao'): string {
+export function loginStartUrl(provider: 'google'): string {
   return `/api/auth/${provider}/start`;
 }
 
