@@ -30,7 +30,7 @@ export default function QuizStudent({
   }, [question?.questionId]);
 
   if (!question && !reveal)
-    return <div className="grid h-full place-items-center text-white/50">곧 퀴즈가 시작돼요! 🎮</div>;
+    return <div className="grid h-full place-items-center text-muted">곧 퀴즈가 시작돼요! 🎮</div>;
 
   const showReveal = reveal && (!question || reveal.questionId === question.questionId);
 
@@ -43,14 +43,14 @@ export default function QuizStudent({
           <div className={['text-6xl', answered ? '' : 'opacity-50'].join(' ')}>
             {!answered ? '⏳' : correct ? '🎉' : '😅'}
           </div>
-          <h2 className="mt-3 text-2xl font-extrabold">
+          <h2 className="mt-3 text-2xl font-extrabold text-strong">
             {!answered ? '시간 초과!' : correct ? '정답!' : '아쉬워요!'}
           </h2>
-          <p className="mt-2 text-white/70">
-            정답: <b className="text-emerald-400">{question?.options[reveal.correctIndex] ?? `${reveal.correctIndex + 1}번`}</b>
+          <p className="mt-2 text-body">
+            정답: <b className="text-up">{question?.options[reveal.correctIndex] ?? `${reveal.correctIndex + 1}번`}</b>
           </p>
           {reveal.explanation && (
-            <p className="mx-auto mt-3 max-w-md rounded-xl bg-white/5 px-4 py-3 text-sm text-white/80">
+            <p className="mx-auto mt-3 max-w-md rounded-xl bg-surface-2 px-4 py-3 text-sm text-body ring-1 ring-hairline">
               {reveal.explanation}
             </p>
           )}
@@ -63,12 +63,12 @@ export default function QuizStudent({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-2 flex items-center justify-between text-sm text-white/60">
+      <div className="mb-2 flex items-center justify-between text-sm text-muted">
         <span>
           문제 {question.index + 1} / {question.total}
         </span>
       </div>
-      <h2 className="text-center text-xl font-bold sm:text-2xl">{question.question}</h2>
+      <h2 className="text-center text-xl font-bold sm:text-2xl text-strong">{question.question}</h2>
       <div className="my-3">
         <Countdown endsAt={question.endsAt} total={Math.max(1, Math.round((question.endsAt - Date.now()) / 1000))} />
       </div>
@@ -78,7 +78,7 @@ export default function QuizStudent({
           <div>
             <div className="text-5xl">✅</div>
             <p className="mt-2 text-lg font-semibold">응답 완료! 결과를 기다려요…</p>
-            <p className="text-white/50">고른 답: {question.options[selected]}</p>
+            <p className="text-muted">고른 답: {question.options[selected]}</p>
           </div>
         </div>
       ) : (

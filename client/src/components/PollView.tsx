@@ -3,7 +3,7 @@ import WordCloudLib from 'wordcloud';
 import type { PollActivity, PollDistribution } from '@shared/types';
 
 const NOTE_COLORS = ['#fef08a', '#fca5a5', '#93c5fd', '#86efac', '#fdba74', '#c4b5fd', '#f9a8d4'];
-const CLOUD_COLORS = ['#f2b705', '#fde68a', '#fca5a5', '#93c5fd', '#86efac', '#fdba74', '#c4b5fd'];
+const CLOUD_COLORS = ['#6366f1', '#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#818cf8'];
 
 function hashStr(s: string): number {
   let h = 0;
@@ -17,7 +17,7 @@ function seededRandom(seed: number): number {
 
 function RollingPaper({ entries }: { entries: Array<{ nickname: string; value: string }> }) {
   if (entries.length === 0) {
-    return <p className="p-6 text-center text-white/40">첫 답변을 기다리는 중…</p>;
+    return <p className="p-6 text-center text-muted-2">첫 답변을 기다리는 중…</p>;
   }
   const cols = Math.max(3, Math.ceil(Math.sqrt(entries.length * 1.5)));
   const rows = Math.max(1, Math.ceil(entries.length / cols));
@@ -91,7 +91,7 @@ function WordCloud({ counts }: { counts: Record<string, number> }) {
   }, [key]);
 
   if (entries.length === 0) {
-    return <p className="p-6 text-center text-white/40">첫 단어를 기다리는 중…</p>;
+    return <p className="p-6 text-center text-muted-2">첫 단어를 기다리는 중…</p>;
   }
   return <canvas ref={canvasRef} className="w-full" style={{ height: Math.max(260, Math.min(420, 80 + entries.length * 28)) }} />;
 }
@@ -111,7 +111,7 @@ export default function PollView({
       <div>
         <div className="mb-2 flex justify-end">
           <button
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/70 hover:bg-white/20"
+            className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-muted ring-1 ring-hairline hover:bg-surface-3"
             onClick={() => setView(view === 'paper' ? 'cloud' : 'paper')}
           >
             {view === 'paper' ? '☁️ 워드클라우드로 보기' : '📝 롤링페이퍼로 보기'}
@@ -134,11 +134,11 @@ export default function PollView({
           <div key={i}>
             <div className="mb-1 flex justify-between text-sm">
               <span>{opt}</span>
-              <span className="text-white/60">
+              <span className="text-muted">
                 {c}명 · {pct}%
               </span>
             </div>
-            <div className="h-6 overflow-hidden rounded-lg bg-white/10">
+            <div className="h-6 overflow-hidden rounded-lg bg-surface-3">
               <div className="h-full rounded-lg bg-brand transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>

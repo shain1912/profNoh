@@ -60,9 +60,9 @@ export default function LabActivity({
 
   return (
     <div className="flex h-full flex-col">
-      <h2 className="text-xl font-bold">🆚 {activity.title}</h2>
-      {activity.intro && <p className="mt-1 text-sm text-white/60">{activity.intro}</p>}
-      <p className="mt-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70">{activity.task}</p>
+      <h2 className="text-xl font-bold text-strong">🆚 {activity.title}</h2>
+      {activity.intro && <p className="mt-1 text-sm text-muted">{activity.intro}</p>}
+      <p className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-sm text-body ring-1 ring-hairline">{activity.task}</p>
 
       {activity.examplePrompts && activity.examplePrompts.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -101,7 +101,7 @@ export default function LabActivity({
       )}
 
       {cannedOnly && !res && !loading && (
-        <p className="mt-3 text-center text-xs text-white/40">위 예시 중 하나를 눌러보세요 ☝️</p>
+        <p className="mt-3 text-center text-xs text-muted-2">위 예시 중 하나를 눌러보세요 ☝️</p>
       )}
 
       {err && <p className="mt-2 text-sm text-down">{err}</p>}
@@ -114,7 +114,7 @@ export default function LabActivity({
       </div>
 
       {res && (
-        <p className="mt-3 text-center text-sm text-white/60">
+        <p className="mt-3 text-center text-sm text-muted">
           👀 두 결과의 차이가 보이나요? <b>무엇이</b> 결과를 바꿨는지 생각해봐요.
         </p>
       )}
@@ -134,9 +134,9 @@ function Panel({
   tone: 'a' | 'b';
 }) {
   return (
-    <div className={['rounded-xl p-3 ring-1', tone === 'a' ? 'bg-white/5 ring-white/10' : 'bg-brand/10 ring-brand/30'].join(' ')}>
-      <div className="mb-2 inline-block rounded-full bg-black/30 px-3 py-1 text-xs font-bold">{label}</div>
-      <div className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">
+    <div className={['rounded-xl p-3 ring-1', tone === 'a' ? 'bg-surface-2 ring-hairline' : 'bg-brand/5 ring-brand/30'].join(' ')}>
+      <div className="mb-2 inline-block rounded-full bg-surface px-3 py-1 text-xs font-bold ring-1 ring-hairline">{label}</div>
+      <div className="whitespace-pre-wrap text-sm leading-relaxed text-body">
         {loading ? '…' : text ?? '결과가 여기에 나와요'}
       </div>
     </div>

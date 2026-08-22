@@ -320,33 +320,33 @@ export default function DeckEditor() {
   if (needPin) {
     return (
       <div className="mx-auto max-w-sm p-6">
-        <h1 className="text-xl font-bold">편집 암호 입력</h1>
-        <p className="mt-1 text-sm text-white/50">덱 {deckId} 의 6자리 편집 PIN</p>
+        <h1 className="text-xl font-bold text-strong">편집 암호 입력</h1>
+        <p className="mt-1 text-sm text-muted">덱 {deckId} 의 6자리 편집 PIN</p>
         <input className="input mt-4 text-center text-2xl tracking-widest" value={pinInput} maxLength={6} onChange={(e) => setPinInput(e.target.value)} />
         <button className="btn-primary mt-3 w-full" onClick={() => load(pinInput)}>열기</button>
         {status && <p className="mt-2 text-sm text-down">{status}</p>}
       </div>
     );
   }
-  if (!deck) return <div className="grid h-full place-items-center text-white/40">불러오는 중… ⏳</div>;
+  if (!deck) return <div className="grid h-full place-items-center text-muted-2">불러오는 중… ⏳</div>;
 
   const slide = deck.slides[sel] ?? deck.slides[0];
   const kind = pageKind(deck, slide);
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 px-4 py-3 bg-canvas">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline px-4 py-3 bg-surface">
         <div className="flex items-center gap-2 w-full sm:max-w-xs">
           <span className="text-lg">🛠️</span>
           <input className="input py-2 text-sm flex-1" value={deck.title} maxLength={80} onChange={(e) => setDeck({ ...deck, title: e.target.value })} placeholder="강의 제목" />
         </div>
         <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-          <span className="text-xs text-emerald-400">{status}</span>
+          <span className="text-xs text-up">{status}</span>
           <div className="flex gap-2">
-            <button className="btn bg-surface hover:bg-surface-2 text-sm px-4 py-2 ring-1 ring-hairline rounded-lg" onClick={save}>저장</button>
+            <button className="btn bg-surface-2 hover:bg-surface-3 text-sm px-4 py-2 ring-1 ring-hairline rounded-lg" onClick={save}>저장</button>
             <button className="btn-primary text-sm px-4 py-2 rounded-lg" onClick={startClass}>수업 시작 ▶</button>
             <button
-              className="btn text-sm px-3 py-2 ring-1 ring-hairline rounded-lg text-white/40 hover:text-down hover:ring-down/40"
+              className="btn text-sm px-3 py-2 ring-1 ring-hairline rounded-lg text-muted-2 hover:text-down hover:ring-down/40"
               title="강의 삭제"
               onClick={() => setDeleteConfirm(true)}
             >
@@ -357,10 +357,10 @@ export default function DeckEditor() {
       </header>
 
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => !deleteBusy && setDeleteConfirm(false)}>
-          <div className="card max-w-sm w-full bg-[#1e1e24] ring-1 ring-down/40 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => !deleteBusy && setDeleteConfirm(false)}>
+          <div className="modal-card max-w-sm ring-down/40" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-down">🗑 강의 삭제</h2>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="mt-2 text-sm text-body">
               "{deck.title}" 강의를 정말 삭제할까요? 저장된 슬라이드와 업로드한 PDF가 모두 삭제되며, 되돌릴 수 없습니다.
             </p>
             {deleteErr && <p className="mt-2 text-sm text-down">{deleteErr}</p>}
@@ -375,10 +375,10 @@ export default function DeckEditor() {
       )}
 
       {/* 모바일 전용 탭 바 (lg 미만에서 노출) */}
-      <div className="flex lg:hidden border-b border-white/10 bg-[#14181f] shrink-0">
+      <div className="flex lg:hidden border-b border-hairline bg-surface shrink-0">
         <button
           className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 ${
-            activeTab === 'slides' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-white/50 hover:text-white'
+            activeTab === 'slides' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-muted hover:text-strong'
           }`}
           onClick={() => setActiveTab('slides')}
         >
@@ -386,7 +386,7 @@ export default function DeckEditor() {
         </button>
         <button
           className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 ${
-            activeTab === 'edit' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-white/50 hover:text-white'
+            activeTab === 'edit' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-muted hover:text-strong'
           }`}
           onClick={() => setActiveTab('edit')}
         >
@@ -394,18 +394,18 @@ export default function DeckEditor() {
         </button>
         <button
           className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 ${
-            activeTab === 'ai' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-white/50 hover:text-white'
+            activeTab === 'ai' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-muted hover:text-strong'
           }`}
           onClick={() => setActiveTab('ai')}
         >
           ✨ AI 조교
-          {pdfStatus === 'ready' && <span className="ml-1 text-[8px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-bold">ON</span>}
+          {pdfStatus === 'ready' && <span className="ml-1 text-[8px] bg-up/10 text-up px-1 py-0.5 rounded font-bold">ON</span>}
         </button>
       </div>
 
       <div className="grid flex-1 grid-cols-1 lg:grid-cols-[220px_1fr_360px] overflow-hidden">
         {/* 좌측 슬라이드 리스트 */}
-        <aside className={`${activeTab === 'slides' ? 'block' : 'hidden'} lg:block overflow-y-auto border-r border-white/10 p-2 custom-scrollbar`}>
+        <aside className={`${activeTab === 'slides' ? 'block' : 'hidden'} lg:block overflow-y-auto border-r border-hairline bg-surface p-2 custom-scrollbar`}>
           {deck.slides.map((s, i) => {
             const act = s.activityId ? deck.activities[s.activityId] : null;
             let icon = '📄 ';
@@ -424,15 +424,15 @@ export default function DeckEditor() {
               <button
                 key={s.id}
                 className={[
-                  'mb-1 block w-full rounded px-2 py-2 text-left text-sm',
-                  i === sel ? 'bg-brand/20 text-brand' : 'hover:bg-white/5',
+                  'mb-1 block w-full rounded-lg px-2 py-2 text-left text-sm',
+                  i === sel ? 'bg-brand/10 text-brand font-semibold' : 'hover:bg-surface-2',
                 ].join(' ')}
                 onClick={() => {
                   setSel(i);
                   setActiveTab('edit');
                 }}
               >
-                <span className="text-white/40">{i + 1}.</span> {icon}{s.title || '(빈 슬라이드)'}
+                <span className="text-muted-2">{i + 1}.</span> {icon}{s.title || '(빈 슬라이드)'}
               </button>
             );
           })}
@@ -457,29 +457,29 @@ export default function DeckEditor() {
         </main>
 
         {/* 우측 AI 조교 패널 */}
-        <aside className={`${activeTab === 'ai' ? 'flex' : 'hidden'} lg:flex flex-col border-l border-white/10 bg-white/5 overflow-hidden`}>
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5 bg-gradient-to-r from-brand/5 to-transparent">
+        <aside className={`${activeTab === 'ai' ? 'flex' : 'hidden'} lg:flex flex-col border-l border-hairline bg-surface overflow-hidden`}>
+          <div className="flex items-center justify-between border-b border-hairline px-4 py-3 bg-gradient-to-r from-brand/5 to-transparent">
             <div className="flex items-center gap-2">
               <span className="text-lg">✨</span>
               <h2 className="font-extrabold text-sm text-brand">AI 강의 조교</h2>
             </div>
             {pdfStatus === 'extracting' && (
-              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full animate-pulse">
+              <span className="text-[10px] bg-warn/10 text-warn px-2 py-0.5 rounded-full animate-pulse">
                 문서 학습 중…
               </span>
             )}
             {pdfStatus === 'ready' && (
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold" title="PDF 텍스트 내용이 조교에게 제공됩니다.">
+              <span className="text-[10px] bg-up/10 text-up px-2 py-0.5 rounded-full font-bold" title="PDF 텍스트 내용이 조교에게 제공됩니다.">
                 학습 완료 ✓
               </span>
             )}
             {pdfStatus === 'error' && (
-              <span className="text-[10px] bg-down/20 text-down px-2 py-0.5 rounded-full font-bold">
+              <span className="text-[10px] bg-down/10 text-down px-2 py-0.5 rounded-full font-bold">
                 학습 실패 ✕
               </span>
             )}
             {pdfStatus === 'idle' && (
-              <span className="text-[10px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] bg-surface-2 text-muted px-2 py-0.5 rounded-full ring-1 ring-hairline">
                 일반 조교
               </span>
             )}
@@ -487,16 +487,16 @@ export default function DeckEditor() {
 
           {/* AI 퀵 생성 액션 바 */}
           {pdfStatus === 'ready' && (
-            <div className="p-3 border-b border-white/10 bg-white/5 space-y-2">
-              <div className="text-[11px] font-bold text-white/60 flex items-center justify-between">
+            <div className="p-3 border-b border-hairline bg-surface-2/60 space-y-2">
+              <div className="text-[11px] font-bold text-muted flex items-center justify-between">
                 <span>⚡ AI 슬라이드 자동 일괄 생성</span>
                 <span className="text-[10px] text-brand/80 font-normal">PDF 기반</span>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/50 shrink-0">생성할 개수:</span>
+                  <span className="text-xs text-muted shrink-0">생성할 개수:</span>
                   <select
-                    className="bg-black/40 text-white text-xs rounded border border-white/10 px-2 py-1 focus:outline-none"
+                    className="bg-surface text-body text-xs rounded-lg border border-hairline px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand/40"
                     value={quickCount}
                     onChange={(e) => setQuickCount(Number(e.target.value))}
                   >
@@ -506,14 +506,14 @@ export default function DeckEditor() {
                   </select>
                   <div className="flex gap-1 flex-1">
                     <button
-                      className="btn-ghost text-[11px] py-1 flex-1 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded transition active:scale-[0.97]"
+                      className="btn text-[11px] py-1 flex-1 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-lg transition active:scale-[0.97]"
                       onClick={() => handleQuickCreate('quiz')}
                       disabled={chatBusy}
                     >
                       🎮 퀴즈
                     </button>
                     <button
-                      className="btn-ghost text-[11px] py-1 flex-1 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded transition active:scale-[0.97]"
+                      className="btn text-[11px] py-1 flex-1 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-lg transition active:scale-[0.97]"
                       onClick={() => handleQuickCreate('poll')}
                       disabled={chatBusy}
                     >
@@ -523,7 +523,7 @@ export default function DeckEditor() {
                 </div>
                 <div className="grid grid-cols-4 gap-1">
                   <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
+                    className="btn-ghost text-[10px] py-1 font-semibold rounded-lg transition active:scale-[0.97]"
                     onClick={() => handleQuickCreate('roleplay')}
                     disabled={chatBusy}
                     title="AI 역할극 실습 추가"
@@ -531,7 +531,7 @@ export default function DeckEditor() {
                     🎭 역할극
                   </button>
                   <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
+                    className="btn-ghost text-[10px] py-1 font-semibold rounded-lg transition active:scale-[0.97]"
                     onClick={() => handleQuickCreate('analogy')}
                     disabled={chatBusy}
                     title="눈높이 비유 대조 추가"
@@ -539,7 +539,7 @@ export default function DeckEditor() {
                     🔍 비유
                   </button>
                   <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
+                    className="btn-ghost text-[10px] py-1 font-semibold rounded-lg transition active:scale-[0.97]"
                     onClick={() => handleQuickCreate('writing')}
                     disabled={chatBusy}
                     title="문학 창작 실습 추가"
@@ -547,7 +547,7 @@ export default function DeckEditor() {
                     ✍️ 창작
                   </button>
                   <button
-                    className="btn-ghost text-[10px] py-1 bg-white/5 hover:bg-white/10 text-white/80 font-semibold rounded border border-white/10 transition active:scale-[0.97]"
+                    className="btn-ghost text-[10px] py-1 font-semibold rounded-lg transition active:scale-[0.97]"
                     onClick={() => handleQuickCreate('tutor')}
                     disabled={chatBusy}
                     title="AI 튜터 힌트 대화 추가"
@@ -568,31 +568,31 @@ export default function DeckEditor() {
                   'flex flex-col max-w-[85%] rounded-2xl px-3.5 py-2.5 whitespace-pre-wrap leading-relaxed shadow-sm',
                   m.role === 'user'
                     ? 'bg-brand text-on-brand self-end ml-auto rounded-tr-none'
-                    : 'bg-white/10 text-white/90 self-start mr-auto rounded-tl-none border border-white/5',
+                    : 'bg-surface-2 text-body self-start mr-auto rounded-tl-none ring-1 ring-hairline',
                 ].join(' ')}
               >
                 {m.content}
               </div>
             ))}
             {chatBusy && (
-              <div className="bg-white/10 text-white/90 self-start mr-auto rounded-2xl rounded-tl-none border border-white/5 p-4 max-w-[85%] w-full space-y-2 animate-pulse">
+              <div className="bg-surface-2 text-body self-start mr-auto rounded-2xl rounded-tl-none ring-1 ring-hairline p-4 max-w-[85%] w-full space-y-2 animate-pulse">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-brand animate-ping"></span>
                   <span className="text-[10px] text-brand/80 font-bold uppercase tracking-wider">AI Copilot Thinking</span>
                 </div>
-                <div className="h-3 bg-white/20 rounded w-5/6"></div>
-                <div className="h-3 bg-white/20 rounded w-2/3"></div>
-                <div className="h-3 bg-white/10 rounded w-3/4"></div>
+                <div className="h-3 bg-surface-3 rounded w-5/6"></div>
+                <div className="h-3 bg-surface-3 rounded w-2/3"></div>
+                <div className="h-3 bg-surface-3/60 rounded w-3/4"></div>
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
           {/* 대화 입력창 */}
-          <div className="p-3 border-t border-white/10 bg-black/10">
+          <div className="p-3 border-t border-hairline bg-surface">
             <div className="flex gap-2">
               <input
-                className="input text-sm flex-1 bg-black/30 border border-white/10 focus:border-brand/40 focus:ring-0"
+                className="input text-sm flex-1"
                 placeholder={pdfStatus === 'extracting' ? 'PDF를 파싱하고 있습니다…' : 'AI 조교에게 슬라이드 수정을 지시해보세요…'}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -609,7 +609,7 @@ export default function DeckEditor() {
                 전송
               </button>
             </div>
-            <p className="text-[9px] text-white/30 mt-1.5 text-center">
+            <p className="text-[9px] text-muted-2 mt-1.5 text-center">
               조교가 추가한 슬라이드는 목록에 자동 추가됩니다.
             </p>
           </div>
@@ -623,25 +623,25 @@ function SlideForm({ slide, onChange }: { slide: Slide; onChange: (p: Partial<Sl
   if (slide.layout === 'pdf') {
     return (
       <div className="space-y-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="rounded-xl border border-hairline bg-surface-2 p-4">
           <div className="flex justify-between items-center mb-2">
             <h3 className="font-bold text-brand">📄 PDF 슬라이드 미리보기</h3>
-            <span className="text-xs text-white/40">{slide.pageNumber} 페이지</span>
+            <span className="text-xs text-muted-2">{slide.pageNumber} 페이지</span>
           </div>
-          <div className="border border-white/10 rounded-lg overflow-hidden h-[300px] bg-black/20">
+          <div className="border border-hairline rounded-lg overflow-hidden h-[300px] bg-surface">
             <SlideView slide={slide} />
           </div>
         </div>
         
-        <label className="block text-sm text-white/60">제목 (목록 표시용)
+        <label className="block text-sm text-muted">제목 (목록 표시용)
           <input className="input mt-1" value={slide.title ?? ''} maxLength={120} onChange={(e) => onChange({ title: e.target.value })} />
         </label>
 
-        <label className="block text-sm text-white/60">유튜브 동영상 링크 (선택)
+        <label className="block text-sm text-muted">유튜브 동영상 링크 (선택)
           <input className="input mt-1" placeholder="예: https://www.youtube.com/watch?v=..." value={slide.youtubeUrl ?? ''} onChange={(e) => onChange({ youtubeUrl: e.target.value })} />
         </label>
         
-        <label className="block text-sm text-white/60">강사 노트 (수업 중 본인에게만 표시)
+        <label className="block text-sm text-muted">강사 노트 (수업 중 본인에게만 표시)
           <textarea className="input mt-1 h-24" value={slide.notes ?? ''} maxLength={400} onChange={(e) => onChange({ notes: e.target.value })} />
         </label>
       </div>
@@ -651,15 +651,15 @@ function SlideForm({ slide, onChange }: { slide: Slide; onChange: (p: Partial<Sl
   const bulletsText = (slide.blocks ?? []).map((b) => b.text).join('\n');
   return (
     <div className="space-y-3">
-      <label className="block text-sm text-white/60">제목<input className="input mt-1" value={slide.title ?? ''} maxLength={120} onChange={(e) => onChange({ title: e.target.value })} /></label>
-      <label className="block text-sm text-white/60">소제목<input className="input mt-1" value={slide.subtitle ?? ''} maxLength={160} onChange={(e) => onChange({ subtitle: e.target.value })} /></label>
-      <label className="block text-sm text-white/60">유튜브 동영상 링크 (선택)
+      <label className="block text-sm text-muted">제목<input className="input mt-1" value={slide.title ?? ''} maxLength={120} onChange={(e) => onChange({ title: e.target.value })} /></label>
+      <label className="block text-sm text-muted">소제목<input className="input mt-1" value={slide.subtitle ?? ''} maxLength={160} onChange={(e) => onChange({ subtitle: e.target.value })} /></label>
+      <label className="block text-sm text-muted">유튜브 동영상 링크 (선택)
         <input className="input mt-1" placeholder="예: https://www.youtube.com/watch?v=..." value={slide.youtubeUrl ?? ''} onChange={(e) => onChange({ youtubeUrl: e.target.value })} />
       </label>
-      <label className="block text-sm text-white/60">내용(줄마다 하나)
+      <label className="block text-sm text-muted">내용(줄마다 하나)
         <textarea className="input mt-1 h-40" value={bulletsText} onChange={(e) => onChange({ blocks: e.target.value.split('\n').filter(Boolean).map((t) => ({ kind: 'bullet', text: t })) })} />
       </label>
-      <label className="block text-sm text-white/60">강사 노트<input className="input mt-1" value={slide.notes ?? ''} maxLength={400} onChange={(e) => onChange({ notes: e.target.value })} /></label>
+      <label className="block text-sm text-muted">강사 노트<input className="input mt-1" value={slide.notes ?? ''} maxLength={400} onChange={(e) => onChange({ notes: e.target.value })} /></label>
     </div>
   );
 }

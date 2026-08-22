@@ -22,7 +22,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  if (!checked) return <div className="grid h-full place-items-center text-white/40">확인 중… ⏳</div>;
+  if (!checked) return <div className="grid h-full place-items-center text-muted-2">확인 중… ⏳</div>;
   if (!user) return <LoginScreen onLoggedIn={setUser} />;
   return <UserCtx.Provider value={{ user, signOut }}>{children}</UserCtx.Provider>;
 }
@@ -35,15 +35,15 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (u: Me) => void }) {
   return (
     <div className="mx-auto flex min-h-full max-w-sm flex-col justify-center p-6 text-center animate-fade-in">
       <div className="text-4xl mb-3">🧑‍🏫</div>
-      <h1 className="text-2xl font-extrabold">강사 로그인</h1>
-      <p className="mt-2 text-sm text-white/50">
+      <h1 className="text-2xl font-extrabold text-strong">강사 로그인</h1>
+      <p className="mt-2 text-sm text-muted">
         강의 자료는 내 계정에 안전하게 보관돼요.
         <br />
         학생은 로그인 없이 강의실 코드로 입장합니다.
       </p>
 
       {oauthError && (
-        <p className="mt-4 rounded-lg bg-down/20 px-3 py-2 text-sm text-down">
+        <p className="mt-4 rounded-lg bg-down/10 px-3 py-2 text-sm text-down">
           로그인에 실패했어요 ({oauthError}). 다시 시도해 주세요.
         </p>
       )}
@@ -57,15 +57,15 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (u: Me) => void }) {
         </a>
         <a
           href={loginStartUrl('google')}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-bold text-[#1f1f1f] transition hover:brightness-95 active:scale-[0.99]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-bold text-[#1f1f1f] ring-1 ring-hairline shadow-sm transition hover:brightness-95 active:scale-[0.99]"
         >
           <span className="font-black text-[#4285F4]">G</span> Google로 시작하기
         </a>
       </div>
 
       {import.meta.env.DEV && (
-        <div className="mt-8 rounded-xl border border-dashed border-white/15 p-4 text-left">
-          <p className="text-xs font-bold text-white/40">🛠 개발용 로그인 (로컬 전용)</p>
+        <div className="mt-8 rounded-xl border border-dashed border-hairline bg-surface p-4 text-left">
+          <p className="text-xs font-bold text-muted-2">🛠 개발용 로그인 (로컬 전용)</p>
           <div className="mt-2 flex gap-2">
             <input
               className="input flex-1 text-sm"
@@ -75,7 +75,7 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (u: Me) => void }) {
               onKeyDown={async (e) => { if (e.key === 'Enter' && devEmail.trim()) { try { onLoggedIn(await devLogin(devEmail.trim())); } catch (er: any) { setErr(er.message); } } }}
             />
             <button
-              className="btn-ghost border border-white/10 px-3 text-sm"
+              className="btn-ghost px-3 text-sm"
               onClick={async () => { try { onLoggedIn(await devLogin(devEmail.trim())); } catch (er: any) { setErr(er.message); } }}
               disabled={!devEmail.trim()}
             >

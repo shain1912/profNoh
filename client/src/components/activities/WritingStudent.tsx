@@ -48,19 +48,19 @@ export default function WritingStudent({
   };
 
   return (
-    <div className="flex h-full flex-col p-4 bg-gradient-to-b from-transparent to-black/10 overflow-y-auto">
-      <h2 className="text-xl font-bold flex items-center gap-2">
+    <div className="flex h-full flex-col p-4 overflow-y-auto">
+      <h2 className="text-xl font-bold flex items-center gap-2 text-strong">
         <span>✍️</span> {activity.title}
       </h2>
-      {activity.intro && <p className="text-xs text-white/50 mt-1">{activity.intro}</p>}
+      {activity.intro && <p className="text-xs text-muted mt-1">{activity.intro}</p>}
 
       {/* 설정 및 입력란 */}
-      <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+      <div className="mt-4 p-4 rounded-2xl bg-surface-2 ring-1 ring-hairline">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-white/60">창작 장르 선택:</span>
+          <span className="text-xs font-semibold text-muted">창작 장르 선택:</span>
           {/* 강사가 덱에 고정한 장르가 있다면 선택 비활성화 또는 고정 표기 */}
           {activity.genre ? (
-            <span className="px-3 py-1 text-xs rounded-full bg-brand/20 text-brand font-bold">
+            <span className="px-3 py-1 text-xs rounded-full bg-brand/10 text-brand font-bold">
               {genreLabels[activity.genre]}
             </span>
           ) : (
@@ -73,7 +73,7 @@ export default function WritingStudent({
                     'px-2.5 py-1 text-xs rounded-lg transition-all',
                     genre === g
                       ? 'bg-brand text-on-brand font-bold'
-                      : 'bg-white/10 text-white/60 hover:bg-white/15',
+                      : 'bg-surface text-muted ring-1 ring-hairline hover:bg-surface-3',
                   ].join(' ')}
                 >
                   {genreLabels[g].split(' ')[0]}
@@ -83,11 +83,11 @@ export default function WritingStudent({
           )}
         </div>
 
-        <label className="block text-xs font-semibold text-white/60 mb-2">
+        <label className="block text-xs font-semibold text-muted mb-2">
           영감을 줄 수 있는 키워드나 첫 문장을 입력해 보세요:
         </label>
         <textarea
-          className="w-full h-20 p-3 rounded-xl bg-black/30 border border-white/10 text-sm focus:border-brand/40 focus:ring-1 focus:ring-brand/40 outline-none resize-none text-white"
+          className="input h-20 resize-none text-sm"
           placeholder={activity.promptPlaceholder ?? '예: 차가운 겨울 바람과 따뜻한 코코아'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -116,7 +116,7 @@ export default function WritingStudent({
       {loading && (
         <div className="mt-6 flex-1 flex flex-col items-center justify-center space-y-3 py-10">
           <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-white/60 animate-pulse">AI 작가가 감성을 담아 글을 쓰는 중입니다...</p>
+          <p className="text-sm text-muted animate-pulse">AI 작가가 감성을 담아 글을 쓰는 중입니다...</p>
         </div>
       )}
 

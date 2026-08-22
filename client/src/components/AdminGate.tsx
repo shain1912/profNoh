@@ -21,8 +21,8 @@ export default function AdminGate({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto flex min-h-full max-w-xs flex-col justify-center p-6 text-center animate-fade-in">
       <div className="text-4xl mb-3">🔒</div>
-      <h1 className="text-2xl font-extrabold">강사 인증</h1>
-      <p className="mt-2 text-sm text-white/50">강사 전용 화면입니다. 비밀번호를 입력해 주세요.</p>
+      <h1 className="text-2xl font-extrabold text-strong">강사 인증</h1>
+      <p className="mt-2 text-sm text-muted">강사 전용 화면입니다. 비밀번호를 입력해 주세요.</p>
       <form onSubmit={submit} className="mt-6 space-y-3">
         <input
           type="password"
