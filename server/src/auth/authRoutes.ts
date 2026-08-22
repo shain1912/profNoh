@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { env } from '../env';
 import { upsertUser } from './userStore';
 import { setSessionCookie, clearSessionCookie, getSessionUser } from './session';
+import { processLogin } from '../admin/bootstrap';
 
 /**
  * 카카오/구글 OAuth2 인가코드 플로우 직접 구현 (외부 인증 서버 의존 없음).
@@ -115,8 +116,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       const tokens: any = await tr.json();
 
       const profile = await conf.profile(tokens.access_token);
-      const user = await upsertUser({ ...profile, provider });
-      if (!user) throw new Error('사용자 저장 실패');
+      const upserted = await upsertUser({ ...profile, provider });
+      if (!upserted) throw new Error('사용자 저장 실패');
+      const { user, blocked } = await processLogin(upserted);
+      if (blocked) return reply.redirect(`${env.APP_ORIGIN}/login?error=deactivated`);
 
       setSessionCookie(reply, user.id);
       return reply.redirect(`${env.APP_ORIGIN}/build`);
@@ -132,8 +135,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     const body = (req.body ?? {}) as { email?: string; name?: string };
     const email = (body.email ?? '').trim().toLowerCase();
     if (!email || !email.includes('@')) return reply.code(400).send({ error: 'bad', message: '이메일이 필요합니다.' });
-    const user = await upsertUser({ email, name: body.name ?? email.split('@')[0], provider: 'dev', providerId: email });
-    if (!user) return reply.code(503).send({ error: 'bad', message: '사용자 저장 실패 (DB 확인)' });
+    const upserted = await upsertUser({ email, name: body.name ?? email.split('@')[0], provider: 'dev', providerId: email });
+    if (!upserted) return reply.code(503).send({ error: 'bad', message: '사용자 저장 실패 (DB 확인)' });
+    const { user, blocked } = await processLogin(upserted);
+    if (blocked) return reply.code(403).send({ error: 'forbidden', message: '비활성화된 계정입니다.' });
     setSessionCookie(reply, user.id);
     return { user: { id: user.id, email: user.email, name: user.name, role: user.role } };
   });
