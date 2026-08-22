@@ -1,62 +1,97 @@
-# 배포 정보 (Oracle Cloud)
+# 배포 정보 (KodeKorea VPS)
 
 > ⚠️ 이 파일은 인프라 식별자를 담고 있습니다. 공개 저장소에 올리지 마세요.
+> (구 Oracle Cloud 배포 정보는 폐기되었습니다 — 현재는 KodeKorea 자체 VPS에서 운영)
 
-## 라이브 주소
-- **앱**: http://168.107.44.248/
-- 학생 입장: http://168.107.44.248/join
-- 강사 콘솔: http://168.107.44.248/teach
-- 프로젝터: http://168.107.44.248/screen/&lt;코드&gt;
+## 한눈에 보기
 
-## 인프라
-- 리전: `ap-chuncheon-1` (춘천), AD: `CTOi:AP-CHUNCHEON-1-AD-1`
-- 인스턴스: `axedu-vm` — VM.Standard.E2.1.Micro (AMD 1 OCPU/1GB, Always Free) + 스왑 2GB
-  - (A1.Flex ARM은 "Out of host capacity"로 불가 → 추후 용량 확보 시 이전 가능)
-- OS: Ubuntu 22.04 (x86)
-- 공인 IP: **168.107.44.248**
-- 네트워킹: VCN `axedu-vcn` (10.0.0.0/16), 퍼블릭 서브넷 `axedu-subnet` (10.0.1.0/24)
-- 보안목록 인그레스: 22, 80, 443, 8787 / OS iptables 동일 허용
-- 런타임: nginx(80) → 리버스 프록시 → node(8787), pm2 `axedu` (부팅 자동시작 systemd 등록)
+| 구분 | 프로덕션 | 스테이징 |
+|---|---|---|
+| 주소 | https://blend.kodekorea.kr | https://axedu-dev.kodekorea.kr |
+| 컨테이너 | `axedu` (이미지 `axedu:local`) | `axedu-dev` (이미지 `axedu-dev:local`) |
+| 호스트 포트 | `127.0.0.1:10003` → 8787 | `127.0.0.1:10005` → 8787 |
+| 소스 | `~/render-apps/axedu-src` | `~/render-apps/axedu-dev-src` |
+| env 파일 | `~/render-apps/env/axedu.env` | `~/render-apps/env/axedu-dev.env` |
+| DB | `axedu` (**절대 직접 조작 금지**) | `axedu_dev` |
+| PostgREST | `axedu-rest` | `axedu-rest-dev` |
 
-상세 OCID는 `deploy/.oci-state.json` 참고.
+- VPS: **156.228.4.156** (Ubuntu, KodeKorea 공용 앱 서버)
+- 두 컨테이너 모두 `restart=unless-stopped`, bridge 네트워크, 컨테이너 내부 포트 8787.
 
 ## SSH 접속
-```powershell
-ssh -i $HOME\.ssh\oci_axedu ubuntu@168.107.44.248
-```
 
-## 🔑 AI/DB 상태: **라이브** (키 적용 완료)
-- **MiniMax**: 키 4개 라운드로빈 로테이션 (교실 레이트리밋 분산). 채팅·비교 랩 동작.
-- **Stability**: 이미지 생성 동작. 한글 프롬프트는 **자동으로 영어로 번역 후** 호출 → 품질↑ + 모더레이션 오탐↓.
-- **Supabase DB**: publishable(anon) 키 + `axedu_*` RLS 정책으로 기록 동작 (강의실/참가자/퀴즈/투표/사용량/랩).
-
-검증 완료(e2e): CHAT 200 · LAB 200(맥락 A/B 차이) · IMAGE 200(실제 4.8MB) · DB 저장 확인.
-
-키 변경/추가가 필요하면 `/opt/axedu/.env` 편집 후 `pm2 restart axedu`:
 ```bash
-ssh -i $HOME\.ssh\oci_axedu ubuntu@168.107.44.248
-nano /opt/axedu/.env     # MINIMAX_API_KEY1..N, STABILITY_API_KEY1.., SUPABASE_SERVICE_ROLE_KEY
-pm2 restart axedu
+# bash (Git Bash / WSL)
+ssh -i /c/Users/seong/.ssh/id_ed25519 ubuntu@156.228.4.156
 ```
-- MiniMax 키 추가: `MINIMAX_API_KEY5=...` 처럼 번호를 늘리면 자동 로테이션에 포함됨.
-- 더 강한 DB 보안을 원하면 service_role 키로 바꾸고 `axedu_anon_all` 정책을 제거하세요.
-
-## 코드 업데이트 재배포
-로컬에서 빌드 후 업로드:
 ```powershell
-npm run build
-tar -czf $env:TEMP\axedu.tar.gz --exclude=node_modules --exclude=.git --exclude=./deploy/.oci-state.json -C H:\profNoh .
-scp -i $HOME\.ssh\oci_axedu $env:TEMP\axedu.tar.gz ubuntu@168.107.44.248:/tmp/
-ssh -i $HOME\.ssh\oci_axedu ubuntu@168.107.44.248 "cd /opt/axedu && tar -xzf /tmp/axedu.tar.gz -C /opt/axedu && npm install --no-fund --no-audit && pm2 restart axedu"
+# PowerShell
+ssh -i $HOME\.ssh\id_ed25519 ubuntu@156.228.4.156
 ```
+
+## 트래픽 구조 (Cloudflare → Caddy → 컨테이너)
+
+```
+브라우저 → Cloudflare (DNS + 프록시, TLS)
+        → VPS의 Caddy (/etc/caddy/Caddyfile)
+        → reverse_proxy 127.0.0.1:1000x → docker 컨테이너(내부 8787)
+```
+
+Caddyfile 해당 블록:
+
+```caddy
+blend.kodekorea.kr {
+    reverse_proxy 127.0.0.1:10003
+}
+
+axedu-dev.kodekorea.kr {
+    reverse_proxy 127.0.0.1:10005
+}
+```
+
+- 새 서브도메인 추가 시: Cloudflare에 A 레코드(프록시 ON) 추가 → Caddyfile 블록 추가 → `sudo systemctl reload caddy`.
+- 컨테이너 포트는 전부 `127.0.0.1`에만 바인딩 — 외부 직접 접근 불가, Caddy 경유만 허용.
+
+## 재배포 절차 (스테이징 기준)
+
+서버에서:
+
+```bash
+cd ~/render-apps/axedu-dev-src
+git pull
+docker build -t axedu-dev:local .
+docker rm -f axedu-dev
+docker run -d --name axedu-dev --restart unless-stopped \
+  -p 127.0.0.1:10005:8787 \
+  --env-file ~/render-apps/env/axedu-dev.env \
+  axedu-dev:local
+```
+
+프로덕션은 이름/포트/경로만 치환: `axedu-src` · `axedu:local` · `axedu` · `10003` · `env/axedu.env`.
+
+- **env 변경만** 필요할 때: `~/render-apps/env/axedu-dev.env` 편집 후 컨테이너 제거·재생성(위 `docker rm -f` + `docker run`). env 파일은 컨테이너 생성 시점에 주입되므로 `docker restart`만으로는 반영되지 않음.
+- 로컬에서 코드를 고쳐도 스테이징에는 **자동 반영되지 않음** — 반드시 git push → 서버에서 위 절차 수행.
+
+## dev DB DDL 적용법
+
+REST 경유로는 DDL 불가(exec_sql RPC 없음, pg-meta 404) — psql로 직접 적용:
+
+```bash
+ssh -i /c/Users/seong/.ssh/id_ed25519 ubuntu@156.228.4.156 \
+  "docker exec -i supabase-db psql -U postgres -d axedu_dev" < deploy/migrations/파일.sql
+```
+
+- 마이그레이션 SQL은 **additive-only**로 `deploy/migrations/`에 파일로 커밋하는 관례.
+- 스키마 변경 후 PostgREST 캐시 미갱신으로 `PGRST204` 에러가 나면:
+  `NOTIFY pgrst, 'reload schema';` 또는 `docker restart axedu-rest-dev` (dev 전용 — 프로덕션은 `axedu-rest`).
+- **프로덕션 DB(`axedu`)는 절대 직접 접근/조작 금지** — 실서비스 수업 운영 중.
 
 ## 운영 명령 (서버에서)
-- 상태: `pm2 status` / 로그: `pm2 logs axedu`
-- 재시작: `pm2 restart axedu` / 중지: `pm2 stop axedu`
-- nginx: `sudo systemctl status nginx` / `sudo nginx -t && sudo systemctl reload nginx`
 
-## HTTPS(선택, 도메인 있을 때)
 ```bash
-sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your.domain.com
+docker ps --filter name=axedu            # 상태
+docker logs -f axedu-dev                 # 로그 (프로덕션: axedu)
+docker restart axedu-dev                 # 재시작 (env 변경 반영은 안 됨 — 위 참고)
+sudo systemctl status caddy              # Caddy 상태
+sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 ```
