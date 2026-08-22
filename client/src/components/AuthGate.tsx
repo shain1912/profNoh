@@ -30,6 +30,15 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 function LoginScreen({ onLoggedIn }: { onLoggedIn: (u: Me) => void }) {
   const [devEmail, setDevEmail] = useState('');
   const [err, setErr] = useState('');
+  // dev 로그인 노출은 서버 설정(DEV_LOGIN)을 따른다 — 스테이징의 프로덕션 빌드에서도,
+  // 구글 OAuth가 차단되는 임베디드 브라우저에서도 로그인 경로가 남도록.
+  const [devEnabled, setDevEnabled] = useState(import.meta.env.DEV);
+  useEffect(() => {
+    fetch('/api/auth/config')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((c) => { if (c?.devLogin) setDevEnabled(true); })
+      .catch(() => {});
+  }, []);
   const oauthError = new URLSearchParams(location.search).get('error');
 
   return (
@@ -57,9 +66,9 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (u: Me) => void }) {
         </a>
       </div>
 
-      {import.meta.env.DEV && (
+      {devEnabled && (
         <div className="mt-8 rounded-xl border border-dashed border-hairline bg-surface p-4 text-left">
-          <p className="text-xs font-bold text-muted-2">🛠 개발용 로그인 (로컬 전용)</p>
+          <p className="text-xs font-bold text-muted-2">🛠 개발용 로그인 (테스트 환경 전용)</p>
           <div className="mt-2 flex gap-2">
             <input
               className="input flex-1 text-sm"

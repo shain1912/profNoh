@@ -122,6 +122,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     return { user: { id: user.id, email: user.email, name: user.name, role: user.role } };
   });
 
+  // 로그인 화면 구성 정보 — dev 로그인 노출 여부는 빌드 모드가 아니라 서버 설정을 따른다
+  app.get('/api/auth/config', async () => ({ devLogin: env.DEV_LOGIN }));
+
   // 내 정보
   app.get('/api/auth/me', async (req) => {
     const user = await getSessionUser(req);
