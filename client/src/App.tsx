@@ -7,6 +7,9 @@ import Projector from './pages/Projector';
 import Build from './pages/Build';
 import DeckEditor from './pages/DeckEditor';
 import Report from './pages/Report';
+import Pricing from './pages/Pricing';
+import Checkout from './pages/Checkout';
+import Billing from './pages/Billing';
 import GuideFloatingMenu from './components/GuideFloatingMenu';
 import AuthGate from './components/AuthGate';
 
@@ -22,6 +25,9 @@ export default function App() {
         <Route path="/build" element={<AuthGate><Build /></AuthGate>} />
         <Route path="/build/:deckId" element={<AuthGate><DeckEditor /></AuthGate>} />
         <Route path="/report/:classroomId" element={<Report />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/checkout" element={<AuthGate><Checkout /></AuthGate>} />
+        <Route path="/billing" element={<AuthGate><Billing /></AuthGate>} />
         <Route path="*" element={<Home />} />
       </Routes>
       <GuideFloatingMenu />

@@ -3,6 +3,7 @@ import fastifyStatic from '@fastify/static';
 import fastifyCors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
 import { registerAuthRoutes } from './auth/authRoutes';
+import { registerBillingRoutes } from './billing/billingRoutes';
 import { Server as SocketIOServer } from 'socket.io';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -33,6 +34,7 @@ async function main() {
   await app.register(fastifyCookie);
 
   await registerAuthRoutes(app);
+  await registerBillingRoutes(app);
   // 본문 크기 제한 (이미지 base64 응답은 서버→클라 방향이라 요청 본문은 작음)
   await registerRoutes(app);
 
