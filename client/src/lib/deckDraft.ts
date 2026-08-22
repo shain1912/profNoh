@@ -15,11 +15,13 @@ export function newSlide(): Slide {
   return { id: rid(), part: 0, partTitle: '', layout: 'content', title: '새 슬라이드', subtitle: '', blocks: [], notes: '' };
 }
 
-export function addPage(deck: Deck, kind: PageKind, at: number): Deck {
+export function addPage(deck: Deck, kind: PageKind | 'embed', at: number): Deck {
   const slides = [...deck.slides];
   const activities = { ...deck.activities };
   const slide = newSlide();
-  if (kind !== 'slide') {
+  if (kind === 'embed') {
+    slide.layout = 'embed'; slide.title = '임베드 슬라이드'; slide.embedUrl = '';
+  } else if (kind !== 'slide') {
     const def = ACTIVITY_DEFS[kind];
     const id = kind.slice(0, 2) + '_' + rid();
     const act = def.blank(id);

@@ -24,6 +24,15 @@ import { supabase } from './db';
 const here = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = resolve(here, '../../uploads');
 
+// 이미지 슬라이드 업로드 허용 확장자
+const IMAGE_MIME: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
+
 function getPdfPageCount(buffer: Buffer): number {
   const data = buffer.toString('binary');
   const matches = data.match(/\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/);
@@ -304,11 +313,12 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!ok) return reply.code(503).send({ error: 'bad', message: '삭제에 실패했어요. 잠시 후 다시 시도해줘.' });
     unregisterDeck(id);
 
-    // 이 덱이 참조하던 업로드 PDF 원본도 정리 (여러 페이지 슬라이드가 같은 파일을 공유하므로 중복 제거)
+    // 이 덱이 참조하던 업로드 원본(PDF·이미지)도 정리 (여러 슬라이드가 같은 파일을 공유하므로 중복 제거)
     const pdfFilenames = new Set(
       (row.data.slides ?? [])
-        .filter((s) => s.layout === 'pdf' && s.pdfUrl?.startsWith('/api/uploads/'))
-        .map((s) => s.pdfUrl!.replace('/api/uploads/', '')),
+        .flatMap((s) => [s.layout === 'pdf' ? s.pdfUrl : undefined, s.layout === 'image' ? s.imageUrl : undefined])
+        .filter((u): u is string => !!u && u.startsWith('/api/uploads/'))
+        .map((u) => u.replace('/api/uploads/', '')),
     );
     for (const filename of pdfFilenames) {
       try { unlinkSync(resolve(uploadsDir, filename)); } catch { /* 이미 없거나 접근 불가하면 무시 */ }
@@ -327,6 +337,13 @@ export async function registerRoutes(app: FastifyInstance) {
     const buffer = readFileSync(filePath);
     if (filename.endsWith('.pdf')) {
       reply.header('Content-Type', 'application/pdf');
+    } else {
+      const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+      const imageType = IMAGE_MIME[ext];
+      if (imageType) {
+        reply.header('Content-Type', imageType);
+        reply.header('Cache-Control', 'public, max-age=86400');
+      }
     }
     return reply.send(buffer);
   });
@@ -386,6 +403,67 @@ export async function registerRoutes(app: FastifyInstance) {
     } catch (e: any) {
       app.log.error(e);
       return reply.code(500).send({ error: 'bad', message: 'PDF 파일 처리 중 오류가 발생했습니다.' });
+    }
+  });
+
+  // 이미지 여러 장 업로드 → 순서대로 이미지 슬라이드 덱 생성 (PDF 대비 고화질 대안)
+  app.post('/api/decks/upload-images', async (req, reply) => {
+    const user = await getSessionUser(req);
+    if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
+    const body = (req.body ?? {}) as { title?: string; images?: Array<{ filename: string; base64: string }> };
+    const images = Array.isArray(body.images) ? body.images : [];
+    if (images.length === 0) {
+      return reply.code(400).send({ error: 'bad', message: '이미지 파일이 필요합니다.' });
+    }
+    if (images.length > 100) {
+      return reply.code(400).send({ error: 'bad', message: '이미지는 한 번에 100장까지 업로드할 수 있습니다.' });
+    }
+    for (const img of images) {
+      const ext = (img.filename ?? '').slice((img.filename ?? '').lastIndexOf('.')).toLowerCase();
+      if (!img.filename || !img.base64 || !IMAGE_MIME[ext]) {
+        return reply.code(400).send({ error: 'bad', message: '이미지 파일(png/jpg/webp/gif)만 업로드할 수 있습니다.' });
+      }
+    }
+
+    const savedFiles: string[] = [];
+    try {
+      const slides = images.map((img, i) => {
+        const ext = img.filename.slice(img.filename.lastIndexOf('.')).toLowerCase();
+        const filename = `${randomUUID()}${ext}`;
+        writeFileSync(resolve(uploadsDir, filename), Buffer.from(img.base64, 'base64'));
+        savedFiles.push(filename);
+        return {
+          id: `s_${Math.random().toString(36).slice(2, 10)}`,
+          part: 1,
+          partTitle: '이미지 슬라이드',
+          layout: 'image' as const,
+          title: img.filename.replace(/\.[^/.]+$/, '').slice(0, 80) || `${i + 1}번 슬라이드`,
+          imageUrl: `/api/uploads/${filename}`,
+          blocks: [],
+          notes: '',
+        };
+      });
+
+      const deckId = makeDeckId();
+      const pin = makePin();
+      const deck: Deck = {
+        id: deckId,
+        title: (body.title ?? '').trim().slice(0, 80) || '이미지 강의',
+        slides,
+        activities: {},
+      };
+
+      const ok = await insertDeckRow(deck, pin, user.id);
+      if (!ok) {
+        for (const f of savedFiles) { try { unlinkSync(resolve(uploadsDir, f)); } catch { /* 무시 */ } }
+        return reply.code(503).send({ error: 'bad', message: 'DB에 덱을 저장하는 데 실패했습니다.' });
+      }
+      registerDeck(deck);
+      return { deckId, editPin: pin, slideCount: slides.length };
+    } catch (e: any) {
+      app.log.error(e);
+      for (const f of savedFiles) { try { unlinkSync(resolve(uploadsDir, f)); } catch { /* 무시 */ } }
+      return reply.code(500).send({ error: 'bad', message: '이미지 파일 처리 중 오류가 발생했습니다.' });
     }
   });
 

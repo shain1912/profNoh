@@ -2,7 +2,7 @@
 
 // ───────────────────────── 콘텐츠(덱) ─────────────────────────
 
-export type SlideLayout = 'title' | 'section' | 'content' | 'big' | 'twocol' | 'pdf';
+export type SlideLayout = 'title' | 'section' | 'content' | 'big' | 'twocol' | 'pdf' | 'embed' | 'image';
 
 export interface SlideBlock {
   kind: 'h' | 'p' | 'bullet' | 'note' | 'quote' | 'callout';
@@ -22,6 +22,8 @@ export interface Slide {
   pdfUrl?: string;           // PDF 파일 경로 (layout === 'pdf')
   pageNumber?: number;       // PDF 페이지 번호 (layout === 'pdf')
   youtubeUrl?: string;       // 유튜브 동영상 링크
+  embedUrl?: string;         // 외부 슬라이드 임베드 URL (layout === 'embed', 정규화된 https URL)
+  imageUrl?: string;         // 업로드 이미지 경로 (layout === 'image')
 }
 
 export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor';

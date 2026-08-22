@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createDeck, generateDeck, rememberDeck, listDecks, getPin, deleteDeck, forgetDeck } from '../lib/buildApi';
 import { useUser } from '../components/AuthGate';
 import { apiPost } from '../lib/api';
+import SourceImportCard from '../components/SourceImportCard';
 
 const TOPIC_CHIPS = ['생성형 AI 입문', 'AI 윤리와 안전', '프롬프트 기초', 'AI와 진로', '딥러닝 쉽게 이해하기'];
 const AUDIENCE_CHIPS = ['중학교 1학년', '고등학교 1학년', '고등학교 2학년', '일반 성인'];
@@ -296,6 +297,9 @@ export default function Build() {
 
         {uploadErr && <p className="text-sm text-down">{uploadErr}</p>}
       </div>
+
+      {/* 이미지·임베드·마크다운 소스 */}
+      <SourceImportCard />
 
       <details className="mt-4">
         <summary className="cursor-pointer text-sm text-white/50">또는 빈 강의로 직접 만들기</summary>
