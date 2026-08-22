@@ -7,6 +7,7 @@ import Projector from './pages/Projector';
 import Build from './pages/Build';
 import DeckEditor from './pages/DeckEditor';
 import Report from './pages/Report';
+import Admin from './pages/Admin';
 import GuideFloatingMenu from './components/GuideFloatingMenu';
 import AuthGate from './components/AuthGate';
 
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/build" element={<AuthGate><Build /></AuthGate>} />
         <Route path="/build/:deckId" element={<AuthGate><DeckEditor /></AuthGate>} />
         <Route path="/report/:classroomId" element={<Report />} />
+        <Route path="/admin" element={<AuthGate><Admin /></AuthGate>} />
         <Route path="*" element={<Home />} />
       </Routes>
       <GuideFloatingMenu />

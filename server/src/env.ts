@@ -57,6 +57,8 @@ export const env = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID ?? '',
   KAKAO_CLIENT_SECRET: process.env.KAKAO_CLIENT_SECRET ?? '',
+  // 콤마 구분 이메일 목록 — 해당 이메일 로그인 시 자동 super_admin 승격 (첫 관리자 부트스트랩)
+  ADMIN_EMAILS: (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
 };
 
 export const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
