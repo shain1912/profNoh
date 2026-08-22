@@ -122,15 +122,16 @@ export default function Checkout() {
         </div>
       )}
 
-      {phase === 'widget' && info?.provider === 'toss' && (
-        <div className="mt-6">
-          <div id="payment-methods" />
-          <div id="agreement" />
+      {/* 위젯 컨테이너는 항상 DOM에 존재해야 함 — renderPaymentMethods가 loading 단계에서 selector를 찾기 때문 */}
+      <div className="mt-6">
+        <div id="payment-methods" />
+        <div id="agreement" />
+        {phase === 'widget' && info?.provider === 'toss' && (
           <button className="mt-4 w-full rounded-xl bg-brand py-3 font-bold" onClick={payToss}>
             {formatKrw(info.amount)} 결제하기
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {phase === 'widget' && info?.provider === 'mock' && (
         <div className="mt-6 rounded-2xl border border-dashed border-white/15 p-5">
