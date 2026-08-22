@@ -49,33 +49,33 @@ export default function ChatActivity({
 
   return (
     <div className="flex h-full flex-col">
-      <h2 className="text-xl font-bold">{activity.title}</h2>
-      {activity.intro && <p className="mt-1 text-sm text-white/60">{activity.intro}</p>}
+      <h2 className="text-xl font-bold text-strong">{activity.title}</h2>
+      {activity.intro && <p className="mt-1 text-sm text-muted">{activity.intro}</p>}
 
       {activity.missions && msgs.length === 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {activity.missions.map((m, i) => (
-            <button key={i} className="rounded-full bg-white/10 px-3 py-2 text-left text-sm hover:bg-white/20" onClick={() => send(m)}>
+            <button key={i} className="rounded-full bg-surface-2 px-3 py-2 text-left text-sm ring-1 ring-hairline hover:bg-surface-3" onClick={() => send(m)}>
               ✨ {m}
             </button>
           ))}
         </div>
       )}
 
-      <div className="mt-3 flex-1 space-y-3 overflow-y-auto rounded-xl bg-black/20 p-3">
+      <div className="mt-3 flex-1 space-y-3 overflow-y-auto rounded-xl bg-surface-2 p-3 ring-1 ring-hairline">
         {msgs.map((m, i) => (
           <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
             <div
               className={[
                 'inline-block max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-left',
-                m.role === 'user' ? 'bg-brand text-on-brand' : 'bg-white/10',
+                m.role === 'user' ? 'bg-brand text-on-brand' : 'bg-surface ring-1 ring-hairline shadow-sm',
               ].join(' ')}
             >
               {m.content}
             </div>
           </div>
         ))}
-        {loading && <div className="text-left text-white/50">AI가 생각하는 중… 🤔</div>}
+        {loading && <div className="text-left text-muted">AI가 생각하는 중… 🤔</div>}
         <div ref={endRef} />
       </div>
 

@@ -2,9 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────
+   디자인 토큰 — 교육 SaaS 라이트 테마 (기본)
+   값은 RGB 트리플릿: tailwind에서 rgb(var(--x) / alpha)로 사용
+   ───────────────────────────────────────────── */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --c-brand: 79 70 229; /* indigo-600 — 신뢰감 있는 프라이머리 */
+  --c-brand-press: 67 56 202; /* indigo-700 */
+  --c-on-brand: 255 255 255;
+  --c-canvas: 246 247 251; /* 페이지 배경 */
+  --c-surface: 255 255 255; /* 카드 */
+  --c-surface-2: 243 244 249; /* 카드 내부 패널 */
+  --c-surface-3: 229 232 242; /* hover */
+  --c-ink: 15 23 42; /* slate-900 */
+  --c-body: 30 41 59; /* slate-800 */
+  --c-strong: 15 23 42;
+  --c-muted: 100 116 139; /* slate-500 */
+  --c-muted-2: 148 163 184; /* slate-400 */
+  --c-hairline: 226 231 240;
+  --c-up: 5 150 105; /* emerald-600 */
+  --c-down: 220 38 38; /* red-600 */
+  --c-warn: 180 83 9; /* amber-700 */
+  --c-info: 37 99 235; /* blue-600 */
 }
+
+/* Projector 등 대형 스크린용 고대비 다크 스코프 */
+.theme-dark {
+  color-scheme: dark;
+  --c-brand: 129 140 248; /* indigo-400 — 다크 배경에서 가독 */
+  --c-brand-press: 165 180 252;
+  --c-on-brand: 15 23 42;
+  --c-canvas: 7 11 22; /* 교실 대형 스크린: 거의 검정 */
+  --c-surface: 17 24 42;
+  --c-surface-2: 30 41 63;
+  --c-surface-3: 51 65 91;
+  --c-ink: 2 6 23;
+  --c-body: 229 234 243;
+  --c-strong: 250 251 254;
+  --c-muted: 148 163 184;
+  --c-muted-2: 100 116 139;
+  --c-hairline: 45 58 84;
+  --c-up: 52 211 153;
+  --c-down: 248 113 113;
+  --c-warn: 251 191 36;
+  --c-info: 96 165 250;
+}
+
 html,
 body,
 #root {
@@ -12,15 +56,27 @@ body,
 }
 body {
   margin: 0;
-  background: #0b0e11; /* canvas-dark */
-  color: #eaecef; /* body */
-  font-family: 'Pretendard', BinanceNova, system-ui, -apple-system, sans-serif;
+  background: rgb(var(--c-canvas));
+  color: rgb(var(--c-body));
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 한국어 타이포: 단어 단위 줄바꿈 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
 }
 
-/* 숫자(가격/점수/타이머)는 BinancePlex 대체 모노 */
+/* 숫자(가격/점수/타이머)는 모노 대체 */
 .num {
-  font-family: 'IBM Plex Mono', BinancePlex, ui-monospace, monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -35,44 +91,54 @@ body {
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-semibold transition active:scale-95 disabled:opacity-40 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold transition active:scale-95 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
-  /* 시그니처 CTA: 옐로우 배경 + 블랙 텍스트 */
+  /* 시그니처 CTA: 인디고 배경 + 화이트 텍스트 */
   .btn-primary {
-    @apply btn bg-brand text-on-brand hover:bg-brand-press;
+    @apply btn bg-brand text-on-brand shadow-sm hover:bg-brand-press;
   }
   .btn-ghost {
-    @apply btn bg-surface-2 text-body hover:bg-surface-2/70 ring-1 ring-hairline;
+    @apply btn bg-surface text-body ring-1 ring-hairline shadow-sm hover:bg-surface-2;
   }
   .btn-pill {
     @apply btn rounded-full bg-brand text-on-brand hover:bg-brand-press px-8;
   }
-  /* 카드: surface-card-dark + 헤어라인, 12px 라운드 */
+  /* 카드: 화이트 서피스 + 헤어라인 + 은은한 그림자, 16px 라운드 */
   .card {
-    @apply rounded-xl bg-surface ring-1 ring-hairline p-5;
+    @apply rounded-2xl bg-surface ring-1 ring-hairline shadow-card p-5;
   }
   .input {
-    @apply w-full rounded-lg bg-surface-2 px-4 py-3 text-body placeholder-muted outline-none ring-1 ring-hairline focus:ring-2 focus:ring-brand;
+    @apply w-full rounded-xl bg-surface px-4 py-3 text-body placeholder:text-muted-2 outline-none ring-1 ring-hairline transition focus:ring-2 focus:ring-brand;
   }
   .chip {
-    @apply rounded-md bg-surface-2 px-3 py-2 text-sm text-body ring-1 ring-hairline hover:bg-surface-2/70;
+    @apply rounded-lg bg-surface-2 px-3 py-2 text-sm text-body ring-1 ring-hairline hover:bg-surface-3;
+  }
+  /* 모달 공통: 오버레이 + 팝 카드 */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm animate-fade-in;
+  }
+  .modal-card {
+    @apply card w-full bg-surface shadow-pop p-6 relative;
+  }
+  .modal-close {
+    @apply absolute top-4 right-4 text-muted hover:text-strong text-lg leading-none;
   }
 }
 
-/* Custom Scrollbar for sidebar outline & chats */
+/* Custom Scrollbar for sidebar outline & chats — 라이트/다크 공통 */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.01);
+  background: transparent;
   border-radius: 3px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgb(var(--c-muted-2) / 0.45);
   border-radius: 3px;
   transition: background 0.2s;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgb(var(--c-muted) / 0.6);
 }

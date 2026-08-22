@@ -55,9 +55,9 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col p-6 animate-fade-in">
       <div className="text-center">
-        <div className="text-sm font-bold uppercase tracking-widest text-brand">AI · AX 특강</div>
-        <h1 className="mt-3 text-3xl font-extrabold leading-tight">🧑‍🏫 어떤 강의로 시작할까요?</h1>
-        <p className="mt-2 text-white/60 text-sm">강의를 고르면 바로 강의실이 열려요.</p>
+        <div className="mx-auto w-fit rounded-full bg-brand/10 px-4 py-1.5 text-sm font-bold tracking-widest text-brand">AI · AX 특강</div>
+        <h1 className="mt-4 text-3xl font-extrabold leading-tight text-strong">🧑‍🏫 어떤 강의로 시작할까요?</h1>
+        <p className="mt-2 text-muted text-sm">강의를 고르면 바로 강의실이 열려요.</p>
       </div>
 
       {err && <p className="mt-4 text-center text-down text-sm">{err}</p>}
@@ -65,15 +65,15 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
       <div className="mt-8 grid gap-2.5">
         {/* 샘플 강의 — 언제나 바로 시작 가능 */}
         <button
-          className="flex items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 p-4 text-left hover:bg-brand/10 hover:border-brand/40 transition-all active:scale-[0.99] disabled:opacity-50"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-brand/25 bg-brand/5 p-4 text-left shadow-card hover:bg-brand/10 hover:border-brand/40 transition-all active:scale-[0.99] disabled:opacity-50"
           onClick={() => launch()}
           disabled={busyId !== null}
         >
           <div className="flex items-center gap-3 min-w-0">
             <span className="text-2xl shrink-0">🚀</span>
             <div className="min-w-0">
-              <div className="font-bold text-white">기본 샘플 강의</div>
-              <div className="text-xs text-white/50">준비된 4시간 특강 · 퀴즈·실습 포함</div>
+              <div className="font-bold text-strong">기본 샘플 강의</div>
+              <div className="text-xs text-muted">준비된 4시간 특강 · 퀴즈·실습 포함</div>
             </div>
           </div>
           <span className="btn btn-primary shrink-0 px-3 py-1.5 text-sm font-semibold">
@@ -85,18 +85,18 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
         {mergedDecks.map((d) => (
           <button
             key={d.id}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left hover:bg-white/10 hover:border-white/20 transition-all active:scale-[0.99] disabled:opacity-50"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface p-4 text-left shadow-card hover:bg-surface-2 hover:border-muted-2/60 transition-all active:scale-[0.99] disabled:opacity-50"
             onClick={() => launch(d.id)}
             disabled={busyId !== null}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className="text-2xl shrink-0">📘</span>
               <div className="min-w-0">
-                <div className="font-bold text-white truncate">{d.title || '(제목 없음)'}</div>
-                <div className="text-xs text-white/40">내가 만든 강의</div>
+                <div className="font-bold text-strong truncate">{d.title || '(제목 없음)'}</div>
+                <div className="text-xs text-muted-2">내가 만든 강의</div>
               </div>
             </div>
-            <span className="btn btn-ghost shrink-0 border border-white/10 px-3 py-1.5 text-sm font-semibold">
+            <span className="btn btn-ghost shrink-0 px-3 py-1.5 text-sm font-semibold">
               {busyId === d.id ? '여는 중…' : '시작 ▶'}
             </span>
           </button>
@@ -105,14 +105,14 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
         {/* 새 강의 만들기 — 목록의 일부로 자연스럽게 배치 */}
         <Link
           to="/build"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 p-4 text-white/60 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-muted-2/60 p-4 text-muted hover:bg-surface hover:border-brand/50 hover:text-brand transition-all"
         >
           <span className="text-xl">🛠️</span>
           <span className="text-sm font-semibold">새 강의 만들기 (AI 생성 · PDF 업로드 · 직접 제작)</span>
         </Link>
       </div>
 
-      <Link to="/" className="mt-8 text-center text-xs text-white/40 hover:text-white/60 transition underline">
+      <Link to="/" className="mt-8 text-center text-xs text-muted-2 hover:text-muted transition underline">
         메인 화면으로 돌아가기
       </Link>
     </div>
@@ -196,7 +196,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
     return () => window.removeEventListener('keydown', onKey);
   }, [deck, live.slideIndex, live.socket, focusMode]);
 
-  if (!deck) return <div className="grid h-full place-items-center text-white/40">불러오는 중…</div>;
+  if (!deck) return <div className="grid h-full place-items-center text-muted-2">불러오는 중…</div>;
 
   const slide = deck.slides[live.slideIndex] ?? deck.slides[0];
   const total = deck.slides.length;
@@ -267,7 +267,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
     <div className="flex h-full flex-col">
       {/* 강의실 만료/오류 배너 — 발표 모드에서도 항상 보임 */}
       {live.error && (
-        <div className="fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-2xl bg-down/90 px-5 py-3 text-sm font-bold shadow-2xl ring-1 ring-white/20">
+        <div className="fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-2xl bg-down px-5 py-3 text-sm font-bold text-white shadow-pop">
           <span>⚠️ {live.error} 서버 업데이트로 강의실이 만료됐을 수 있어요.</span>
           <button className="rounded-lg bg-white/20 px-3 py-1 hover:bg-white/30" onClick={onReset}>
             새 강의실 열기
@@ -276,18 +276,18 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
       )}
 
       {/* 헤더 */}
-      <header className={[focusMode ? 'hidden' : 'flex', 'flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2'].join(' ')}>
+      <header className={[focusMode ? 'hidden' : 'flex', 'flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface px-4 py-2'].join(' ')}>
         <div className="flex items-center gap-3">
-          <span className="text-white/50">강의실 코드</span>
-          <button className="rounded-lg bg-brand/20 px-3 py-1 text-2xl font-extrabold tracking-widest text-brand" onClick={() => copy(creds.token, 'code')}>
+          <span className="text-muted">강의실 코드</span>
+          <button className="rounded-lg bg-brand/10 px-3 py-1 text-2xl font-extrabold tracking-widest text-brand" onClick={() => copy(creds.token, 'code')}>
             {creds.token}
           </button>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="rounded-full bg-white/10 px-3 py-1">👥 {live.participantCount}</span>
-          <span className={live.connected ? 'text-emerald-400' : 'text-down'}>{live.connected ? '● 연결' : '○ 끊김'}</span>
+          <span className="rounded-full bg-surface-2 px-3 py-1 ring-1 ring-hairline">👥 {live.participantCount}</span>
+          <span className={live.connected ? 'text-up' : 'text-down'}>{live.connected ? '● 연결' : '○ 끊김'}</span>
           <button
-            className={['btn px-3 py-1 text-sm', paused ? 'bg-emerald-600 text-white' : 'bg-white/10'].join(' ')}
+            className={['btn px-3 py-1 text-sm', paused ? 'bg-up text-white' : 'bg-surface-2 ring-1 ring-hairline hover:bg-surface-3'].join(' ')}
             onClick={() => {
               const action = paused ? 'resume' : 'pause';
               live.socket.emit('instructor:panic', { action });
@@ -300,33 +300,33 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
             to="/build"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn bg-brand/15 hover:bg-brand/25 text-brand px-3 py-1 text-sm font-bold rounded"
+            className="btn bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1 text-sm font-bold rounded-lg"
           >
             🛠️ 새 강의 만들기
           </Link>
-          <button className="btn bg-white/10 px-3 py-1 text-sm" onClick={onReset}>새 강의실</button>
+          <button className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm" onClick={onReset}>새 강의실</button>
           <button
-            className="btn bg-brand/15 hover:bg-brand/25 text-brand px-3 py-1 text-sm font-bold rounded"
+            className="btn bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1 text-sm font-bold rounded-lg"
             onClick={() => setQaOpen(true)}
           >
             ❓ 질문 {live.questions.length > 0 && `(${live.questions.length})`}
           </button>
           <button
-            className="btn bg-white/10 px-3 py-1 text-sm"
+            className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm"
             title="리더보드 서랍 (L)"
             onClick={() => setLbOpen(!lbOpen)}
           >
             🏆
           </button>
           <button
-            className="btn bg-white/10 px-3 py-1 text-sm"
+            className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm"
             title="발표 모드 — 화면 전체를 강의자료로 (F 토글, Esc 종료)"
             onClick={enterPresent}
           >
             ⛶ 발표
           </button>
           <button
-            className="btn bg-brand/15 hover:bg-brand/25 text-brand px-3 py-1 text-sm font-bold rounded"
+            className="btn bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1 text-sm font-bold rounded-lg"
             onClick={() => window.open(`/report/${creds.classroomId}?secret=${creds.instructorSecret}`, '_blank')}
           >
             📊 리포트
@@ -335,17 +335,17 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
       </header>
 
       {/* 링크 안내 */}
-      <div className={[focusMode ? 'hidden' : 'flex', 'flex-wrap gap-2 border-b border-white/10 px-4 py-2 text-xs text-white/60'].join(' ')}>
-        <button className="rounded bg-white/5 px-2 py-1 hover:bg-white/10" onClick={() => copy(studentLink, 'student')}>
+      <div className={[focusMode ? 'hidden' : 'flex', 'flex-wrap gap-2 border-b border-hairline bg-surface px-4 py-2 text-xs text-muted'].join(' ')}>
+        <button className="rounded bg-surface-2 px-2 py-1 ring-1 ring-hairline hover:bg-surface-3" onClick={() => copy(studentLink, 'student')}>
           🔗 학생 링크 {copied === 'student' && '✓복사'}
         </button>
         <button className="rounded bg-brand/10 text-brand px-2 py-1 hover:bg-brand/20 font-semibold" onClick={() => setQrOpen(true)}>
           📱 QR로 초대
         </button>
-        <button className="rounded bg-white/5 px-2 py-1 hover:bg-white/10" onClick={() => copy(projectorLink, 'proj')}>
+        <button className="rounded bg-surface-2 px-2 py-1 ring-1 ring-hairline hover:bg-surface-3" onClick={() => copy(projectorLink, 'proj')}>
           📺 프로젝터 링크 {copied === 'proj' && '✓복사'}
         </button>
-        {copied === 'code' && <span className="text-emerald-400">코드 복사됨 ✓</span>}
+        {copied === 'code' && <span className="text-up">코드 복사됨 ✓</span>}
       </div>
 
       <div className={[
@@ -359,7 +359,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
             {focusMode && (
               <>
                 <button
-                  className="absolute right-3 top-3 z-10 rounded-full bg-black/40 px-3 py-1.5 text-sm text-white/60 opacity-0 backdrop-blur-sm transition hover:opacity-100 focus:opacity-100"
+                  className="absolute right-3 top-3 z-10 rounded-full bg-ink/60 px-3 py-1.5 text-sm text-white/90 opacity-0 backdrop-blur-sm transition hover:opacity-100 focus:opacity-100"
                   title="발표 모드 종료 (Esc)"
                   onClick={exitPresent}
                 >
@@ -367,37 +367,37 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                 </button>
                 {/* 발표 중 유일한 안내 — 반투명 칩. 클릭 또는 Space로 다음 단계 실행 */}
                 <button
-                  className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/45 px-4 py-1.5 text-sm text-white/70 opacity-30 backdrop-blur-sm transition hover:opacity-100"
+                  className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink/60 px-4 py-1.5 text-sm text-white/90 opacity-30 backdrop-blur-sm transition hover:opacity-100"
                   onClick={() => { if (!action.disabled) action.run(); }}
                 >
-                  {live.slideIndex + 1}/{total} · {action.label} <span className="text-white/40">(Space)</span>
+                  {live.slideIndex + 1}/{total} · {action.label} <span className="text-white/50">(Space)</span>
                 </button>
               </>
             )}
           </div>
 
           {!focusMode && slide.notes && (
-            <div className="rounded-xl bg-yellow-500/10 px-4 py-2 text-sm text-yellow-200/90">
+            <div className="rounded-xl bg-warn/10 px-4 py-2 text-sm text-warn">
               📝 {slide.notes}
             </div>
           )}
 
           {/* 진행 상태줄 (활동이 열렸을 때만) */}
           {activeHere && (
-            <div className="rounded-xl bg-black/20 px-3 py-2 text-center text-sm">
+            <div className="rounded-xl bg-surface px-3 py-2 text-center text-sm ring-1 ring-hairline shadow-card">
               {openAct?.type === 'quiz' && quizState?.phase === 'idle' && (
-                <span className="text-white/60">준비 완료 — 아래 버튼으로 첫 문제를 띄우세요</span>
+                <span className="text-muted">준비 완료 — 아래 버튼으로 첫 문제를 띄우세요</span>
               )}
               {openAct?.type === 'quiz' && quizState?.phase === 'question' && live.question && (
                 <div className="space-y-2 text-left">
-                  <div className="flex items-center justify-between text-xs text-white/50">
+                  <div className="flex items-center justify-between text-xs text-muted">
                     <span>문제 {live.question.index + 1} / {live.question.total}</span>
                     <span>응답 <b className="text-brand">{live.answeredCount}</b>명</span>
                   </div>
-                  <div className="text-base font-bold">{live.question.question}</div>
+                  <div className="text-base font-bold text-strong">{live.question.question}</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {live.question.options.map((opt, i) => (
-                      <div key={i} className="rounded-lg bg-white/5 px-2 py-1 text-xs">
+                      <div key={i} className="rounded-lg bg-surface-2 px-2 py-1 text-xs">
                         {['▲', '◆', '●', '■'][i % 4]} {opt}
                       </div>
                     ))}
@@ -406,8 +406,8 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
               )}
               {openAct?.type === 'quiz' && quizState?.phase === 'revealed' && live.reveal && (
                 <div className="space-y-2 text-left">
-                  <div className="text-xs text-white/50">정답 공개됨</div>
-                  <div className="text-base font-bold">{live.question?.question}</div>
+                  <div className="text-xs text-muted">정답 공개됨</div>
+                  <div className="text-base font-bold text-strong">{live.question?.question}</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {(live.question?.options ?? []).map((opt, i) => {
                       const correct = i === live.reveal!.correctIndex;
@@ -417,7 +417,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                           key={i}
                           className={[
                             'rounded-lg px-2 py-1 text-xs',
-                            correct ? 'bg-emerald-600/30 ring-1 ring-emerald-400 font-bold' : 'bg-white/5',
+                            correct ? 'bg-up/15 ring-1 ring-up font-bold text-up' : 'bg-surface-2',
                           ].join(' ')}
                         >
                           {['▲', '◆', '●', '■'][i % 4]} {opt} · {count}명
@@ -426,7 +426,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                     })}
                   </div>
                   {live.reveal.explanation && (
-                    <div className="text-xs text-white/60">💡 {live.reveal.explanation}</div>
+                    <div className="text-xs text-muted">💡 {live.reveal.explanation}</div>
                   )}
                 </div>
               )}
@@ -434,7 +434,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                 <PollView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
               )}
               {(openAct?.type === 'chat' || openAct?.type === 'image' || openAct?.type === 'lab') && (
-                <span className="text-white/60">학생들이 실습 중이에요 🧑‍💻</span>
+                <span className="text-muted">학생들이 실습 중이에요 🧑‍💻</span>
               )}
             </div>
           )}
@@ -455,13 +455,13 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
               </button>
 
               {/* 보조 컨트롤 */}
-              <div className="flex items-center justify-between text-sm text-white/50">
+              <div className="flex items-center justify-between text-sm text-muted">
                 <button className="btn-ghost px-3 py-1" onClick={() => goto(live.slideIndex - 1)} disabled={live.slideIndex <= 0}>
                   ← 이전
                 </button>
                 <span className="flex items-center gap-3">
                   <span>{live.slideIndex + 1} / {total}</span>
-                  <span className="hidden sm:inline text-[11px] text-white/30">⌨ ←→ 슬라이드 · F 발표 모드 · L 리더보드</span>
+                  <span className="hidden sm:inline text-[11px] text-muted-2">⌨ ←→ 슬라이드 · F 발표 모드 · L 리더보드</span>
                 </span>
                 {activeHere ? (
                   <button className="btn-ghost px-3 py-1" onClick={() => live.socket.emit('instructor:closeActivity')}>
@@ -487,14 +487,14 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
       {/* 리더보드 서랍 — L 키로 오른쪽에서 슬라이드되어 화면 위를 덮음. 활동 열리면 자동 닫힘 */}
       <div
         className={[
-          'fixed right-0 top-0 z-40 flex h-full w-96 max-w-[85vw] transform flex-col bg-black/70 shadow-2xl ring-1 ring-white/10 backdrop-blur-lg transition-transform duration-300',
+          'fixed right-0 top-0 z-40 flex h-full w-96 max-w-[85vw] transform flex-col bg-surface/95 shadow-pop ring-1 ring-hairline backdrop-blur-lg transition-transform duration-300',
           lbOpen ? 'translate-x-0' : 'translate-x-full',
         ].join(' ')}
         data-testid="leaderboard-drawer"
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <span className="text-xl font-extrabold">🏆 리더보드</span>
-          <button className="rounded px-2 py-1 text-sm text-white/50 hover:bg-white/10 hover:text-white" title="닫기 (L)" onClick={() => setLbOpen(false)}>
+        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+          <span className="text-xl font-extrabold text-strong">🏆 리더보드</span>
+          <button className="rounded px-2 py-1 text-sm text-muted hover:bg-surface-2 hover:text-strong" title="닫기 (L)" onClick={() => setLbOpen(false)}>
             ✕
           </button>
         </div>
@@ -504,23 +504,23 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
       </div>
 
       {qrOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setQrOpen(false)}>
-          <div className="card max-w-xs w-full bg-[#1e1e24] ring-1 ring-brand/40 shadow-2xl p-6 text-center relative" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 text-white/50 hover:text-white text-lg" onClick={() => setQrOpen(false)}>✕</button>
+        <div className="modal-overlay" onClick={() => setQrOpen(false)}>
+          <div className="modal-card max-w-xs text-center" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setQrOpen(false)}>✕</button>
             <h2 className="text-lg font-bold text-brand">📱 학생 입장 QR</h2>
-            <p className="mt-1 text-xs text-white/50">폰 카메라로 스캔하면 바로 강의실에 입장해요.</p>
-            <div className="mt-4 rounded-xl bg-white p-3 mx-auto w-fit">
+            <p className="mt-1 text-xs text-muted">폰 카메라로 스캔하면 바로 강의실에 입장해요.</p>
+            <div className="mt-4 rounded-xl bg-white p-3 mx-auto w-fit ring-1 ring-hairline">
               {qrDataUrl ? (
                 <img src={qrDataUrl} alt="학생 입장 QR 코드" width={240} height={240} />
               ) : (
                 <div className="h-[240px] w-[240px] grid place-items-center text-black/40 text-sm">생성 중…</div>
               )}
             </div>
-            <div className="mt-3 rounded-lg bg-brand/20 px-3 py-1 text-2xl font-extrabold tracking-widest text-brand">
+            <div className="mt-3 rounded-lg bg-brand/10 px-3 py-1 text-2xl font-extrabold tracking-widest text-brand">
               {creds.token}
             </div>
             <button
-              className="btn-ghost mt-4 w-full border border-white/10 text-sm"
+              className="btn-ghost mt-4 w-full text-sm"
               onClick={() => copy(studentLink, 'student')}
             >
               🔗 링크 복사 {copied === 'student' && '✓'}
@@ -530,19 +530,19 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
       )}
 
       {qaOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setQaOpen(false)}>
-          <div className="card max-w-md w-full bg-[#1e1e24] ring-1 ring-brand/40 shadow-2xl p-6 relative" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 text-white/50 hover:text-white text-lg" onClick={() => setQaOpen(false)}>✕</button>
+        <div className="modal-overlay" onClick={() => setQaOpen(false)}>
+          <div className="modal-card max-w-md" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setQaOpen(false)}>✕</button>
             <h2 className="text-lg font-bold text-brand">❓ 학생 질문 ({live.questions.length})</h2>
-            <p className="mt-1 text-xs text-white/50">닉네임 없이 언제든 도착하는 익명 질문이에요. 최신순으로 보여요.</p>
-            <div className="mt-4 max-h-[50vh] space-y-2 overflow-y-auto">
+            <p className="mt-1 text-xs text-muted">닉네임 없이 언제든 도착하는 익명 질문이에요. 최신순으로 보여요.</p>
+            <div className="mt-4 max-h-[50vh] space-y-2 overflow-y-auto custom-scrollbar">
               {live.questions.length === 0 ? (
-                <p className="py-6 text-center text-sm text-white/40">아직 들어온 질문이 없어요.</p>
+                <p className="py-6 text-center text-sm text-muted-2">아직 들어온 질문이 없어요.</p>
               ) : (
                 live.questions.map((q) => (
-                  <div key={q.id} className="rounded-xl bg-white/5 px-3 py-2.5 text-left">
+                  <div key={q.id} className="rounded-xl bg-surface-2 px-3 py-2.5 text-left ring-1 ring-hairline">
                     <p className="text-sm leading-relaxed">{q.text}</p>
-                    <p className="mt-1 text-[11px] text-white/40">{timeAgo(q.createdAt)}</p>
+                    <p className="mt-1 text-[11px] text-muted-2">{timeAgo(q.createdAt)}</p>
                   </div>
                 ))
               )}

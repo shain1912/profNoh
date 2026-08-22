@@ -36,10 +36,11 @@ export default function Join() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col justify-center p-6">
-      <h1 className="text-center text-2xl font-extrabold">강의실 입장 🎓</h1>
-      <form className="mt-8 space-y-4" onSubmit={submit}>
+      <h1 className="text-center text-2xl font-extrabold text-strong">강의실 입장 🎓</h1>
+      <p className="mt-2 text-center text-sm text-muted">선생님이 알려준 코드를 입력해 주세요.</p>
+      <form className="card mt-6 space-y-4" onSubmit={submit}>
         <div>
-          <label className="mb-1 block text-sm text-white/60">강의실 코드</label>
+          <label className="mb-1.5 block text-sm font-semibold text-muted">강의실 코드</label>
           <input
             className="input text-center text-2xl font-bold tracking-[0.3em]"
             placeholder="ABC123"
@@ -50,7 +51,7 @@ export default function Join() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-white/60">닉네임</label>
+          <label className="mb-1.5 block text-sm font-semibold text-muted">닉네임</label>
           <input
             className="input text-center text-lg"
             placeholder="내 이름/별명"

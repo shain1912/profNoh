@@ -47,7 +47,11 @@ export default function Projector() {
   }, [live.activity?.activityId]);
 
   if (!deck)
-    return <div className="grid h-full place-items-center text-2xl text-white/40">연결 중… ({token})</div>;
+    return (
+      <div className="theme-dark h-full bg-canvas text-body">
+        <div className="grid h-full place-items-center text-2xl text-muted">연결 중… ({token})</div>
+      </div>
+    );
 
   const act = live.activity ? deck.activities[live.activity.activityId] : null;
 
@@ -55,13 +59,13 @@ export default function Projector() {
   const lbDrawer = (
     <div
       className={[
-        'fixed right-0 top-0 z-40 flex h-full w-96 max-w-[85vw] transform flex-col bg-black/70 shadow-2xl ring-1 ring-white/10 backdrop-blur-lg transition-transform duration-300',
+        'fixed right-0 top-0 z-40 flex h-full w-96 max-w-[85vw] transform flex-col bg-surface/90 shadow-pop ring-1 ring-hairline backdrop-blur-lg transition-transform duration-300',
         lbOpen ? 'translate-x-0' : 'translate-x-full',
       ].join(' ')}
     >
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-        <span className="text-xl font-extrabold">🏆 리더보드</span>
-        <button className="rounded px-2 py-1 text-sm text-white/50 hover:bg-white/10 hover:text-white" onClick={() => setLbOpen(false)}>✕</button>
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+        <span className="text-xl font-extrabold text-strong">🏆 리더보드</span>
+        <button className="rounded px-2 py-1 text-sm text-muted hover:bg-surface-2 hover:text-strong" onClick={() => setLbOpen(false)}>✕</button>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <Leaderboard entries={live.leaderboard} />
@@ -69,11 +73,12 @@ export default function Projector() {
     </div>
   );
 
+  // 교실 대형 스크린: 항상 고대비 다크 스코프로 감싼다
   const withDrawer = (node: ReactNode) => (
-    <>
+    <div className="theme-dark h-full bg-canvas text-body">
       {node}
       {lbDrawer}
-    </>
+    </div>
   );
 
   // 퀴즈
@@ -84,13 +89,13 @@ export default function Projector() {
       return withDrawer(
         <div className="grid h-full grid-cols-3 gap-6 p-8">
           <div className="col-span-2 flex flex-col justify-center">
-            <h1 className="text-4xl font-extrabold">{live.question?.question ?? '정답 공개'}</h1>
+            <h1 className="text-4xl font-extrabold text-strong">{live.question?.question ?? '정답 공개'}</h1>
             <div className="mt-6 grid grid-cols-2 gap-4">
               {(live.question?.options ?? []).map((opt, i) => {
                 const count = live.reveal!.distribution[String(i)] ?? 0;
                 const correct = i === correctIdx;
                 return (
-                  <div key={i} className={['rounded-2xl p-5 text-2xl font-bold ring-2', correct ? 'bg-emerald-600 ring-white' : 'bg-white/5 ring-transparent opacity-60'].join(' ')}>
+                  <div key={i} className={['rounded-2xl p-5 text-2xl font-bold ring-2', correct ? 'bg-emerald-600 text-white ring-white' : 'bg-surface-2 ring-transparent opacity-60'].join(' ')}>
                     {SHAPES[i % 4]} {opt} <span className="float-right">{count}</span>
                   </div>
                 );
@@ -98,7 +103,7 @@ export default function Projector() {
             </div>
           </div>
           <div className="flex flex-col justify-center">
-            <h2 className="mb-4 text-3xl font-extrabold">🏆 순위</h2>
+            <h2 className="mb-4 text-3xl font-extrabold text-strong">🏆 순위</h2>
             <Leaderboard entries={live.leaderboard} />
           </div>
         </div>
@@ -107,10 +112,10 @@ export default function Projector() {
     if (live.question) {
       return withDrawer(
         <div className="flex h-full flex-col justify-center p-10 text-center">
-          <h1 className="text-5xl font-extrabold leading-tight">{live.question.question}</h1>
+          <h1 className="text-5xl font-extrabold leading-tight text-strong">{live.question.question}</h1>
           <div className="mx-auto my-8 w-1/2">
             <Countdown endsAt={live.question.endsAt} total={Math.max(1, Math.round((live.question.endsAt - Date.now()) / 1000))} />
-            <p className="mt-2 text-xl text-white/60">응답 {live.answeredCount}명</p>
+            <p className="mt-2 text-xl text-muted">응답 {live.answeredCount}명</p>
           </div>
           <div className="grid grid-cols-2 gap-5">
             {live.question.options.map((opt, i) => (
@@ -123,14 +128,14 @@ export default function Projector() {
         </div>
       );
     }
-    return withDrawer(<div className="grid h-full place-items-center text-3xl text-white/50">퀴즈 준비 중… 🎮</div>);
+    return withDrawer(<div className="grid h-full place-items-center text-3xl text-muted">퀴즈 준비 중… 🎮</div>);
   }
 
   // 투표
   if (act?.type === 'poll') {
     return withDrawer(
       <div className="flex h-full flex-col justify-center p-10 text-center">
-        <h1 className="text-4xl font-extrabold">🗳️ {act.prompt}</h1>
+        <h1 className="text-4xl font-extrabold text-strong">🗳️ {act.prompt}</h1>
         <div className="mt-8 text-2xl">
           <PollView activity={act} dist={live.polls[act.id] ?? { counts: {}, total: 0 }} />
         </div>

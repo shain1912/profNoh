@@ -35,26 +35,26 @@ export default function Student() {
   return (
     <div className="flex h-full flex-col">
       {/* 상단바 */}
-      <header className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-sm">
-        <span className="font-bold">{nickname}</span>
+      <header className="flex items-center justify-between border-b border-hairline bg-surface px-4 py-2 text-sm">
+        <span className="font-bold text-strong">{nickname}</span>
         <span className="flex items-center gap-3">
-          <span className="rounded-full bg-brand/20 px-3 py-1 font-bold text-brand">⭐ {myScore}</span>
-          <span className={live.connected ? 'text-emerald-400' : 'text-down'}>
+          <span className="rounded-full bg-brand/10 px-3 py-1 font-bold text-brand">⭐ {myScore}</span>
+          <span className={live.connected ? 'text-up' : 'text-down'}>
             {live.connected ? '●' : '○'}
           </span>
         </span>
       </header>
 
       {live.notice && (
-        <div className="bg-brand/30 px-4 py-2 text-center text-sm font-semibold">{live.notice}</div>
+        <div className="bg-brand/10 px-4 py-2 text-center text-sm font-semibold text-brand">{live.notice}</div>
       )}
       {live.error && (
-        <div className="bg-down/30 px-4 py-2 text-center text-sm">{live.error}</div>
+        <div className="bg-down/10 px-4 py-2 text-center text-sm text-down">{live.error}</div>
       )}
 
       <main className="flex-1 overflow-hidden p-3">
         {!deck ? (
-          <div className="grid h-full place-items-center text-white/40">강의실에 연결 중… ⏳</div>
+          <div className="grid h-full place-items-center text-muted-2">강의실에 연결 중… ⏳</div>
         ) : (
           <ActivityArea deck={deck} live={live} token={token} sessionId={sessionId} />
         )}
@@ -63,20 +63,20 @@ export default function Student() {
       {/* 언제든 익명으로 질문하기 */}
       <button
         onClick={() => { setAskOpen(true); setAskSent(false); }}
-        className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-on-brand shadow-xl hover:scale-105 active:scale-95 transition-all"
+        className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-on-brand shadow-pop hover:scale-105 active:scale-95 transition-all"
         title="선생님께 질문하기"
       >
         <span className="text-2xl">❓</span>
       </button>
 
       {askOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setAskOpen(false)}>
-          <div className="card max-w-sm w-full bg-[#1e1e24] ring-1 ring-brand/40 shadow-2xl p-6 relative" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 text-white/50 hover:text-white text-lg" onClick={() => setAskOpen(false)}>✕</button>
+        <div className="modal-overlay" onClick={() => setAskOpen(false)}>
+          <div className="modal-card max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setAskOpen(false)}>✕</button>
             <h2 className="text-lg font-bold text-brand">❓ 선생님께 질문하기</h2>
-            <p className="mt-1 text-xs text-white/50">닉네임 없이 익명으로 전달돼요. 궁금한 건 뭐든 물어보세요!</p>
+            <p className="mt-1 text-xs text-muted">닉네임 없이 익명으로 전달돼요. 궁금한 건 뭐든 물어보세요!</p>
             {askSent ? (
-              <p className="mt-6 text-center text-emerald-400 font-semibold">질문이 전달됐어요! 🙌</p>
+              <p className="mt-6 text-center text-up font-semibold">질문이 전달됐어요! 🙌</p>
             ) : (
               <>
                 <textarea

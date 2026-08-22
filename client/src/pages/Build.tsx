@@ -154,13 +154,13 @@ export default function Build() {
   return (
     <div className="mx-auto max-w-xl p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold">강의 만들기 🛠️</h1>
-        <div className="flex items-center gap-2 text-xs text-white/50">
+        <h1 className="text-2xl font-extrabold text-strong">강의 만들기 🛠️</h1>
+        <div className="flex items-center gap-2 text-xs text-muted">
           <span className="max-w-[160px] truncate">{user.name ?? user.email}</span>
-          <button className="rounded bg-white/10 px-2 py-1 hover:bg-white/20" onClick={signOut}>로그아웃</button>
+          <button className="rounded-lg bg-surface px-2 py-1 ring-1 ring-hairline hover:bg-surface-2" onClick={signOut}>로그아웃</button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-white/50">
+      <p className="mt-2 text-xs text-muted">
         만든 강의는 내 계정에 저장되어 어느 컴퓨터에서든 로그인하면 바로 열어 쓸 수 있습니다.
       </p>
 
@@ -169,14 +169,14 @@ export default function Build() {
         <div className="text-sm font-bold text-brand">✨ AI로 만들기</div>
         {step === 1 ? (
           <>
-            <input className="input text-white" placeholder="강의 주제를 적어줘" value={topic} maxLength={80} onChange={(e) => setTopic(e.target.value)} />
+            <input className="input" placeholder="강의 주제를 적어줘" value={topic} maxLength={80} onChange={(e) => setTopic(e.target.value)} />
             <div className="flex flex-wrap gap-2">
               {TOPIC_CHIPS.map((c) => (
-                <button key={c} className="rounded-full bg-white/10 px-3 py-1 text-sm hover:bg-white/20" onClick={() => setTopic(c)}>{c}</button>
+                <button key={c} className="rounded-full bg-surface-2 px-3 py-1 text-sm ring-1 ring-hairline hover:bg-surface-3" onClick={() => setTopic(c)}>{c}</button>
               ))}
             </div>
 
-            <div className="mt-2 text-xs text-white/50 font-semibold">💡 AI 실습 연계 추천 예제 (원클릭 자동 선택):</div>
+            <div className="mt-2 text-xs text-muted font-semibold">💡 AI 실습 연계 추천 예제 (원클릭 자동 선택):</div>
             <div className="flex flex-wrap gap-2">
               {EXAMPLE_CHIPS.map((item) => (
                 <button
@@ -196,24 +196,24 @@ export default function Build() {
           </>
         ) : (
           <>
-            <div className="text-sm text-white/70">주제: <b>{topic}</b></div>
+            <div className="text-sm text-body">주제: <b>{topic}</b></div>
             <div>
-              <div className="mb-1 text-sm text-white/60">대상</div>
+              <div className="mb-1 text-sm text-muted">대상</div>
               <div className="flex flex-wrap gap-2">
                 {AUDIENCE_CHIPS.map((c) => (
-                  <button key={c} className={['rounded-full px-3 py-1 text-sm', audience === c ? 'bg-brand text-on-brand' : 'bg-white/10 hover:bg-white/20'].join(' ')} onClick={() => setAudience(c)}>{c}</button>
+                  <button key={c} className={['rounded-full px-3 py-1 text-sm', audience === c ? 'bg-brand text-on-brand' : 'bg-surface-2 ring-1 ring-hairline hover:bg-surface-3'].join(' ')} onClick={() => setAudience(c)}>{c}</button>
                 ))}
               </div>
             </div>
-            <label className="block text-sm text-white/60">파트 수: {parts}
-              <input type="range" min={2} max={6} value={parts} className="w-full" onChange={(e) => setParts(Number(e.target.value))} />
+            <label className="block text-sm text-muted">파트 수: {parts}
+              <input type="range" min={2} max={6} value={parts} className="w-full accent-brand" onChange={(e) => setParts(Number(e.target.value))} />
             </label>
-            <label className="block text-sm text-white/60">파트당 퀴즈: {quizPerPart}
-              <input type="range" min={0} max={3} value={quizPerPart} className="w-full" onChange={(e) => setQuizPerPart(Number(e.target.value))} />
+            <label className="block text-sm text-muted">파트당 퀴즈: {quizPerPart}
+              <input type="range" min={0} max={3} value={quizPerPart} className="w-full accent-brand" onChange={(e) => setQuizPerPart(Number(e.target.value))} />
             </label>
 
             <div>
-              <div className="mb-2 text-sm text-white/60">포함할 신규 AI 실습 활동</div>
+              <div className="mb-2 text-sm text-muted">포함할 신규 AI 실습 활동</div>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'roleplay', label: '🎭 AI 역할극' },
@@ -232,7 +232,7 @@ export default function Build() {
                         'flex items-center gap-2 p-2.5 rounded-xl border text-xs text-left transition-all',
                         active
                           ? 'bg-brand/10 border-brand text-brand font-bold ring-1 ring-brand/20'
-                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10',
+                          : 'bg-surface border-hairline text-muted hover:bg-surface-2',
                       ].join(' ')}
                       onClick={() => {
                         setSelectedActs((prev) =>
@@ -248,9 +248,9 @@ export default function Build() {
               </div>
             </div>
             {genBusy ? (
-              <div className="rounded-xl bg-white/5 p-4 text-center ring-1 ring-white/10">
-                <div className="text-sm text-white/80">✨ AI가 강의를 만드는 중… 최대 30초 정도 걸려요</div>
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10"><div className="progress-indeterminate h-full w-1/3 rounded-full bg-brand" /></div>
+              <div className="rounded-xl bg-surface-2 p-4 text-center ring-1 ring-hairline">
+                <div className="text-sm text-body">✨ AI가 강의를 만드는 중… 최대 30초 정도 걸려요</div>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-3"><div className="progress-indeterminate h-full w-1/3 rounded-full bg-brand" /></div>
               </div>
             ) : (
               <div className="flex gap-2">
@@ -266,14 +266,14 @@ export default function Build() {
       {/* PDF 및 PPTX 업로드 */}
       <div className="card mt-4 space-y-3 ring-1 ring-brand/30">
         <div className="text-sm font-bold text-brand">📄 PDF / PPTX 파일로 만들기</div>
-        <p className="text-xs text-white/50">
+        <p className="text-xs text-muted">
           준비된 PDF 자료를 업로드하면 바로 강의용 슬라이드로 변환되어 수업에 사용할 수 있습니다.
         </p>
 
         {uploadBusy ? (
-          <div className="rounded-xl bg-white/5 p-4 text-center ring-1 ring-white/10">
-            <div className="text-sm text-white/80">📄 파일을 업로드하고 슬라이드를 구성하는 중…</div>
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="rounded-xl bg-surface-2 p-4 text-center ring-1 ring-hairline">
+            <div className="text-sm text-body">📄 파일을 업로드하고 슬라이드를 구성하는 중…</div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-3">
               <div className="progress-indeterminate h-full w-1/3 rounded-full bg-brand" />
             </div>
           </div>
@@ -302,7 +302,7 @@ export default function Build() {
       <SourceImportCard />
 
       <details className="mt-4">
-        <summary className="cursor-pointer text-sm text-white/50">또는 빈 강의로 직접 만들기</summary>
+        <summary className="cursor-pointer text-sm text-muted">또는 빈 강의로 직접 만들기</summary>
         <div className="card mt-2 space-y-3">
           <input className="input" placeholder="강의 제목" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
           <button className="btn-ghost w-full" onClick={makeBlank} disabled={busy}>{busy ? '만드는 중…' : '＋ 빈 강의 만들기'}</button>
@@ -310,27 +310,27 @@ export default function Build() {
         </div>
       </details>
 
-      <h2 className="mt-8 text-lg font-bold">내 강의</h2>
+      <h2 className="mt-8 text-lg font-bold text-strong">내 강의</h2>
       {mergedDecks.length === 0 ? (
-        <p className="mt-2 text-white/50">아직 만든 강의가 없어요.</p>
+        <p className="mt-2 text-muted">아직 만든 강의가 없어요.</p>
       ) : (
         <div className="mt-3 grid gap-2">
           {mergedDecks.map((d) => (
-            <div key={d.id} className="rounded-xl bg-white/5 ring-1 ring-white/10 overflow-hidden">
+            <div key={d.id} className="rounded-xl bg-surface ring-1 ring-hairline shadow-card overflow-hidden">
               <div className="flex items-stretch">
                 <button className="btn-ghost flex-1 justify-between rounded-none" onClick={() => nav(`/build/${d.id}`)}>
                   <div className="flex items-center gap-2 text-left">
                     <span>{d.title}</span>
                     {d.isLocalOnly && (
-                      <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-normal shrink-0">
+                      <span className="text-[10px] bg-surface-2 text-muted px-1.5 py-0.5 rounded font-normal shrink-0">
                         로컬 전용
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-white/40">{d.id}</span>
+                  <span className="text-xs text-muted-2">{d.id}</span>
                 </button>
                 <button
-                  className="px-3 text-white/40 hover:text-down hover:bg-down/10 transition shrink-0"
+                  className="px-3 text-muted-2 hover:text-down hover:bg-down/10 transition shrink-0"
                   title="강의 삭제"
                   onClick={() => (deletingId === d.id ? setDeletingId(null) : startDelete(d.id))}
                 >
@@ -338,7 +338,7 @@ export default function Build() {
                 </button>
               </div>
               {deletingId === d.id && (
-                <div className="border-t border-white/10 bg-black/20 p-3 space-y-2">
+                <div className="border-t border-hairline bg-surface-2 p-3 space-y-2">
                   <p className="text-xs text-down">삭제하면 되돌릴 수 없어요. 편집 PIN을 입력해 확인해주세요.</p>
                   <div className="flex gap-2">
                     <input
@@ -366,23 +366,23 @@ export default function Build() {
 
       {/* PPTX 안내 모달 */}
       {showPptxModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="card max-w-md w-full bg-[#1e1e24] ring-1 ring-brand/40 shadow-2xl p-6 relative">
+        <div className="modal-overlay">
+          <div className="modal-card max-w-md">
             <button
-              className="absolute top-4 right-4 text-white/50 hover:text-white text-lg"
+              className="modal-close"
               onClick={() => setShowPptxModal(false)}
             >
               ✕
             </button>
             <h2 className="text-xl font-bold text-brand">PowerPoint (.pptx) 변환 안내</h2>
-            <div className="mt-4 text-sm leading-relaxed text-white/80 space-y-3 font-normal">
+            <div className="mt-4 text-sm leading-relaxed text-body space-y-3 font-normal">
               <p>
                 PowerPoint(.pptx) 파일은 웹 브라우저에서 직접 불러오면 줄바꿈, 폰트, 레이아웃이 깨질 가능성이 매우 높습니다.
               </p>
               <p className="font-semibold text-brand">
                 가장 완벽한 수업 슬라이드를 만드는 간단한 방법:
               </p>
-              <ol className="list-decimal list-inside space-y-2 bg-white/5 p-3 rounded-lg text-xs">
+              <ol className="list-decimal list-inside space-y-2 bg-surface-2 p-3 rounded-lg text-xs">
                 <li>PowerPoint 또는 Keynote에서 파일을 엽니다.</li>
                 <li><b>[파일] &gt; [다른 이름으로 저장]</b> (또는 <b>[내보내기]</b>)을 선택합니다.</li>
                 <li>파일 형식을 <b>'PDF (*.pdf)'</b>로 지정해 저장합니다.</li>

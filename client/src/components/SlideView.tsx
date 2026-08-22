@@ -130,14 +130,14 @@ function PdfSlideView({ pdfUrl, pageNumber }: { pdfUrl: string; pageNumber: numb
   }, [pdfUrl, pageNumber]);
 
   return (
-    <div ref={containerRef} className="relative flex h-full w-full items-center justify-center bg-black/10 overflow-hidden min-h-[300px]">
+    <div ref={containerRef} className="relative flex h-full w-full items-center justify-center bg-surface-2 overflow-hidden min-h-[300px]">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center text-white/50 bg-black/20">
+        <div className="absolute inset-0 flex items-center justify-center text-muted bg-surface-2/90">
           페이지 로딩 중… ⏳
         </div>
       )}
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center text-red-400 bg-black/20 p-4 text-center">
+        <div className="absolute inset-0 flex items-center justify-center text-down bg-surface-2/90 p-4 text-center">
           ⚠️ {error}
         </div>
       )}
@@ -159,7 +159,7 @@ function Block({ b }: { b: SlideBlock }) {
       );
     case 'quote':
       return (
-        <blockquote className="my-2 border-l-4 border-brand/70 bg-white/5 px-4 py-3 text-lg italic text-body/80">
+        <blockquote className="my-2 rounded-r-lg border-l-4 border-brand/70 bg-surface-2 px-4 py-3 text-lg italic text-body/80">
           {b.text}
         </blockquote>
       );
@@ -220,9 +220,9 @@ export default function SlideView({ slide, big = false }: { slide: Slide; big?: 
           <h1
             className={[
               'font-extrabold leading-tight',
-              isTitle ? 'text-4xl sm:text-6xl' : '',
+              isTitle ? 'text-4xl sm:text-6xl text-strong' : '',
               isSection ? 'text-5xl text-brand sm:text-7xl' : '',
-              !isTitle && !isSection ? 'text-3xl sm:text-4xl' : '',
+              !isTitle && !isSection ? 'text-3xl sm:text-4xl text-strong' : '',
             ].join(' ')}
           >
             {slide.title}
@@ -234,7 +234,7 @@ export default function SlideView({ slide, big = false }: { slide: Slide; big?: 
         )}
 
         {embedUrl && (
-          <div className="mx-auto mt-6 w-full max-w-2xl aspect-video rounded-2xl overflow-hidden shadow-lg border border-white/10 bg-black/40">
+          <div className="mx-auto mt-6 w-full max-w-2xl aspect-video rounded-2xl overflow-hidden shadow-lg border border-hairline bg-ink/80">
             <iframe
               src={embedUrl}
               title="YouTube video player"

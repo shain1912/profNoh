@@ -12,7 +12,7 @@ export default function Leaderboard({
   compact?: boolean;
 }) {
   if (!entries.length)
-    return <p className="text-center text-white/40">아직 점수가 없어요.</p>;
+    return <p className="text-center text-muted-2">아직 점수가 없어요.</p>;
   return (
     <ol className="space-y-2">
       {entries.map((e) => {
@@ -22,7 +22,7 @@ export default function Leaderboard({
             key={e.nickname + e.rank}
             className={[
               'flex items-center justify-between rounded-xl px-4 py-2',
-              me ? 'bg-brand/30 ring-1 ring-brand' : 'bg-white/5',
+              me ? 'bg-brand/15 ring-1 ring-brand' : 'bg-surface-2',
               compact ? 'text-sm' : 'text-lg',
             ].join(' ')}
           >
