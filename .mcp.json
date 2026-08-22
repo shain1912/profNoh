@@ -3,6 +3,10 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp"
+    },
+    "tosspayments-integration-guide": {
+      "command": "npx",
+      "args": ["-y", "@tosspayments/integration-guide-mcp@latest"]
     }
   }
 }
