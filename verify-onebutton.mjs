@@ -15,9 +15,18 @@ const browser = await chromium.launch();
 const tp = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 watch(tp, 'teacher');
 await tp.goto(`${BASE}/teach`, { waitUntil: 'networkidle' });
-await tp.getByText('새 강의실 만들기').click();
+// 로그인 필수화: dev-login으로 강사 세션 확보 후 재진입
+await tp.evaluate(async () => {
+  await fetch('/api/auth/dev-login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'verify-onebutton@test.local', name: '원버튼검증' }),
+  });
+});
+await tp.goto(`${BASE}/teach`, { waitUntil: 'networkidle' });
+await tp.getByText('시작 ▶').click();
 await sleep(2500);
-const token = JSON.parse(await tp.evaluate(() => localStorage.getItem('axedu_instructor'))).token;
+// 세션이 서버측으로 이동해 localStorage 대신 콘솔 헤더의 강의실 코드에서 토큰 추출
+const token = (await tp.locator('#root').innerText()).match(/강의실 코드\s*\n?\s*([A-Z0-9]{4,8})/)[1];
 console.log('TOKEN', token);
 
 // 학생 2명

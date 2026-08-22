@@ -4,8 +4,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch();
 const tp = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 await tp.goto(`${BASE}/teach`, { waitUntil: 'networkidle' });
-await tp.getByText('새 강의실 만들기').click(); await sleep(2500);
-const token = JSON.parse(await tp.evaluate(() => localStorage.getItem('axedu_instructor'))).token;
+// 로그인 필수화: dev-login으로 강사 세션 확보 후 재진입
+await tp.evaluate(async () => {
+  await fetch('/api/auth/dev-login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'verify-loading@test.local', name: '로딩검증' }),
+  });
+});
+await tp.goto(`${BASE}/teach`, { waitUntil: 'networkidle' });
+await tp.getByText('시작 ▶').click(); await sleep(2500);
+// 세션이 서버측으로 이동해 localStorage 대신 콘솔 헤더의 강의실 코드에서 토큰 추출
+const token = (await tp.locator('#root').innerText()).match(/강의실 코드\s*\n?\s*([A-Z0-9]{4,8})/)[1];
 const sp = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
 await sp.goto(`${BASE}/join?token=${token}`, { waitUntil: 'networkidle' });
 await sp.locator('input').nth(1).fill('그림'); await sp.getByText('입장하기').click();

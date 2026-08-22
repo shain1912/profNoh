@@ -7,6 +7,15 @@ const p = await (await browser.newContext({ viewport: { width: 1280, height: 800
 p.on('pageerror', (e) => errs.push('' + e.message));
 
 await p.goto(`${BASE}/build`, { waitUntil: 'networkidle' });
+// 로그인 필수화: dev-login으로 강사 세션 확보 후 재진입
+// 무료 플랜 덱 3개 제한이 생겨 매 실행마다 새 계정 사용
+await p.evaluate(async () => {
+  await fetch('/api/auth/dev-login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: `verify-aiwizard-${Date.now()}@test.local`, name: 'AI마법사검증' }),
+  });
+});
+await p.goto(`${BASE}/build`, { waitUntil: 'networkidle' });
 await p.getByText('생성형 AI 입문', { exact: true }).click();
 await p.getByRole('button', { name: '다음 ▶' }).click();
 await sleep(300);
