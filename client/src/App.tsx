@@ -9,6 +9,9 @@ import DeckEditor from './pages/DeckEditor';
 import Report from './pages/Report';
 import Admin from './pages/Admin';
 import OrgPage from './pages/OrgPage';
+import Pricing from './pages/Pricing';
+import Checkout from './pages/Checkout';
+import Billing from './pages/Billing';
 import GuideFloatingMenu from './components/GuideFloatingMenu';
 import AuthGate from './components/AuthGate';
 
@@ -26,6 +29,9 @@ export default function App() {
         <Route path="/report/:classroomId" element={<Report />} />
         <Route path="/admin" element={<AuthGate><Admin /></AuthGate>} />
         <Route path="/org" element={<AuthGate><OrgPage /></AuthGate>} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/checkout" element={<AuthGate><Checkout /></AuthGate>} />
+        <Route path="/billing" element={<AuthGate><Billing /></AuthGate>} />
         <Route path="*" element={<Home />} />
       </Routes>
       <GuideFloatingMenu />

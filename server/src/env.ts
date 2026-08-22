@@ -53,6 +53,10 @@ export const env = {
   APP_ORIGIN: process.env.APP_ORIGIN ?? 'http://localhost:5173',
   // DEV_LOGIN=1 이면 /api/auth/dev-login 활성화 (로컬 개발 전용 — 프로덕션 금지)
   DEV_LOGIN: process.env.DEV_LOGIN === '1',
+  // ── 결제 (TASK C): mock이면 실키 없이 E2E 시뮬레이션, toss면 테스트/실 키 사용 ──
+  BILLING_PROVIDER: (process.env.BILLING_PROVIDER === 'toss' ? 'toss' : 'mock') as 'toss' | 'mock',
+  TOSS_CLIENT_KEY: process.env.TOSS_CLIENT_KEY ?? '',
+  TOSS_SECRET_KEY: process.env.TOSS_SECRET_KEY ?? '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID ?? '',

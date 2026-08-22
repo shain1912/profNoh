@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomResponse, GenerateDeckRequest, Deck } from '../../shared/types';
 import { createClassroom, getByToken } from './state';
 import { getSessionUser } from './auth/session';
+import { canCreateDeck } from './billing/gate';
 import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck, unregisterDeck } from './decks';
 import { validateDeck, blankDeck, makeDeckId, makePin } from './decks/validate';
 import { loadDeckRow, insertDeckRow, updateDeckRow, deleteDeckRow, listDeckRows } from './decks/store';
@@ -214,6 +215,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/decks', async (req, reply) => {
     const user = await getSessionUser(req);
     if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
+    // plan gating (TASK C): free 플랜은 덱 3개 제한 — 위반 시 402 + 업그레이드 안내
+    const gate = await canCreateDeck(user);
+    if (!gate.ok) return reply.code(402).send({ error: 'plan_limit', message: gate.message, plan: gate.plan, used: gate.used, limit: gate.limit });
     const body = (req.body ?? {}) as { title?: string };
     const id = makeDeckId();
     const pin = makePin();
