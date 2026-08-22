@@ -1,4 +1,5 @@
 import { dbSafe } from '../db';
+import { ensureOrgAssignment } from '../orgs/orgStore';
 
 export interface UserRow {
   id: string;
@@ -36,7 +37,7 @@ export async function upsertUser(p: {
         .select('*')
         .single();
       if (upd.error) throw upd.error;
-      return upd.data as UserRow;
+      return ensureOrgAssignment(upd.data as UserRow); // 도메인 매칭 org 자동 부여 (기존 org는 유지)
     }
 
     const ins = await sb
@@ -51,7 +52,7 @@ export async function upsertUser(p: {
       .select('*')
       .single();
     if (ins.error) throw ins.error;
-    return ins.data as UserRow;
+    return ensureOrgAssignment(ins.data as UserRow); // 신규 가입 시 도메인 매칭 org 자동 부여
   });
 }
 
