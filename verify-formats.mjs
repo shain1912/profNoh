@@ -56,14 +56,29 @@ let pdfDeckId = '';
   });
   pdfDeckId = r.data.deckId;
   ok('업로드 성공 (deckId·editPin 반환)', r.status === 200 && !!r.data.deckId && !!r.data.editPin, JSON.stringify(r.data));
+  ok('서버 사전 렌더 적용 (rendered=true)', r.data.rendered === true, JSON.stringify(r.data));
 
   const d = await req('GET', `/api/decks/${pdfDeckId}`);
   const slides = d.data.slides ?? [];
-  ok('2페이지 → pdf 슬라이드 2장', slides.length === 2 && slides.every((s) => s.layout === 'pdf'));
-  ok('pdfUrl·pageNumber 유지', slides[0]?.pdfUrl?.startsWith('/api/uploads/') && slides[0]?.pageNumber === 1 && slides[1]?.pageNumber === 2);
+  // P2-전송: 업로드 시 서버가 페이지별 webp 로 사전 렌더 → image 슬라이드. 레거시(pdf layout) 덱은 그대로 호환.
+  ok('2페이지 → 이미지 슬라이드 2장 (webp)', slides.length === 2 && slides.every((s) => s.layout === 'image' && /^\/api\/uploads\/.+\.webp$/.test(s.imageUrl ?? '')));
+  ok('출처 pdfUrl·pageNumber 유지', slides[0]?.pdfUrl?.startsWith('/api/uploads/') && slides[0]?.pageNumber === 1 && slides[1]?.pageNumber === 2);
 
   const f = await req('GET', slides[0].pdfUrl, undefined, true);
-  ok('PDF 파일 서빙 (application/pdf)', f.status === 200 && (f.headers.get('content-type') ?? '').includes('application/pdf'));
+  ok('PDF 원본 서빙 (application/pdf)', f.status === 200 && (f.headers.get('content-type') ?? '').includes('application/pdf'));
+  ok('업로드 캐시 헤더 (immutable + ETag + Accept-Ranges)',
+    /immutable/.test(f.headers.get('cache-control') ?? '') && !!f.headers.get('etag') && f.headers.get('accept-ranges') === 'bytes',
+    `cc=${f.headers.get('cache-control')} etag=${f.headers.get('etag')}`);
+  const etag = f.headers.get('etag');
+  const nm = await fetch(`${API}${slides[0].pdfUrl}`, { headers: { 'If-None-Match': etag ?? '' } });
+  ok('If-None-Match → 304', nm.status === 304, String(nm.status));
+  const rg = await fetch(`${API}${slides[0].pdfUrl}`, { headers: { Range: 'bytes=0-3' } });
+  ok('Range 요청 → 206 (%PDF)', rg.status === 206 && (await rg.text()) === '%PDF' && (rg.headers.get('content-range') ?? '').startsWith('bytes 0-3/'), String(rg.status));
+
+  const w = await req('GET', slides[0].imageUrl, undefined, true);
+  ok('webp 렌더본 서빙 (image/webp)', w.status === 200 && (w.headers.get('content-type') ?? '').includes('image/webp'));
+  const bad = await req('GET', '/api/uploads/..%2F..%2Fpackage.json', undefined, true);
+  ok('경로 이탈 파일명 거부', bad.status === 400 || bad.status === 404, String(bad.status));
 }
 
 // ── 2) 이미지 여러 장 업로드 ──

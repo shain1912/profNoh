@@ -17,7 +17,8 @@ import { generateDeck } from './ai/generateDeck';
 import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent';
 import { GEN_TYPES } from './ai/activitySpecs';
 import { persistClassroom, persistUsage, persistLabRun } from './persist';
-import { writeFileSync, readFileSync, existsSync, unlinkSync } from 'node:fs';
+import { writeFileSync, existsSync, unlinkSync, statSync, createReadStream } from 'node:fs';
+import { renderPdfToWebp } from './pdf/render';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -332,7 +333,7 @@ export async function registerRoutes(app: FastifyInstance) {
     // 이 덱이 참조하던 업로드 원본(PDF·이미지)도 정리 (여러 슬라이드가 같은 파일을 공유하므로 중복 제거)
     const pdfFilenames = new Set(
       (row.data.slides ?? [])
-        .flatMap((s) => [s.layout === 'pdf' ? s.pdfUrl : undefined, s.layout === 'image' ? s.imageUrl : undefined])
+        .flatMap((s) => [s.pdfUrl, s.imageUrl])
         .filter((u): u is string => !!u && u.startsWith('/api/uploads/'))
         .map((u) => u.replace('/api/uploads/', '')),
     );
@@ -344,24 +345,54 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   // 업로드된 파일 다운로드/조회 — 이미지 슬라이드는 참가자 400명이 장당 요청하므로 전역 상한에서 제외
+  // - 파일명은 UUID 라 내용이 바뀌지 않으므로 1년 immutable 캐시 + ETag(304) 로 재입장·페이지 이동 시 재전송을 막는다
+  // - readFileSync 전량 버퍼 대신 스트림 응답 (30MB PDF × 동시 수백 요청이 힙에 쌓이지 않도록)
+  // - Range 요청 지원 → 레거시 PDF 덱에서 pdf.js 가 필요한 바이트 구간만 받아갈 수 있다
   app.get('/api/uploads/:filename', { config: { rateLimit: false } }, async (req, reply) => {
     const { filename } = req.params as { filename: string };
+    if (!/^[A-Za-z0-9._-]+$/.test(filename) || filename.includes('..')) {
+      return reply.code(400).send({ error: 'bad', message: '잘못된 파일명입니다.' });
+    }
     const filePath = resolve(uploadsDir, filename);
     if (!existsSync(filePath)) {
       return reply.code(404).send({ error: 'notfound', message: '파일을 찾을 수 없습니다.' });
     }
-    const buffer = readFileSync(filePath);
-    if (filename.endsWith('.pdf')) {
-      reply.header('Content-Type', 'application/pdf');
-    } else {
-      const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
-      const imageType = IMAGE_MIME[ext];
-      if (imageType) {
-        reply.header('Content-Type', imageType);
-        reply.header('Cache-Control', 'public, max-age=86400');
-      }
+    const st = statSync(filePath);
+    const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+    const contentType = ext === '.pdf' ? 'application/pdf' : IMAGE_MIME[ext] ?? 'application/octet-stream';
+    const etag = `"${st.size.toString(16)}-${Math.floor(st.mtimeMs).toString(16)}"`;
+
+    reply.header('Content-Type', contentType);
+    reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+    reply.header('ETag', etag);
+    reply.header('Last-Modified', st.mtime.toUTCString());
+    reply.header('Accept-Ranges', 'bytes');
+
+    const inm = req.headers['if-none-match'];
+    if (inm && inm.split(',').map((v) => v.trim()).includes(etag)) {
+      return reply.code(304).send();
     }
-    return reply.send(buffer);
+
+    // 단일 Range(bytes=start-end | bytes=start- | bytes=-suffix) 만 지원
+    const range = req.headers.range;
+    if (range && /^bytes=/.test(range) && !range.includes(',')) {
+      const [a, b] = range.slice(6).split('-');
+      let start = a ? parseInt(a, 10) : NaN;
+      let end = b ? parseInt(b, 10) : st.size - 1;
+      if (!a && b) { start = Math.max(0, st.size - parseInt(b, 10)); end = st.size - 1; }
+      if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= st.size) {
+        reply.header('Content-Range', `bytes */${st.size}`);
+        return reply.code(416).send();
+      }
+      end = Math.min(end, st.size - 1);
+      reply.code(206);
+      reply.header('Content-Range', `bytes ${start}-${end}/${st.size}`);
+      reply.header('Content-Length', String(end - start + 1));
+      return reply.send(createReadStream(filePath, { start, end }));
+    }
+
+    reply.header('Content-Length', String(st.size));
+    return reply.send(createReadStream(filePath));
   });
 
   // PDF 파일 업로드 및 덱 생성 (50MB 본문 — IP당 분당 상한)
@@ -382,24 +413,52 @@ export async function registerRoutes(app: FastifyInstance) {
       const buffer = Buffer.from(body.base64, 'base64');
       writeFileSync(filePath, buffer);
 
-      const pageCount = getPdfPageCount(buffer);
       const deckId = makeDeckId();
       const pin = makePin();
-      
+
       const deckTitle = body.filename.replace(/\.[^/.]+$/, "").slice(0, 80);
-      const slides = [];
-      for (let i = 1; i <= pageCount; i++) {
-        slides.push({
-          id: `s_${Math.random().toString(36).slice(2, 10)}`,
-          part: 1,
-          partTitle: 'PDF 슬라이드',
-          layout: 'pdf' as const,
-          title: `${i}페이지`,
-          pdfUrl: `/api/uploads/${filename}`,
-          pageNumber: i,
-          blocks: [],
-          notes: '',
+      const pdfUrl = `/api/uploads/${filename}`;
+      const slides: Deck['slides'] = [];
+      let rendered = false;
+
+      // 1) 서버 사전 렌더: 페이지별 webp → 이미지 슬라이드.
+      //    참가자는 원본 PDF 대신 현재 페이지 webp(~100KB) 1장만 받고, pdf.js 도 필요 없다.
+      //    pdfUrl·pageNumber 는 출처로 남겨 편집기의 PDF 텍스트 추출·원본 삭제 정리에 쓴다.
+      try {
+        const r = await renderPdfToWebp(filePath, uploadsDir, filename.replace(/\.pdf$/, ''));
+        r.files.forEach((f, i) => {
+          slides.push({
+            id: `s_${Math.random().toString(36).slice(2, 10)}`,
+            part: 1,
+            partTitle: 'PDF 슬라이드',
+            layout: 'image' as const,
+            title: `${i + 1}페이지`,
+            imageUrl: `/api/uploads/${f}`,
+            pdfUrl,
+            pageNumber: i + 1,
+            blocks: [],
+            notes: '',
+          });
         });
+        rendered = true;
+        app.log.info(`[pdf] 사전 렌더 ${r.files.length}/${r.pageCount}p ${r.ms}ms ${filename}${r.truncated ? ' (상한 초과 잘림)' : ''}`);
+      } catch (e: any) {
+        // 2) 레거시 경로: 암호화·손상 등으로 서버 렌더가 안 되면 기존처럼 클라이언트 pdf.js 렌더 슬라이드
+        app.log.warn(`[pdf] 사전 렌더 실패 → 레거시 pdf 슬라이드로 폴백: ${e?.message ?? e}`);
+        const pageCount = getPdfPageCount(buffer);
+        for (let i = 1; i <= pageCount; i++) {
+          slides.push({
+            id: `s_${Math.random().toString(36).slice(2, 10)}`,
+            part: 1,
+            partTitle: 'PDF 슬라이드',
+            layout: 'pdf' as const,
+            title: `${i}페이지`,
+            pdfUrl,
+            pageNumber: i,
+            blocks: [],
+            notes: '',
+          });
+        }
       }
 
       const deck: Deck = {
@@ -411,11 +470,16 @@ export async function registerRoutes(app: FastifyInstance) {
 
       const ok = await insertDeckRow(deck, pin);
       if (!ok) {
+        for (const sl of slides) {
+          const f = sl.imageUrl?.replace('/api/uploads/', '');
+          if (f) { try { unlinkSync(resolve(uploadsDir, f)); } catch { /* 무시 */ } }
+        }
+        try { unlinkSync(filePath); } catch { /* 무시 */ }
         return reply.code(503).send({ error: 'bad', message: 'DB에 덱을 저장하는 데 실패했습니다.' });
       }
       registerDeck(deck);
 
-      return { deckId, editPin: pin };
+      return { deckId, editPin: pin, slideCount: slides.length, rendered };
     } catch (e: any) {
       app.log.error(e);
       return reply.code(500).send({ error: 'bad', message: 'PDF 파일 처리 중 오류가 발생했습니다.' });
