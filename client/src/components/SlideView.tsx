@@ -63,15 +63,9 @@ function PdfSlideView({ pdfUrl, pageNumber }: { pdfUrl: string; pageNumber: numb
       if (!canvas || !container) return;
       setError('');
       try {
-        const pdfjsLib = (window as any).pdfjsLib;
-        if (!pdfjsLib) {
-          throw new Error('PDF 라이브러리를 로드하지 못했습니다.');
-        }
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
-
-        const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+        // pdf.js 는 자체 번들(지연 로드) — 레거시 PDF 덱에서만 필요하므로 이 시점에 처음 내려받는다
+        const { loadPdf } = await import('../lib/pdfjs');
+        const pdf = await loadPdf(pdfUrl);
         if (!active) return;
         const page = await pdf.getPage(pageNumber);
         if (!active) return;

@@ -114,20 +114,21 @@ export default function DeckEditor() {
   // PDF 텍스트 추출 (백그라운드)
   useEffect(() => {
     if (!deck) return;
-    const firstPdfSlide = deck.slides.find((s) => s.layout === 'pdf' && s.pdfUrl);
+    // 서버 사전 렌더 덱은 layout 이 'image' 지만 출처 pdfUrl 을 들고 있으므로 layout 과 무관하게 pdfUrl 로 찾는다
+    const firstPdfSlide = deck.slides.find((s) => s.pdfUrl);
     if (!firstPdfSlide || !firstPdfSlide.pdfUrl) {
       setPdfStatus('idle');
       return;
     }
+    const pdfUrl = firstPdfSlide.pdfUrl;
 
     let active = true;
     const extractText = async () => {
       setPdfStatus('extracting');
       try {
-        const pdfjsLib = (window as any).pdfjsLib;
-        if (!pdfjsLib) throw new Error('PDF.js not loaded');
-
-        const pdf = await pdfjsLib.getDocument(firstPdfSlide.pdfUrl).promise;
+        // pdf.js 자체 번들 지연 로드 (외부 CDN 미사용)
+        const { loadPdf } = await import('../lib/pdfjs');
+        const pdf = await loadPdf(pdfUrl);
         let text = '';
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
@@ -144,15 +145,7 @@ export default function DeckEditor() {
         if (active) setPdfStatus('error');
       }
     };
-
-    const checkAndExtract = () => {
-      if ((window as any).pdfjsLib) {
-        extractText();
-      } else {
-        setTimeout(checkAndExtract, 500);
-      }
-    };
-    checkAndExtract();
+    extractText();
 
     return () => {
       active = false;
