@@ -61,6 +61,16 @@ export const env = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   // 콤마 구분 이메일 목록 — 해당 이메일 로그인 시 자동 super_admin 승격 (첫 관리자 부트스트랩)
   ADMIN_EMAILS: (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+
+  // ── Phase 2 스케일: rate limit / 브로드캐스트 배치 ──
+  // Cloudflare→Caddy 뒤에서는 X-Forwarded-For 의 클라이언트 IP 로 제한해야 한다 (기본 on, 직접 노출 시 TRUST_PROXY=0)
+  TRUST_PROXY: process.env.TRUST_PROXY !== '0',
+  // IP당 분당 전체 요청 상한 — 강당은 400명이 NAT 1개를 공유할 수 있어 넉넉히 (특정 경로는 routes.ts 에서 더 엄격)
+  RATE_LIMIT_PER_MIN: Number(process.env.RATE_LIMIT_PER_MIN ?? 1200),
+  RATE_LIMIT_DISABLED: process.env.RATE_LIMIT_DISABLED === '1',
+  // 집계 브로드캐스트 배치 창(ms): 스태프(강사·프로젝터) / 참가자
+  BROADCAST_BATCH_MS: Number(process.env.BROADCAST_BATCH_MS ?? 300),
+  BROADCAST_BATCH_PARTICIPANT_MS: Number(process.env.BROADCAST_BATCH_PARTICIPANT_MS ?? 500),
 };
 
 export const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);

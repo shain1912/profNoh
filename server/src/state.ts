@@ -82,6 +82,9 @@ export class ClassroomState {
   private surveyAnswers = new Map<string, Map<string, Record<string, number | string>>>(); // activityId -> (sessionId -> answers)
   private adhocActivities = new Map<string, Activity>(); // 덱에 없는 즉석 활동 (OX 퀵 퀴즈)
   budgetSpent = 0;
+  /** 투표 분포에 영향을 주는 변경(표·정책·공개·닉네임)마다 증가 — pollDistribution 캐시 키 */
+  private pollVersion = 0;
+  private pollDistCache = new Map<string, { version: number; dist: PollDistribution }>();
 
   settings: {
     chatQuota: number;
@@ -116,7 +119,10 @@ export class ClassroomState {
     const sid = sessionId && this.participants.has(sessionId) ? sessionId : sessionId || makeId();
     const existing = this.participants.get(sid);
     if (existing) {
-      existing.nickname = nickname || existing.nickname;
+      if (nickname && nickname !== existing.nickname) {
+        existing.nickname = nickname;
+        this.touchPoll(); // 실명 entries 에 닉네임이 들어가므로 캐시 무효화
+      }
       return existing;
     }
     this.aliasSeq += 1;
@@ -186,6 +192,7 @@ export class ClassroomState {
   updateSettings(patch: Partial<ClassroomAnonSettings>): ClassroomAnonSettings {
     if (patch.anonymity && ANONYMITY_POLICIES.includes(patch.anonymity)) this.settings.anonymity = patch.anonymity;
     if (patch.resultsReveal === 'live' || patch.resultsReveal === 'after_close') this.settings.resultsReveal = patch.resultsReveal;
+    this.touchPoll();
     if (this.activity) {
       this.activity.anonymous = this.isActivityAnonymous(this.activity.activityId);
       if (this.activity.type === 'poll' && this.settings.resultsReveal === 'live') {
@@ -199,6 +206,7 @@ export class ClassroomState {
   /** 투표 결과 공개 — after_close 정책에서는 응답 마감을 겸한다 */
   revealResults(): boolean {
     if (!this.activity) return false;
+    this.touchPoll();
     this.activity.revealResults = true;
     if (this.activity.poll) this.activity.poll.revealed = true;
     if (this.activity.type === 'poll' && this.settings.resultsReveal === 'after_close') {
@@ -217,11 +225,19 @@ export class ClassroomState {
     return this.adhocActivities.get(activityId) ?? getActivity(this.deckId, activityId);
   }
 
+  private sortedParticipants(): Participant[] {
+    return [...this.participants.values()].sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname));
+  }
+
   leaderboard(topN = 100): LeaderboardEntry[] {
-    const arr = [...this.participants.values()]
-      .filter((p) => p.score > 0 || true)
-      .sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname));
-    return arr.slice(0, topN).map((p, i) => ({ nickname: this.displayName(p), score: p.score, rank: i + 1 }));
+    return this.sortedParticipants().slice(0, topN).map((p, i) => ({ nickname: this.displayName(p), score: p.score, rank: i + 1 }));
+  }
+
+  /** 참가자별 "내 순위" — 참가자에겐 리더보드 전체 대신 자기 점수·순위만 보낸다 (Phase 2 브로드캐스트 재설계) */
+  rankBySession(): Map<string, { score: number; rank: number }> {
+    const out = new Map<string, { score: number; rank: number }>();
+    this.sortedParticipants().forEach((p, i) => out.set(p.sessionId, { score: p.score, rank: i + 1 }));
+    return out;
   }
 
   // ── 슬라이드 / 활동 ──
@@ -231,6 +247,7 @@ export class ClassroomState {
   }
 
   openActivity(activityId: string, type: ActivityType, opts: OpenActivityOptions = {}) {
+    this.touchPoll();
     this.activity = {
       activityId,
       type,
@@ -312,6 +329,7 @@ export class ClassroomState {
   }
 
   closeActivity() {
+    this.touchPoll();
     this.activity = null;
   }
 
@@ -319,6 +337,7 @@ export class ClassroomState {
   pollClose(): boolean {
     const p = this.activity?.poll;
     if (!p || p.closed) return false;
+    this.touchPoll();
     p.closed = true;
     p.endsAt = undefined;
     this.activity!.closed = true;
@@ -333,6 +352,7 @@ export class ClassroomState {
   pollReveal(): boolean {
     const p = this.activity?.poll;
     if (!p || p.revealed) return false;
+    this.touchPoll();
     p.revealed = true;
     this.activity!.revealResults = true;
     return true;
@@ -449,11 +469,17 @@ export class ClassroomState {
   }
 
   // ── 투표 ──
+  /** 분포 캐시 무효화 — 표·익명 정책·공개 상태·닉네임이 바뀔 때 호출 */
+  private touchPoll() {
+    this.pollVersion += 1;
+  }
+
   /** 응답 기록. 마감(결과 공개 마감 또는 타이머/수동 마감)된 투표면 false */
   recordPoll(sessionId: string, activityId: string, value: string): boolean {
     if (this.activity?.activityId === activityId && (this.activity.closed || this.activity.poll?.closed)) return false;
     if (!this.pollAnswers.has(activityId)) this.pollAnswers.set(activityId, new Map());
     this.pollAnswers.get(activityId)!.set(sessionId, value.slice(0, 40));
+    this.touchPoll();
     return true;
   }
 
@@ -469,6 +495,9 @@ export class ClassroomState {
     if (!revealed && !opts.forInstructor) {
       return { counts: {}, total: map.size, entries: [], hidden: true };
     }
+    // 전체 분포는 O(n) 이라 표마다 재계산하지 않고 버전 캐시 (400명 배치 전송 시 창당 1회만 계산)
+    const cached = this.pollDistCache.get(activityId);
+    if (cached && cached.version === this.pollVersion) return cached.dist;
     const anonymous = this.isActivityAnonymous(activityId);
     const counts: Record<string, number> = {};
     const entries: Array<{ nickname?: string; value: string }> = [];
@@ -481,7 +510,16 @@ export class ClassroomState {
         entries.push({ nickname: p ? this.displayName(p) : '익명', value: v });
       }
     }
-    return { counts, total: map.size, entries };
+    const dist: PollDistribution = { counts, total: map.size, entries };
+    this.pollDistCache.set(activityId, { version: this.pollVersion, dist });
+    return dist;
+  }
+
+  /** 참가자용 집계 — entries(전원의 답) 없이 counts/total 만. 미공개면 hidden (Phase 2: 워드클라우드 O(n²) 제거) */
+  pollAggregate(activityId: string): PollDistribution {
+    const full = this.pollDistribution(activityId);
+    if (full.hidden) return full;
+    return { counts: full.counts, total: full.total };
   }
 
   // ── 설문 (자기 페이스 다문항, 1인 1제출 — 재제출 시 덮어씀) ──
