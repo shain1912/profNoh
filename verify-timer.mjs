@@ -103,12 +103,18 @@ teacher.s.emit('instructor:pollReveal');
 ok(await waitFor(() => pollOf(viewer)?.revealed === true), 'P5 강사 "결과 공개" → revealed=true');
 
 // ── P6: 타이머 없음 → 기존 동작 ──
+// 세션 기본 정책은 "마감 후 공개"(after_close, 익명 시스템)라 타이머 없는 투표도 숨김으로 시작한다.
+// "처음부터 공개"는 실시간 공개(live) 정책에서의 기존 동작 — 정책을 바꿔 확인한다.
 teacher.s.emit('instructor:closeActivity');
 await waitFor(() => viewer.state?.activity === null);
+teacher.s.emit('instructor:updateSettings', { resultsReveal: 'live' });
+ok(await waitFor(() => viewer.state?.resultsReveal === 'live'), 'P6 결과 공개 정책 → live');
 teacher.s.emit('instructor:openActivity', { activityId: POLL });
 ok(await waitFor(() => pollOf(viewer) !== undefined), 'P6 타이머 없는 투표 열림');
 const p6 = pollOf(viewer);
 ok(p6?.endsAt === undefined && p6?.closed === false && p6?.revealed === true, 'P6 타이머 없음: endsAt 없음 · 처음부터 결과 공개(기존 동작 유지)', JSON.stringify(p6));
+teacher.s.emit('instructor:updateSettings', { resultsReveal: 'after_close' });
+await waitFor(() => viewer.state?.resultsReveal === 'after_close');
 
 // ── P7: 강사 "지금 마감" ──
 teacher.s.emit('instructor:closeActivity');

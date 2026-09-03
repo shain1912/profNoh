@@ -11,9 +11,11 @@
 //
 // 사용: node verify-flow-ui.mjs [http://localhost:5180]
 import { chromium } from 'playwright';
+import { io } from 'socket.io-client';
 import { mkdirSync } from 'node:fs';
 
 const BASE = process.argv[2] || 'http://localhost:5180';
+const API = process.argv[3] || process.env.API || 'http://localhost:8794'; // 강당 강의실 생성 + 강사 소켓
 const DIR = 'shots';
 mkdirSync(DIR, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -77,16 +79,18 @@ await s1.getByText('입장하기').click();
 await s1.waitForURL('**/play**', { timeout: 8000 });
 await sleep(800);
 
-// ── 입장 화면 (강당 mock: /api/classrooms/:token 응답에 mode=auditorium) ──
+// ── 입장 화면 (강당): 실제 강당 모드 강의실 — 모드는 소켓 스냅샷(settings.mode)이 우선이라 REST mock 으로는 안 바뀐다 ──
+const aud = await (await fetch(`${API}/api/classrooms`, {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'auditorium' }),
+})).json();
+const t2 = io(API, { transports: ['websocket'] });
+await new Promise((r) => t2.on('connect', r));
+t2.emit('instructor:join', { token: aud.token, instructorSecret: aud.instructorSecret });
+await new Promise((r) => t2.once('state', r));
 const s2ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
-await s2ctx.route(`**/api/classrooms/${token}`, async (r) => {
-  const res = await r.fetch();
-  const json = await res.json();
-  await r.fulfill({ json: { ...json, mode: 'auditorium' } });
-});
 const s2 = await s2ctx.newPage();
 watch(s2, 'student2');
-await s2.goto(`${BASE}/join?token=${token}`, { waitUntil: 'networkidle' });
+await s2.goto(`${BASE}/join?token=${aud.token}`, { waitUntil: 'networkidle' });
 await sleep(700);
 // 입장 화면 컨테이너만 검사 (사이트 공용 사용 가이드 패널 텍스트 제외)
 const join2 = await s2.locator('[data-mode]').first().innerText();
@@ -105,8 +109,9 @@ watch(pp, 'projector');
 await pp.goto(`${BASE}/screen/${token}`, { waitUntil: 'networkidle' });
 await sleep(800);
 
-// ── 투표 열기 (30초 타이머 + 자동 공개) ──
+// ── 투표 열기 (30초 타이머 + 자동 공개) — 강당 강의실도 같은 조건으로 ──
 await tp.getByTestId('next-step').click();
+t2.emit('instructor:openActivity', { activityId: 'poll-warmup', timerSec: 30, autoReveal: true });
 await pp.getByTestId('countdown-ring').waitFor({ timeout: 8000 });
 const remaining = Number(await pp.getByTestId('countdown-ring').getAttribute('data-remaining'));
 ok(remaining > 20 && remaining <= 30, 'U4 프로젝터 원형 게이지 표시', `남은 ${remaining}초`);
@@ -117,20 +122,21 @@ ok(/지금 마감/.test(await tp.getByTestId('next-step').innerText()), 'U3 강�
 
 // 참가자 투표
 await s1.locator('input').first().fill('집중');
-await s1.getByText('제출').click();
+await s1.getByRole('button', { name: '제출' }).click();
 await sleep(600);
 const s1text = await s1.locator('#root').innerText();
 ok(/결과는 마감 후 공개/.test(s1text), 'U5 참가자(교실): 투표 후 결과 숨김 안내', s1text.split('\n').find((l) => /마감/.test(l)));
 ok(!/집중/.test(s1text.replace(/집중\s*$/m, '')) || !(await s1.locator('canvas').count()), 'U5 참가자: 마감 전 결과 미노출');
 await s1.screenshot({ path: `${DIR}/flow-06-student-voted-hidden.png` });
 await s2.locator('input').first().fill('성장');
-await s2.getByText('제출').click();
+await s2.getByRole('button', { name: '제출' }).click();
 await sleep(600);
 ok(/결과는 마감 후 공개됩니다/.test(await s2.locator('#root').innerText()), 'U6 참가자(강당): 존댓말 안내');
 await s2.screenshot({ path: `${DIR}/flow-07-student-auditorium.png` });
 
 // ── 강사 지금 마감 → 자동 공개 ──
 await tp.getByTestId('next-step').click();
+t2.emit('instructor:pollClose');
 await pp.getByTestId('poll-results').waitFor({ timeout: 8000 });
 ok((await pp.getByTestId('projector-poll').getAttribute('data-poll-closed')) === 'true', 'U7 지금 마감 → 프로젝터 closed');
 ok(await pp.getByTestId('poll-results').isVisible(), 'U7 자동 공개 → 프로젝터 결과 표시');

@@ -45,7 +45,8 @@ const postJson = async (path, body) => {
 const AUTO_NICK = /^\S{1,5} \S{1,4} \d{1,2}$/;
 
 // ── 1) settings.mode ──
-const aud = await postJson('/api/classrooms', { mode: 'auditorium' });
+// 결과 공개 정책 기본값은 "마감 후 공개"(익명 시스템) — 프로젝터 실시간 막대(색·도형·퍼센트) 검증은 live 정책으로
+const aud = await postJson('/api/classrooms', { mode: 'auditorium', settings: { resultsReveal: 'live' } });
 const cls = await postJson('/api/classrooms', {});
 const bad = await postJson('/api/classrooms', { mode: 'xyz' });
 check('POST /api/classrooms {mode:auditorium} → auditorium', aud.mode === 'auditorium', aud.token);

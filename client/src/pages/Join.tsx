@@ -68,10 +68,8 @@ export default function Join() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col justify-center p-6" data-mode={mode ?? 'classroom'}>
-      <h1 className="text-center text-2xl font-extrabold text-strong">{auditorium ? '강연 입장 🎤' : copy.joinTitle}</h1>
-      <p className="mt-2 text-center text-sm text-muted">
-        {auditorium ? '화면의 코드를 확인하고 닉네임 그대로 입장하세요.' : copy.joinSubtitle}
-      </p>
+      <h1 className="text-center text-2xl font-extrabold text-strong">{copy.joinTitle}</h1>
+      <p className="mt-2 text-center text-sm text-muted">{copy.joinSubtitle}</p>
       <form className="card mt-6 space-y-4" onSubmit={submit}>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-muted">{copy.joinCodeLabel}</label>

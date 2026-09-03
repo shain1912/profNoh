@@ -6,8 +6,9 @@ import { useSessionMode, type SessionMode } from './sessionMode';
 
 const COPY = {
   // ── 입장 (Join) ──
-  joinTitle: ['강의실 입장 🎓', '세션 입장'],
-  joinSubtitle: ['선생님이 알려준 코드를 입력해 주세요.', '화면에 표시된 입장 코드를 입력해 주세요.'],
+  // 강당: 제목은 "강연 입장"(무마찰 입장 워커), 부제는 "세션 입장 코드" + 닉네임 자동 생성 안내
+  joinTitle: ['강의실 입장 🎓', '강연 입장 🎤'],
+  joinSubtitle: ['선생님이 알려준 코드를 입력해 주세요.', '화면에 표시된 세션 입장 코드를 확인하고 닉네임 그대로 입장하세요.'],
   joinCodeLabel: ['강의실 코드', '입장 코드'],
   joinNickLabel: ['닉네임', '닉네임'],
   joinNickPlaceholder: ['내 이름/별명', '표시할 이름 (별명 가능)'],
