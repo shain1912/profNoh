@@ -7,6 +7,7 @@ import type {
   PollDistribution,
   ActivityType,
   QuestionItem,
+  ClassroomMode,
 } from '../../shared/types';
 import { getDeck, getQuizActivity } from './decks';
 import { env } from './env';
@@ -51,15 +52,27 @@ export class ClassroomState {
   private questionList: QuestionItem[] = []; // 익명 질문, 최신순
   budgetSpent = 0;
 
-  settings = {
+  settings: {
+    chatQuota: number;
+    imageQuota: number;
+    budgetUsd: number;
+    /** 세션 모드 — 기본 classroom(교실). auditorium(강당)이면 입장 바·대기 화면·대형 타이포 */
+    mode: ClassroomMode;
+  } = {
     chatQuota: env.QUOTA_CHAT_PER_ACTIVITY,
     imageQuota: env.QUOTA_IMAGE_PER_ACTIVITY,
     budgetUsd: env.CLASSROOM_BUDGET_USD,
+    mode: 'classroom',
   };
 
-  constructor(deckId: string, title?: string) {
+  constructor(deckId: string, title?: string, opts: { mode?: ClassroomMode } = {}) {
     this.deckId = deckId;
     this.title = title;
+    this.settings.mode = normalizeMode(opts.mode);
+  }
+
+  get mode(): ClassroomMode {
+    return this.settings.mode;
   }
 
   // ── 참가자 ──
@@ -79,8 +92,24 @@ export class ClassroomState {
     return this.participants.get(sessionId);
   }
 
+  /** 현재 연결 중인 참가자 수 — 소켓이 끊긴 사람은 빠진다 ("지금 몇 명 보고 있나", R3 결핍 13) */
   participantCount(): number {
+    let n = 0;
+    for (const p of this.participants.values()) if (p.socketId) n += 1;
+    return n;
+  }
+
+  /** 누적 입장 인원 (퇴장 포함) */
+  totalParticipants(): number {
     return this.participants.size;
+  }
+
+  /** 소켓 퇴장 처리. 같은 세션이 다른 소켓으로 재접속한 뒤 도착한 늦은 disconnect 는 무시한다. */
+  markDisconnected(sessionId: string, socketId: string): boolean {
+    const p = this.participants.get(sessionId);
+    if (!p || p.socketId !== socketId) return false;
+    p.socketId = undefined;
+    return true;
   }
 
   snapshot(): ClassroomSnapshot {
@@ -92,6 +121,7 @@ export class ClassroomState {
       currentSlide: this.currentSlide,
       activity: this.activity,
       participantCount: this.participantCount(),
+      mode: this.settings.mode,
     };
   }
 
@@ -287,12 +317,17 @@ export class ClassroomState {
   }
 }
 
+/** 알 수 없는 값은 classroom(기본) 으로 — 클라이언트 입력 방어 */
+export function normalizeMode(m: unknown): ClassroomMode {
+  return m === 'auditorium' ? 'auditorium' : 'classroom';
+}
+
 // ── 레지스트리 ──
 const byToken = new Map<string, ClassroomState>();
 const byId = new Map<string, ClassroomState>();
 
-export function createClassroom(deckId: string, title?: string): ClassroomState {
-  const c = new ClassroomState(deckId, title);
+export function createClassroom(deckId: string, title?: string, opts: { mode?: ClassroomMode } = {}): ClassroomState {
+  const c = new ClassroomState(deckId, title, opts);
   byToken.set(c.token, c);
   byId.set(c.id, c);
   return c;

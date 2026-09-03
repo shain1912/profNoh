@@ -199,7 +199,10 @@ export function setupSocket(io: IO) {
 
     socket.on('disconnect', () => {
       const c = getByToken(socket.data.token ?? '');
-      if (c && socket.data.role === 'student') broadcastParticipants(c);
+      if (!c || socket.data.role !== 'student') return;
+      // 퇴장 반영 — 접속 수는 "현재 연결" 기준 (R3 결핍 13)
+      if (socket.data.sessionId) c.markDisconnected(socket.data.sessionId, socket.id);
+      broadcastParticipants(c);
     });
   });
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PollActivity, PollDistribution } from '@shared/types';
-import PollView from '../PollView';
+import PollView, { CHOICE_COLORS, CHOICE_SHAPES } from '../PollView';
 
 export default function PollStudent({
   activity,
@@ -20,17 +20,19 @@ export default function PollStudent({
 
       {!voted ? (
         activity.mode === 'choice' ? (
-          <div className="mt-4 grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
+          // 프로젝터와 같은 색·도형 코드 — 스크린의 막대와 내 폰의 버튼을 바로 대응시킬 수 있다 (R2 A4-3)
+          <div className="mt-4 grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2" data-testid="poll-choice-buttons">
             {(activity.options ?? []).map((opt, i) => (
               <button
                 key={i}
-                className="btn-ghost py-5 text-lg"
+                className={['flex min-h-[64px] items-center gap-3 rounded-xl px-5 py-4 text-left text-lg font-bold text-white shadow-lg transition active:scale-95', CHOICE_COLORS[i % 4]].join(' ')}
                 onClick={() => {
                   onVote(String(i));
                   setVoted(true);
                 }}
               >
-                {opt}
+                <span className="text-2xl">{CHOICE_SHAPES[i % 4]}</span>
+                <span>{opt}</span>
               </button>
             ))}
           </div>
