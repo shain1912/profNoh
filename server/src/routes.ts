@@ -12,6 +12,7 @@ import { checkSafety, safeImagePrompt } from './ai/safety';
 import { chatComplete, type ChatMessage } from './ai/minimax';
 import { generateImage } from './ai/stability';
 import { runLab } from './ai/lab';
+import { classroomMode, msg, audiencePrompt } from './copy';
 import { generateDeck } from './ai/generateDeck';
 import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent';
 import { GEN_TYPES } from './ai/activitySpecs';
@@ -102,9 +103,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/ai/chat', async (req, reply) => {
     const body = req.body as ChatRequest;
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const lastUser = [...(body.messages ?? [])].reverse().find((m) => m.role === 'user');
     const safety = checkSafety(lastUser?.content ?? '');
@@ -121,7 +122,7 @@ export async function registerRoutes(app: FastifyInstance) {
     const sys: ChatMessage[] =
       act && act.type === 'chat' && act.systemPrompt
         ? [{ role: 'system', content: act.systemPrompt }]
-        : [{ role: 'system', content: '너는 한국 고등학생을 위한 친절하고 안전한 학습 도우미야. 쉽고 짧게 한국어로 답해.' }];
+        : [{ role: 'system', content: audiencePrompt(classroomMode(c)) }];
     const history = (body.messages ?? []).slice(-10) as ChatMessage[];
 
     try {
@@ -132,16 +133,16 @@ export async function registerRoutes(app: FastifyInstance) {
       return { reply: text };
     } catch (e) {
       app.log.error(e);
-      return reply.code(502).send({ error: 'bad', message: 'AI 응답에 실패했어. 잠시 후 다시 시도해줘.' });
+      return reply.code(502).send({ error: 'bad', message: msg(c, 'aiFailed') });
     }
   });
 
   app.post('/api/ai/image', async (req, reply) => {
     const body = req.body as ImageRequest;
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const safety = checkSafety(body.prompt ?? '');
     if (!safety.ok) {
@@ -178,24 +179,24 @@ export async function registerRoutes(app: FastifyInstance) {
       return { dataUrl, demo: !!demo };
     } catch (e) {
       app.log.error(e);
-      const msg = (e as Error).message ?? '';
-      if (msg.includes('moderation') || msg.includes('403')) {
-        return reply.code(400).send({ error: 'safety', message: '그 장면은 이미지로 만들 수 없었어. 다른 장면으로 표현해볼래? 🙂' });
+      const emsg = (e as Error).message ?? '';
+      if (emsg.includes('moderation') || emsg.includes('403')) {
+        return reply.code(400).send({ error: 'safety', message: msg(c, 'imageBlocked') });
       }
-      return reply.code(502).send({ error: 'bad', message: '이미지 생성에 실패했어. 잠시 후 다시 시도해줘.' });
+      return reply.code(502).send({ error: 'bad', message: msg(c, 'imageFailed') });
     }
   });
 
   app.post('/api/ai/lab', async (req, reply) => {
     const body = req.body as LabRequest;
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'lab')
-      return reply.code(400).send({ error: 'bad', message: '실습을 찾을 수 없어.' });
+      return reply.code(400).send({ error: 'bad', message: msg(c, 'labNotFound') });
 
     const safety = checkSafety(body.input ?? '');
     if (!safety.ok) {
@@ -207,7 +208,7 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
 
     try {
-      const r = await runLab(act.labType, body.input);
+      const r = await runLab(act.labType, body.input, classroomMode(c));
       c.countUsage(body.sessionId, body.activityId, 'chat');
       c.addCost(r.cost);
       persistUsage(c, p.id, 'lab', 1, r.cost);
@@ -222,7 +223,7 @@ export async function registerRoutes(app: FastifyInstance) {
       };
     } catch (e) {
       app.log.error(e);
-      return reply.code(502).send({ error: 'bad', message: '실습 실행에 실패했어. 잠시 후 다시 시도해줘.' });
+      return reply.code(502).send({ error: 'bad', message: msg(c, 'labFailed') });
     }
   });
 
@@ -520,9 +521,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/ai/roleplay', async (req, reply) => {
     const body = req.body as { token: string; sessionId: string; activityId: string; messages: any[] };
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const lastUser = [...(body.messages ?? [])].reverse().find((m) => m.role === 'user');
     const safety = checkSafety(lastUser?.content ?? '');
@@ -533,7 +534,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'roleplay') {
-      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없습니다.' });
     }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
@@ -564,9 +565,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/ai/analogy', async (req, reply) => {
     const body = req.body as { token: string; sessionId: string; activityId: string; topic: string };
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const safety = checkSafety(body.topic ?? '');
     if (!safety.ok) {
@@ -576,7 +577,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'analogy') {
-      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없습니다.' });
     }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
@@ -626,9 +627,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/ai/writing', async (req, reply) => {
     const body = req.body as { token: string; sessionId: string; activityId: string; input: string; genre: string };
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const safety = checkSafety(body.input ?? '');
     if (!safety.ok) {
@@ -638,7 +639,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'writing') {
-      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없습니다.' });
     }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');
@@ -670,9 +671,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/api/ai/tutor', async (req, reply) => {
     const body = req.body as { token: string; sessionId: string; activityId: string; input: string };
     const c = getByToken(body.token);
-    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없어.' });
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
     const p = c.getBySession(body.sessionId);
-    if (!p) return reply.code(403).send({ error: 'notfound', message: '먼저 강의실에 입장해줘!' });
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
 
     const safety = checkSafety(body.input ?? '');
     if (!safety.ok) {
@@ -682,7 +683,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const act = getActivity(c.deckId, body.activityId);
     if (!act || act.type !== 'tutor') {
-      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없어.' });
+      return reply.code(400).send({ error: 'bad', message: '활동을 찾을 수 없습니다.' });
     }
 
     const quota = c.checkUsage(body.sessionId, body.activityId, 'chat');

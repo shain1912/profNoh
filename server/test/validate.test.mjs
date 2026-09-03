@@ -50,3 +50,28 @@ test('blankPoll: wordcloud 기본', () => {
   assert.equal(p.type, 'poll');
   assert.equal(p.mode, 'wordcloud');
 });
+
+// ── 강당 D: 활동 타이머 · 자동 공개 필드 정규화 ──
+test('validateDeck: poll timerSec 5~600초 클램프, 0/누락은 제거, autoReveal 은 true 일 때만 유지', () => {
+  const d = blankDeck('DCK010', 't');
+  d.activities['p1'] = { ...blankPoll('p1'), timerSec: 3, autoReveal: true };
+  d.activities['p2'] = { ...blankPoll('p2'), timerSec: 9999, autoReveal: 'yes' };
+  d.activities['p3'] = { ...blankPoll('p3'), timerSec: 0 };
+  d.activities['p4'] = { ...blankPoll('p4'), timerSec: 60.4 };
+  const v = validateDeck(d, 'DCK010');
+  assert.equal(v.activities['p1'].timerSec, 5);
+  assert.equal(v.activities['p1'].autoReveal, true);
+  assert.equal(v.activities['p2'].timerSec, 600);
+  assert.equal('autoReveal' in v.activities['p2'], false);
+  assert.equal('timerSec' in v.activities['p3'], false);
+  assert.equal(v.activities['p4'].timerSec, 60);
+});
+
+test('validateDeck: quiz autoReveal 유지', () => {
+  const d = blankDeck('DCK011', 't');
+  d.activities['q1'] = { ...blankQuiz('q1'), autoReveal: true };
+  d.activities['q2'] = blankQuiz('q2');
+  const v = validateDeck(d, 'DCK011');
+  assert.equal(v.activities['q1'].autoReveal, true);
+  assert.equal('autoReveal' in v.activities['q2'], false);
+});

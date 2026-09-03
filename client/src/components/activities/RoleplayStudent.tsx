@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { RoleplayActivity as RoleplayAct } from '@shared/types';
 import { apiPost } from '../../lib/api';
+import { useCopy } from '../../lib/copy';
 
 interface Msg {
   role: 'user' | 'assistant';
@@ -18,6 +19,7 @@ export default function RoleplayStudent({
   sessionId: string;
   socket: any;
 }) {
+  const copy = useCopy();
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: 'assistant', content: `역할극에 오신 것을 환영합니다! 아래 미션을 완수해 주세요.\n\n🎯 미션: ${activity.missionDescription}` }
   ]);
@@ -56,7 +58,7 @@ export default function RoleplayStudent({
         }
       }
     } catch (e: any) {
-      setErr(e.message ?? '오류가 발생했어');
+      setErr(e.message ?? copy.genericError);
     } finally {
       setLoading(false);
     }

@@ -61,11 +61,24 @@ export function validateDeck(input: unknown, id: string): Deck {
         t = Math.min(120, Math.max(5, t));
         return { id: clamp(q.id, 40) || makeActId(), question: clamp(q.question, 200), options, correctIndex: ci, timeLimitSec: t, explanation: clamp(q.explanation, 300) };
       });
-      activities[key] = { type: 'quiz', id: key, title: clamp(a.title, 80) || '퀴즈', intro: clamp(a.intro, 200) || undefined, questions: questions.length ? questions : blankQuiz(key).questions };
+      activities[key] = {
+        type: 'quiz', id: key, title: clamp(a.title, 80) || '퀴즈', intro: clamp(a.intro, 200) || undefined,
+        questions: questions.length ? questions : blankQuiz(key).questions,
+        ...(a.autoReveal === true ? { autoReveal: true } : {}),
+      };
     } else if (a.type === 'poll') {
       const mode = a.mode === 'choice' ? 'choice' : 'wordcloud';
       const options = mode === 'choice' ? (a.options ?? []).slice(0, 8).map((o) => clamp(o, 60)).filter(Boolean) : [];
-      activities[key] = { type: 'poll', id: key, title: clamp(a.title, 80) || '투표', prompt: clamp(a.prompt, 200), mode, options };
+      // 활동 타이머 5초~10분, 그 외(0/누락)는 타이머 없음
+      const timerSec =
+        typeof a.timerSec === 'number' && Number.isFinite(a.timerSec) && a.timerSec > 0
+          ? Math.min(600, Math.max(5, Math.round(a.timerSec)))
+          : undefined;
+      activities[key] = {
+        type: 'poll', id: key, title: clamp(a.title, 80) || '투표', prompt: clamp(a.prompt, 200), mode, options,
+        ...(timerSec ? { timerSec } : {}),
+        ...(a.autoReveal === true ? { autoReveal: true } : {}),
+      };
     } else if (a.type === 'roleplay') {
       activities[key] = {
         type: 'roleplay',

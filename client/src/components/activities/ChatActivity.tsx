@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChatActivity as ChatAct } from '@shared/types';
 import { apiPost } from '../../lib/api';
+import { useCopy } from '../../lib/copy';
 
 interface Msg {
   role: 'user' | 'assistant';
@@ -16,6 +17,7 @@ export default function ChatActivity({
   token: string;
   sessionId: string;
 }) {
+  const copy = useCopy();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function ChatActivity({
       });
       setMsgs((m) => [...m, { role: 'assistant', content: r.reply }]);
     } catch (e: any) {
-      setErr(e.message ?? '오류가 발생했어');
+      setErr(e.message ?? copy.genericError);
     } finally {
       setLoading(false);
     }

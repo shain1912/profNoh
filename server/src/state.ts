@@ -15,6 +15,19 @@ import type {
 import { resolveAnonymous, ANONYMITY_POLICIES } from '../../shared/types';
 import { getDeck, getQuizActivity, getActivity } from './decks';
 import { env } from './env';
+import { msg, usageLimitMsg } from './copy';
+
+/** 활동 열기 옵션 — 덱에 저장된 timerSec/autoReveal 대신 이번 실행에만 적용 (즉석 타이머) */
+export interface OpenActivityOptions {
+  timerSec?: number;
+  autoReveal?: boolean;
+}
+
+/** 투표 타이머 범위: 5초~10분. 0/음수/비정상은 "타이머 없음" */
+export function normalizeTimerSec(v: unknown): number | undefined {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return undefined;
+  return Math.min(600, Math.max(5, Math.round(v)));
+}
 
 // 헷갈리는 글자(0,O,1,I,L) 제외한 강의실 토큰
 const makeToken = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 6);
@@ -163,7 +176,10 @@ export class ClassroomState {
     if (patch.resultsReveal === 'live' || patch.resultsReveal === 'after_close') this.settings.resultsReveal = patch.resultsReveal;
     if (this.activity) {
       this.activity.anonymous = this.isActivityAnonymous(this.activity.activityId);
-      if (this.activity.type === 'poll' && this.settings.resultsReveal === 'live') this.activity.revealResults = true;
+      if (this.activity.type === 'poll' && this.settings.resultsReveal === 'live') {
+        this.activity.revealResults = true;
+        if (this.activity.poll) this.activity.poll.revealed = true;
+      }
     }
     return { anonymity: this.settings.anonymity, resultsReveal: this.settings.resultsReveal };
   }
@@ -172,7 +188,15 @@ export class ClassroomState {
   revealResults(): boolean {
     if (!this.activity) return false;
     this.activity.revealResults = true;
-    if (this.activity.type === 'poll' && this.settings.resultsReveal === 'after_close') this.activity.closed = true;
+    if (this.activity.poll) this.activity.poll.revealed = true;
+    if (this.activity.type === 'poll' && this.settings.resultsReveal === 'after_close') {
+      // "결과 공개" = 응답 마감 겸함 — 타이머 상태도 함께 마감 처리
+      this.activity.closed = true;
+      if (this.activity.poll) {
+        this.activity.poll.closed = true;
+        this.activity.poll.endsAt = undefined;
+      }
+    }
     return true;
   }
 
@@ -189,7 +213,7 @@ export class ClassroomState {
     if (this.status === 'waiting') this.status = 'live';
   }
 
-  openActivity(activityId: string, type: ActivityType) {
+  openActivity(activityId: string, type: ActivityType, opts: OpenActivityOptions = {}) {
     this.activity = {
       activityId,
       type,
@@ -204,12 +228,54 @@ export class ClassroomState {
         index: 0,
         total: quiz?.questions.length ?? 0,
         phase: 'idle',
+        autoReveal: opts.autoReveal ?? quiz?.autoReveal ?? false,
       };
+    }
+    if (type === 'poll') {
+      const act = getActivity(this.deckId, activityId);
+      const deckTimer = act?.type === 'poll' ? act.timerSec : undefined;
+      const deckAuto = act?.type === 'poll' ? act.autoReveal : undefined;
+      // 즉석 값이 오면(0 포함) 덱 값을 덮어씀. undefined 면 덱 값 사용.
+      const timerSec = normalizeTimerSec(opts.timerSec !== undefined ? opts.timerSec : deckTimer);
+      this.activity.poll = {
+        timerSec,
+        endsAt: timerSec ? Date.now() + timerSec * 1000 : undefined,
+        closed: false,
+        // 세션 정책이 live 이고 타이머가 없을 때만 처음부터 공개.
+        // after_close 정책이거나 타이머가 있으면 마감 전까지 숨김(밴드왜건 방지)
+        revealed: this.settings.resultsReveal === 'live' && !timerSec,
+        autoReveal: opts.autoReveal ?? deckAuto ?? false,
+      };
+      // 상위 revealResults(익명 정책) 와 poll.revealed(타이머) 는 항상 같은 값을 유지한다
+      this.activity.revealResults = this.activity.poll.revealed;
     }
   }
 
   closeActivity() {
     this.activity = null;
+  }
+
+  /** 투표 마감 — 추가 응답 차단. autoReveal 이면 결과도 함께 공개. 이미 마감이면 false */
+  pollClose(): boolean {
+    const p = this.activity?.poll;
+    if (!p || p.closed) return false;
+    p.closed = true;
+    p.endsAt = undefined;
+    this.activity!.closed = true;
+    if (p.autoReveal) {
+      p.revealed = true;
+      this.activity!.revealResults = true;
+    }
+    return true;
+  }
+
+  /** 투표 결과 수동 공개. 이미 공개면 false */
+  pollReveal(): boolean {
+    const p = this.activity?.poll;
+    if (!p || p.revealed) return false;
+    p.revealed = true;
+    this.activity!.revealResults = true;
+    return true;
   }
 
   // ── 퀴즈 ──
@@ -307,9 +373,9 @@ export class ClassroomState {
   }
 
   // ── 투표 ──
-  /** 응답 기록. 결과 공개로 마감된 투표면 false */
+  /** 응답 기록. 마감(결과 공개 마감 또는 타이머/수동 마감)된 투표면 false */
   recordPoll(sessionId: string, activityId: string, value: string): boolean {
-    if (this.activity?.activityId === activityId && this.activity.closed) return false;
+    if (this.activity?.activityId === activityId && (this.activity.closed || this.activity.poll?.closed)) return false;
     if (!this.pollAnswers.has(activityId)) this.pollAnswers.set(activityId, new Map());
     this.pollAnswers.get(activityId)!.set(sessionId, value.slice(0, 40));
     return true;
@@ -369,17 +435,12 @@ export class ClassroomState {
 
   // ── 쿼터 / 예산 ──
   checkUsage(sessionId: string, activityId: string, type: 'chat' | 'image'): { ok: boolean; message?: string } {
-    if (this.paused) return { ok: false, message: '강사님이 잠시 AI 실습을 멈췄어요. 곧 다시 열릴 거예요!' };
-    if (this.budgetSpent >= this.settings.budgetUsd)
-      return { ok: false, message: '오늘 강의실 AI 사용량이 가득 찼어요. 강사님께 알려주세요!' };
+    if (this.paused) return { ok: false, message: msg(this, 'usagePaused') };
+    if (this.budgetSpent >= this.settings.budgetUsd) return { ok: false, message: msg(this, 'usageBudget') };
     const limit = type === 'chat' ? this.settings.chatQuota : this.settings.imageQuota;
     const key = `${sessionId}|${activityId}|${type}`;
     const used = this.usage.get(key) ?? 0;
-    if (used >= limit)
-      return {
-        ok: false,
-        message: `이 실습에서 ${type === 'chat' ? '대화' : '이미지'}는 ${limit}번까지 할 수 있어. 다음 실습에서 또 해보자!`,
-      };
+    if (used >= limit) return { ok: false, message: usageLimitMsg(this, type === 'chat' ? '대화' : '이미지', limit) };
     return { ok: true };
   }
 

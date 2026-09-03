@@ -1,13 +1,11 @@
 import { chatComplete, type ChatMessage } from './minimax';
-
-const SYS: ChatMessage = {
-  role: 'system',
-  content: '너는 한국 고등학생을 위한 친절한 한국어 학습 도우미야. 쉽고 간결하게 답해.',
-};
+import { audiencePrompt, type SessionMode } from '../copy';
 
 type LabType = 'prompt' | 'context' | 'harness';
 
-function buildPair(labType: LabType, input: string): { a: ChatMessage[]; b: ChatMessage[]; configA: string; configB: string } {
+function buildPair(labType: LabType, input: string, mode: SessionMode): { a: ChatMessage[]; b: ChatMessage[]; configA: string; configB: string } {
+  // 청중(고등학생/성인)에 맞춘 시스템 프롬프트 — settings.mode 기준
+  const SYS: ChatMessage = { role: 'system', content: audiencePrompt(mode) };
   if (labType === 'prompt') {
     return {
       configA: '정중한 표현',
@@ -26,7 +24,7 @@ function buildPair(labType: LabType, input: string): { a: ChatMessage[]; b: Chat
         {
           role: 'user',
           content:
-            `${input}\n\n[추가 맥락] 나는 16세 고등학생. 시간은 2시간 정도, 너무 무섭거나 잔인한 건 싫어. ` +
+            `${input}\n\n[추가 맥락] ${mode === 'auditorium' ? '나는 30대 직장인' : '나는 16세 고등학생'}. 시간은 2시간 정도, 너무 무섭거나 잔인한 건 싫어. ` +
             `한국에서 쉽게 접할 수 있는 것으로, 각 항목에 이유를 한 줄씩 붙여서 딱 3개만 추천해줘.`,
         },
       ],
@@ -51,8 +49,8 @@ function buildPair(labType: LabType, input: string): { a: ChatMessage[]; b: Chat
   };
 }
 
-export async function runLab(labType: LabType, input: string) {
-  const { a, b, configA, configB } = buildPair(labType, input);
+export async function runLab(labType: LabType, input: string, mode: SessionMode = 'classroom') {
+  const { a, b, configA, configB } = buildPair(labType, input, mode);
   const [ra, rb] = await Promise.all([chatComplete(a, { maxTokens: 700 }), chatComplete(b, { maxTokens: 900 })]);
   return {
     outputA: ra.text,

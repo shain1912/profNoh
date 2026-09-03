@@ -14,6 +14,10 @@ function Editor({ act, onChange }: { act: QuizActivity; onChange: (a: QuizActivi
     <div className="space-y-4">
       <TextField label="퀴즈 제목" value={act.title} maxLength={80} onChange={(v) => onChange({ ...act, title: v })} />
       <TextField label="안내 문구 (선택)" value={act.intro ?? ''} maxLength={200} placeholder="예: 가볍게 몸풀기! 빠르게 맞혀보자." onChange={(v) => onChange({ ...act, intro: v || undefined })} />
+      <label className="flex items-center gap-2 text-sm text-white/60">
+        <input type="checkbox" checked={!!act.autoReveal} onChange={(e) => onChange({ ...act, autoReveal: e.target.checked || undefined })} />
+        제한 시간이 끝나면 자동으로 정답 공개 (강사 조작 없이 진행)
+      </label>
       {act.questions.map((q, qi) => (
         <div key={q.id} className="card space-y-2">
           <input className="input" placeholder="문제" value={q.question} maxLength={200} onChange={(e) => setQ(qi, { question: e.target.value })} />

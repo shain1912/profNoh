@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { LabActivity as LabAct } from '@shared/types';
 import { apiPost } from '../../lib/api';
 import Thinking from '../Thinking';
+import { useCopy } from '../../lib/copy';
 
 interface LabResult {
   outputA: string;
@@ -19,6 +20,7 @@ export default function LabActivity({
   token: string;
   sessionId: string;
 }) {
+  const copy = useCopy();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -52,7 +54,7 @@ export default function LabActivity({
       });
       setRes(r);
     } catch (e: any) {
-      setErr(e.message ?? '오류가 발생했어');
+      setErr(e.message ?? copy.genericError);
     } finally {
       setLoading(false);
     }
@@ -101,12 +103,12 @@ export default function LabActivity({
       )}
 
       {cannedOnly && !res && !loading && (
-        <p className="mt-3 text-center text-xs text-muted-2">위 예시 중 하나를 눌러보세요 ☝️</p>
+        <p className="mt-3 text-center text-xs text-muted-2">{copy.labPickExample}</p>
       )}
 
       {err && <p className="mt-2 text-sm text-down">{err}</p>}
 
-      {loading && <Thinking text="🧪 실험 중… 두 결과를 비교하고 있어요. 잠깐만!" />}
+      {loading && <Thinking text={copy.labThinking} />}
 
       <div className="mt-4 grid flex-1 grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2">
         <Panel label={res?.labelA ?? activity.labelA} text={res?.outputA} loading={loading} tone="a" />
@@ -114,9 +116,7 @@ export default function LabActivity({
       </div>
 
       {res && (
-        <p className="mt-3 text-center text-sm text-muted">
-          👀 두 결과의 차이가 보이나요? <b>무엇이</b> 결과를 바꿨는지 생각해봐요.
-        </p>
+        <p className="mt-3 text-center text-sm text-muted">{copy.labReflect}</p>
       )}
     </div>
   );
@@ -133,11 +133,12 @@ function Panel({
   loading: boolean;
   tone: 'a' | 'b';
 }) {
+  const copy = useCopy();
   return (
     <div className={['rounded-xl p-3 ring-1', tone === 'a' ? 'bg-surface-2 ring-hairline' : 'bg-brand/5 ring-brand/30'].join(' ')}>
       <div className="mb-2 inline-block rounded-full bg-surface px-3 py-1 text-xs font-bold ring-1 ring-hairline">{label}</div>
       <div className="whitespace-pre-wrap text-sm leading-relaxed text-body">
-        {loading ? '…' : text ?? '결과가 여기에 나와요'}
+        {loading ? '…' : text ?? copy.labResultHere}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { WritingActivity } from '@shared/types';
 import { apiPost } from '../../lib/api';
 import { getNickname } from '../../lib/session';
+import { useCopy } from '../../lib/copy';
 
 export default function WritingStudent({
   activity,
@@ -12,7 +13,8 @@ export default function WritingStudent({
   token: string;
   sessionId: string;
 }) {
-  const nickname = getNickname() || '학생';
+  const copy = useCopy();
+  const nickname = getNickname() || copy.participantFallback;
   const [input, setInput] = useState('');
   const [genre, setGenre] = useState<'poem' | 'story' | 'essay'>(activity.genre || 'poem');
   const [loading, setLoading] = useState(false);

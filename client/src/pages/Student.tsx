@@ -6,7 +6,11 @@ import { getNickname, getSessionId } from '../lib/session';
 import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
 import { activityDef } from '../activities/registry';
+import { SessionModeContext, useResolvedSessionMode } from '../lib/sessionMode';
+import { copyFor } from '../lib/copy';
 
+// 거절 비용 0 (R2 A8-1·2·4): 참가자 페이지는 오디오 재생·진동·Web Push·카메라/위치 등
+// 어떤 권한 요청도 하지 않는다. 활동 오픈 알림은 화면 전환뿐이다. (verify-copy.mjs 가 검사)
 export default function Student() {
   const [params] = useSearchParams();
   const nav = useNavigate();
@@ -23,6 +27,9 @@ export default function Student() {
   }, [token, nickname, nav]);
 
   const live = useClassroom((s) => s.emit('student:join', { token, nickname, sessionId }));
+  // 세션 유형(교실/강당) → 참가자 카피 톤. 스냅샷에 mode 가 없으면 REST 폴백, 그래도 없으면 교실
+  const mode = useResolvedSessionMode(token, live.snapshot);
+  const copy = copyFor(mode);
 
   useEffect(() => {
     const id = live.snapshot?.deckId;
@@ -33,7 +40,8 @@ export default function Student() {
     live.leaderboard.find((e) => e.nickname === nickname)?.score ?? live.joined?.score ?? 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <SessionModeContext.Provider value={mode}>
+    <div className="flex h-full flex-col" data-mode={mode}>
       {/* 상단바 */}
       <header className="flex items-center justify-between border-b border-hairline bg-surface px-4 py-2 text-sm">
         <span className="flex items-center gap-2">
@@ -62,7 +70,7 @@ export default function Student() {
 
       <main className="flex-1 overflow-hidden p-3">
         {!deck ? (
-          <div className="grid h-full place-items-center text-muted-2">강의실에 연결 중… ⏳</div>
+          <div className="grid h-full place-items-center text-muted-2">{copy.connecting}</div>
         ) : (
           <ActivityArea deck={deck} live={live} token={token} sessionId={sessionId} />
         )}
@@ -72,7 +80,7 @@ export default function Student() {
       <button
         onClick={() => { setAskOpen(true); setAskSent(false); }}
         className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-on-brand shadow-pop hover:scale-105 active:scale-95 transition-all"
-        title="선생님께 질문하기"
+        title={copy.askButtonTitle}
       >
         <span className="text-2xl">❓</span>
       </button>
@@ -81,17 +89,17 @@ export default function Student() {
         <div className="modal-overlay" onClick={() => setAskOpen(false)}>
           <div className="modal-card max-w-sm" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setAskOpen(false)}>✕</button>
-            <h2 className="text-lg font-bold text-brand">❓ 선생님께 질문하기</h2>
-            <p className="mt-1 text-xs text-muted">닉네임 없이 익명으로 전달돼요. 궁금한 건 뭐든 물어보세요!</p>
+            <h2 className="text-lg font-bold text-brand">{copy.askTitle}</h2>
+            <p className="mt-1 text-xs text-muted">{copy.askHint}</p>
             {askSent ? (
-              <p className="mt-6 text-center text-up font-semibold">질문이 전달됐어요! 🙌</p>
+              <p className="mt-6 text-center text-up font-semibold">{copy.askSent}</p>
             ) : (
               <>
                 <textarea
                   className="input mt-4 w-full resize-none text-sm"
                   rows={3}
                   maxLength={300}
-                  placeholder="예) 아까 말씀하신 부분 다시 설명해주실 수 있나요?"
+                  placeholder={copy.askPlaceholder}
                   value={askText}
                   onChange={(e) => setAskText(e.target.value)}
                 />
@@ -105,7 +113,7 @@ export default function Student() {
                     setTimeout(() => setAskOpen(false), 1400);
                   }}
                 >
-                  질문 보내기
+                  {copy.askSend}
                 </button>
               </>
             )}
@@ -113,6 +121,7 @@ export default function Student() {
         </div>
       )}
     </div>
+    </SessionModeContext.Provider>
   );
 }
 
