@@ -17,6 +17,9 @@ export interface ReportRows {
   pollResponses: any[];
   aiUsages: any[];
   labRuns: any[];
+  /** 강당 활동 — 마이그레이션 전 환경이면 빈 배열 */
+  surveyResponses?: any[];
+  questionRows?: any[];
 }
 
 export function classroomAnonymityPolicy(classroom: any): AnonymityPolicy {
@@ -31,6 +34,8 @@ export function buildReport(rows: ReportRows) {
   const polls = rows.pollResponses ?? [];
   const usages = rows.aiUsages ?? [];
   const labs = rows.labRuns ?? [];
+  const surveys = rows.surveyResponses ?? [];
+  const questions = rows.questionRows ?? [];
 
   const policy = classroomAnonymityPolicy(classroom);
   const sessionAnonymous = policy === 'always_anon';
@@ -77,8 +82,23 @@ export function buildReport(rows: ReportRows) {
   const quizSummary: Record<string, any> = {};
   if (deck) {
     Object.values(deck.activities).forEach((act: any) => {
-      if (act.type !== 'quiz') return;
       const anonymous = resolveAnonymous(policy, act.anonymous);
+      if (act.type === 'ox') {
+        // OX 퀴즈는 quiz 엔진으로 채점되므로 문항 id 는 `${activityId}:q`
+        quizSummary[`${act.id}:q`] = {
+          questionText: act.question,
+          options: ['O', 'X'],
+          correctIndex: act.answer === 'X' ? 1 : 0,
+          anonymous,
+          totalAnswers: 0,
+          correctAnswers: 0,
+          correctRate: 0,
+          answers: {},
+          studentDetails: [],
+        };
+        return;
+      }
+      if (act.type !== 'quiz') return;
       act.questions.forEach((q: any) => {
         quizSummary[q.id] = {
           questionText: q.question,
@@ -98,8 +118,10 @@ export function buildReport(rows: ReportRows) {
   quizzes.forEach((qr) => {
     let qStat = quizSummary[qr.question_id];
     if (!qStat) {
+      // 즉석 OX 퀴즈(덱에 없음)는 문항 id 형식으로 구분
+      const adhocOx = String(qr.question_id).startsWith('ox_');
       qStat = {
-        questionText: '삭제된 문제', options: [], correctIndex: -1,
+        questionText: adhocOx ? '즉석 OX 퀴즈' : '삭제된 문제', options: adhocOx ? ['O', 'X'] : [], correctIndex: -1,
         anonymous: resolveAnonymous(policy, undefined),
         totalAnswers: 0, correctAnswers: 0, correctRate: 0, answers: {}, studentDetails: [],
       };
@@ -126,6 +148,20 @@ export function buildReport(rows: ReportRows) {
   const pollSummary: Record<string, any> = {};
   if (deck) {
     Object.values(deck.activities).forEach((act: any) => {
+      if (act.type === 'scale') {
+        pollSummary[act.id] = {
+          prompt: act.prompt,
+          mode: 'scale',
+          options: ['1', '2', '3', '4', '5'],
+          lowLabel: act.lowLabel,
+          highLabel: act.highLabel,
+          anonymous: resolveAnonymous(policy, act.anonymous),
+          totalVotes: 0,
+          votes: {},
+          studentDetails: [],
+        };
+        return;
+      }
       if (act.type !== 'poll') return;
       pollSummary[act.id] = {
         prompt: act.prompt,
@@ -155,6 +191,60 @@ export function buildReport(rows: ReportRows) {
     // 익명 투표는 개별 응답(이름·값 쌍)을 리포트에 싣지 않는다 — 집계(votes)만
     if (!pStat.anonymous) pStat.studentDetails.push({ nickname: nameOf(pr.participant_id), value: val });
   });
+
+  // 3-1. 척도 투표 평균 (mode==='scale' — 참가자별 최신 응답만 유효)
+  Object.values(pollSummary).forEach((p: any) => {
+    if (p.mode !== 'scale') return;
+    const latest = new Map<string, number>();
+    polls
+      .filter((pr) => pollSummary[pr.activity_id] === p)
+      .forEach((pr) => { const n = Number(pr.value); if (Number.isInteger(n) && n >= 1 && n <= 5) latest.set(pr.participant_id, n); });
+    const vals = [...latest.values()];
+    p.votes = {};
+    vals.forEach((n) => { p.votes[String(n)] = (p.votes[String(n)] || 0) + 1; });
+    p.totalVotes = vals.length;
+    p.avg = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100 : null;
+  });
+
+  // 3-2. 설문 집계 (항상 익명 — 개인 식별 없이 문항별 평균·분포·주관식)
+  const surveySummary: Record<string, any> = {};
+  if (deck) {
+    Object.values(deck.activities).forEach((act: any) => {
+      if (act.type !== 'survey') return;
+      surveySummary[act.id] = {
+        title: act.title,
+        total: 0,
+        questions: act.questions.map((q: any) => ({ id: q.id, kind: q.kind, text: q.text, lowLabel: q.lowLabel, highLabel: q.highLabel, count: 0, avg: null, dist: {}, texts: [] })),
+      };
+    });
+  }
+  surveys.forEach((sr) => {
+    const sv = surveySummary[sr.activity_id];
+    if (!sv) return;
+    sv.total += 1;
+    const answers = (sr.answers ?? {}) as Record<string, unknown>;
+    sv.questions.forEach((q: any) => {
+      const v = answers[q.id];
+      if (v === undefined || v === null || v === '') return;
+      if (q.kind === 'text') { if (typeof v === 'string') { q.texts.push(v); q.count += 1; } return; }
+      const n = Number(v);
+      if (!Number.isFinite(n)) return;
+      q.dist[String(n)] = (q.dist[String(n)] || 0) + 1;
+      q.count += 1;
+      q._sum = (q._sum || 0) + n;
+    });
+  });
+  Object.values(surveySummary).forEach((sv: any) => sv.questions.forEach((q: any) => {
+    if (q.kind !== 'text' && q.count > 0) q.avg = Math.round((q._sum / q.count) * 100) / 100;
+    delete q._sum;
+  }));
+
+  // 3-3. Q&A (익명 질문 — 업보트순, 승인분만)
+  const qaSummary = questions
+    .filter((q) => q.approved !== false)
+    .map((q) => ({
+      id: q.id, text: q.text, upvotes: q.upvotes ?? 0, answered: !!q.answered, approved: true, createdAt: q.created_at,
+    }));
 
   // 4. 비교 실습(Lab) 집계
   const labSummary = labs.map((l) => ({
@@ -192,6 +282,8 @@ export function buildReport(rows: ReportRows) {
     })),
     quizSummary,
     pollSummary,
+    surveySummary,
+    qaSummary,
     labSummary,
     participantAiUsages: Object.entries(participantAiMap).map(([nickname, data]) => ({
       nickname,

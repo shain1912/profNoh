@@ -748,16 +748,21 @@ export async function registerRoutes(app: FastifyInstance) {
         { data: quizResponses },
         { data: pollResponses },
         { data: aiUsages },
-        { data: labRuns }
+        { data: labRuns },
+        { data: surveyResponses },
+        { data: questionRows },
       ] = await Promise.all([
         supabase.from('axedu_participants').select('*').eq('classroom_id', id),
         supabase.from('axedu_quiz_responses').select('*').eq('classroom_id', id),
         supabase.from('axedu_poll_responses').select('*').eq('classroom_id', id),
         supabase.from('axedu_ai_usage').select('*').eq('classroom_id', id),
-        supabase.from('axedu_lab_runs').select('*').eq('classroom_id', id)
+        supabase.from('axedu_lab_runs').select('*').eq('classroom_id', id),
+        // 강당 활동 테이블은 마이그레이션 전 환경일 수 있어 실패해도 리포트 자체는 막지 않음
+        supabase.from('axedu_survey_responses').select('*').eq('classroom_id', id).then((r) => (r.error ? { data: [] } : r)),
+        supabase.from('axedu_questions').select('*').eq('classroom_id', id).order('upvotes', { ascending: false }).then((r) => (r.error ? { data: [] } : r)),
       ]);
 
-      // 4. 집계 (익명 정책 적용) — 순수 함수 server/src/report.ts
+      // 4. 집계 (익명 정책 + 강당 활동 survey/scale/ox/Q&A) — 순수 함수 server/src/report.ts
       return buildReport({
         classroom,
         deck,
@@ -766,6 +771,8 @@ export async function registerRoutes(app: FastifyInstance) {
         pollResponses: pollResponses ?? [],
         aiUsages: aiUsages ?? [],
         labRuns: labRuns ?? [],
+        surveyResponses: surveyResponses ?? [],
+        questionRows: questionRows ?? [],
       });
     } catch (e) {
       app.log.error(e);

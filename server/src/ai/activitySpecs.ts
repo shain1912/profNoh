@@ -1,4 +1,5 @@
 import type { ActivityType } from '../../../shared/types';
+import { SURVEY_PRESET } from '../../../shared/surveyPreset';
 
 // ──────────────────────────────────────────────────────────────
 //  활동별 AI 생성 스펙 레지스트리 (서버 단일 정의처)
@@ -210,6 +211,61 @@ export const ACTIVITY_GEN_SPECS: Record<GenType, ActivityGenSpec> = {
         labelA: clamp(a.labelA, 60) || labelDefaults[labType][0],
         labelB: clamp(a.labelB, 60) || labelDefaults[labType][1],
       };
+    },
+  },
+
+  // ── 강당용 활동 3종 (survey · scale · ox) ──
+  survey: {
+    label: '만족도 설문',
+    fields:
+      'title, intro(안내 문구), questions(3~8개 배열: [{kind("likert"|"nps"|"text"), text, lowLabel, highLabel}]). ' +
+      'likert 는 1~5점 동의 척도(문장형 진술: "…했다/…이다"), nps 는 0~10 추천 의향 1문항만, text 는 주관식(마지막에 1개). ' +
+      '정답이 있는 문항 금지 — 만족·관련성·이해도·몰입·추천·개선점처럼 강연/수업에 대한 반응(Kirkpatrick L1)을 묻는다. ' +
+      '기본 세트 예: 전반 만족 / 업무·일상 관련성 / 설명 이해 용이 / 집중 참여 / 추천(NPS) / 자유 의견',
+    example: '{"title":"강연 만족도","intro":"1분이면 끝나요","questions":[{"kind":"likert","text":"오늘 강연에 전반적으로 만족한다","lowLabel":"전혀 아니다","highLabel":"매우 그렇다"},{"kind":"nps","text":"이 강연을 동료에게 추천하시겠습니까?"},{"kind":"text","text":"개선할 점을 자유롭게 적어주세요"}]}',
+    oneShot: '"questions": [{"kind": "likert"|"nps"|"text", "text": string, "lowLabel"?: string, "highLabel"?: string}] (3~8개, nps 최대 1개, text 는 마지막)',
+    normalize: (a) => {
+      const rawQs = Array.isArray(a?.questions) ? a.questions : [];
+      const questions = rawQs.slice(0, 12).map((q: any) => {
+        const text = clamp(q?.text, 200);
+        if (!text) return null;
+        const kind = q?.kind === 'nps' ? 'nps' : q?.kind === 'text' ? 'text' : 'likert';
+        return { kind, text, lowLabel: clamp(q?.lowLabel, 30) || undefined, highLabel: clamp(q?.highLabel, 30) || undefined };
+      }).filter(Boolean);
+      return {
+        title: clamp(a?.title, 80) || '만족도 설문', intro: clamp(a?.intro, 200) || undefined,
+        questions: questions.length ? questions : SURVEY_PRESET.map((q) => ({ ...q })),
+      };
+    },
+  },
+
+  scale: {
+    label: '척도 투표(1~5)',
+    fields:
+      'title, prompt(1~5로 답하는 자기평가 질문 — 정답 없음. 예: "지금 이 방법을 내 업무에 적용할 수 있다고 느끼는 정도는?"), ' +
+      'lowLabel(1점 뜻, 예: "전혀 아니다"), highLabel(5점 뜻, 예: "매우 그렇다")',
+    example: '{"title":"적용 가능성","prompt":"오늘 배운 내용을 바로 적용할 수 있다고 느끼는 정도는?","lowLabel":"전혀 아니다","highLabel":"매우 그렇다"}',
+    oneShot: '"prompt": string(1~5 자기평가 질문, 정답 없음), "lowLabel": string, "highLabel": string',
+    normalize: (a) => {
+      const prompt = clamp(a?.prompt, 200);
+      if (!prompt) return null;
+      return { title: clamp(a?.title, 80) || '척도 투표', prompt, lowLabel: clamp(a?.lowLabel, 30) || undefined, highLabel: clamp(a?.highLabel, 30) || undefined };
+    },
+  },
+
+  ox: {
+    label: 'OX 퀴즈',
+    fields:
+      'title, question(참/거짓으로 판별되는 진술문 1개 — 원문 개념을 새 상황에 적용한 문장이 좋음. "모든/항상/절대" 같은 절대 표현으로 답이 뻔해지는 문장 금지), ' +
+      'answer("O"=참 | "X"=거짓), timeLimitSec(10~30), explanation(왜 O/X 인지 한두 문장)',
+    example: '{"title":"OX 퀴즈","question":"생성형 AI는 다음 단어를 확률로 예측해 문장을 만든다.","answer":"O","timeLimitSec":15,"explanation":"..."}',
+    oneShot: '"question": string(참/거짓 진술문), "answer": "O"|"X", "timeLimitSec": number, "explanation": string',
+    normalize: (a) => {
+      const question = clamp(a?.question, 200);
+      if (!question) return null;
+      let t = typeof a?.timeLimitSec === 'number' ? a.timeLimitSec : 20;
+      t = Math.min(120, Math.max(5, t));
+      return { title: clamp(a?.title, 80) || 'OX 퀴즈', question, answer: a?.answer === 'X' ? 'X' : 'O', timeLimitSec: t, explanation: clamp(a?.explanation, 300) || undefined };
     },
   },
 };

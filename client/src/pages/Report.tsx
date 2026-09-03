@@ -53,9 +53,12 @@ interface ReportData {
     string,
     {
       prompt: string;
-      mode: 'choice' | 'wordcloud';
+      mode: 'choice' | 'wordcloud' | 'scale';
       options: string[];
       anonymous?: boolean;
+      lowLabel?: string;
+      highLabel?: string;
+      avg?: number | null;
       totalVotes: number;
       votes: Record<string, number>;
       studentDetails: Array<{
@@ -64,6 +67,26 @@ interface ReportData {
       }>;
     }
   >;
+  // 강당 활동: 설문(익명 집계) + Q&A(익명 질문, 업보트순)
+  surveySummary?: Record<
+    string,
+    {
+      title: string;
+      total: number;
+      questions: Array<{
+        id: string;
+        kind: 'likert' | 'nps' | 'text';
+        text: string;
+        lowLabel?: string;
+        highLabel?: string;
+        count: number;
+        avg: number | null;
+        dist: Record<string, number>;
+        texts: string[];
+      }>;
+    }
+  >;
+  qaSummary?: Array<{ id: string; text: string; upvotes: number; answered: boolean; approved: boolean; createdAt: string }>;
   labSummary: Array<{
     nickname: string;
     labType: string;
@@ -93,7 +116,7 @@ export default function Report() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'quiz' | 'poll' | 'lab'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'quiz' | 'poll' | 'survey' | 'lab'>('overview');
 
   useEffect(() => {
     if (!classroomId || !secret) {
@@ -142,6 +165,13 @@ export default function Report() {
   }
 
   const { classroom, stats, participants, quizSummary, pollSummary, labSummary, participantAiUsages } = data;
+  const surveySummary = data.surveySummary ?? {};
+  const qaSummary = data.qaSummary ?? [];
+  const npsOf = (dist: Record<string, number>) => {
+    let p = 0, d = 0, n = 0;
+    Object.entries(dist).forEach(([k, c]) => { const v = Number(k); n += c; if (v >= 9) p += c; else if (v <= 6) d += c; });
+    return n ? Math.round(((p - d) / n) * 100) : null;
+  };
 
   const handlePrint = () => {
     window.print();
@@ -247,6 +277,14 @@ export default function Report() {
           onClick={() => setActiveTab('poll')}
         >
           🗳️ 투표 결과 ({Object.keys(pollSummary).length})
+        </button>
+        <button
+          className={`flex-1 min-w-[100px] py-4 text-center text-xs sm:text-sm font-bold border-b-2 transition-all ${
+            activeTab === 'survey' ? 'border-brand text-brand font-extrabold bg-brand/5' : 'border-transparent text-muted hover:text-strong'
+          }`}
+          onClick={() => setActiveTab('survey')}
+        >
+          📝 설문·Q&A ({Object.keys(surveySummary).length + (qaSummary.length ? 1 : 0)})
         </button>
         <button
           className={`flex-1 min-w-[100px] py-4 text-center text-xs sm:text-sm font-bold border-b-2 transition-all ${
@@ -507,20 +545,23 @@ export default function Report() {
                   <span className="bg-brand/10 text-brand px-2.5 py-1 rounded-lg text-xs font-bold print-badge-green">POLL {idx + 1}</span>
                   <h3 className="font-bold text-strong text-base print-text-dark">{p.prompt}</h3>
                 </div>
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-2">
+                  {p.mode === 'scale' && (
+                    <span className="text-lg font-extrabold text-brand">{p.avg == null ? '–' : p.avg.toFixed(2)} <span className="text-xs text-muted">/ 5 평균</span></span>
+                  )}
                   {p.anonymous && (
                     <span className="text-xs bg-surface-2 px-2 py-1 rounded-full text-muted ring-1 ring-hairline print-text-muted" title="익명 활동 — 개별 응답자 정보 없이 집계만 제공" data-testid="report-poll-anon">
                       🔒 익명 집계
                     </span>
                   )}
                   <span className="text-xs bg-surface-2 px-2 py-1 rounded-full text-muted ring-1 ring-hairline print-text-muted uppercase tracking-wider">
-                    {p.mode === 'choice' ? '객관식 투표' : '워드클라우드'}
+                    {p.mode === 'choice' ? '객관식 투표' : p.mode === 'scale' ? '척도 투표 1~5' : '워드클라우드'}
                   </span>
                 </span>
               </div>
 
               {/* 투표 결과 보기 */}
-              {p.mode === 'choice' ? (
+              {p.mode === 'choice' || p.mode === 'scale' ? (
                 <div className="space-y-3 max-w-xl">
                   {p.options.map((opt) => {
                     const votes = p.votes[opt] ?? 0;
@@ -579,6 +620,85 @@ export default function Report() {
               이 덱에는 실시간 투표 활동이 없습니다.
             </div>
           )}
+        </div>
+
+        {/* 3-1. 설문 · Q&A 탭 (강당 활동 — 익명 집계) */}
+        <div className={`${activeTab === 'survey' ? 'block' : 'hidden print:block'} space-y-6 print-section`}>
+          <h2 className="text-xl font-extrabold text-white hidden print:block mb-4 text-gray-900 border-b pb-2">📝 설문 · Q&A</h2>
+          {Object.entries(surveySummary).map(([sid, s]) => (
+            <div key={sid} className="card p-5 print-card">
+              <div className="flex justify-between items-center border-b border-hairline pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="bg-brand/10 text-brand px-2.5 py-1 rounded-lg text-xs font-bold print-badge-green">SURVEY</span>
+                  <h3 className="font-bold text-strong text-base print-text-dark">{s.title}</h3>
+                </div>
+                <span className="text-xs text-muted print-text-muted">응답 <b className="text-strong">{s.total}</b>명 · 익명 집계</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {s.questions.map((q, qi) => (
+                  <div key={q.id} className={`rounded-xl bg-surface-2 p-3 ring-1 ring-hairline print-card ${q.kind === 'text' ? 'md:col-span-2' : ''}`}>
+                    <div className="flex justify-between items-start gap-2">
+                      <p className="text-sm font-semibold text-strong print-text-dark"><span className="text-muted-2 mr-1">Q{qi + 1}</span>{q.text}</p>
+                      {q.kind !== 'text' && (
+                        <span className="shrink-0 text-lg font-extrabold text-brand">
+                          {q.avg == null ? '–' : q.avg.toFixed(2)} <span className="text-xs text-muted">/ {q.kind === 'nps' ? 10 : 5}</span>
+                        </span>
+                      )}
+                    </div>
+                    {q.kind !== 'text' ? (
+                      <div className="mt-2 space-y-1">
+                        {(q.kind === 'nps' ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5]).map((v) => {
+                          const c = q.dist[String(v)] ?? 0;
+                          const pct = q.count > 0 ? Math.round((c / q.count) * 100) : 0;
+                          return (
+                            <div key={v} className="flex items-center gap-2 text-xs">
+                              <span className="w-5 text-right tabular-nums text-muted print-text-muted">{v}</span>
+                              <div className="h-2 flex-1 bg-surface-3 rounded-full overflow-hidden print-progress-bar">
+                                <div className="bg-brand h-full rounded-full" style={{ width: `${pct}%` }}></div>
+                              </div>
+                              <span className="w-16 text-right tabular-nums text-muted print-text-muted">{c}명 {pct}%</span>
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-between text-[10px] text-muted-2 pt-1">
+                          <span>{q.lowLabel ?? ''}</span>
+                          {q.kind === 'nps' && q.count > 0 && <span className="font-bold text-strong">NPS {npsOf(q.dist)}</span>}
+                          <span>{q.highLabel ?? ''}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <ul className="mt-2 space-y-1 text-xs text-body print-text-dark">
+                        {q.texts.map((t, ti) => <li key={ti} className="rounded bg-surface px-2 py-1 ring-1 ring-hairline">{t}</li>)}
+                        {q.texts.length === 0 && <li className="text-muted-2">주관식 응답이 없습니다.</li>}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {Object.keys(surveySummary).length === 0 && (
+            <div className="card p-10 text-center text-muted-2 print-card">이 덱에는 설문 활동이 없습니다.</div>
+          )}
+
+          <div className="card p-5 print-card">
+            <div className="flex justify-between items-center border-b border-hairline pb-3 mb-4">
+              <h3 className="font-bold text-strong text-base print-text-dark">❓ 익명 질문 ({qaSummary.length})</h3>
+              <span className="text-xs text-muted print-text-muted">👍 순 · 작성자 미기록</span>
+            </div>
+            <div className="space-y-2">
+              {qaSummary.map((q) => (
+                <div key={q.id} className={`flex items-start gap-3 rounded-xl bg-surface-2 px-3 py-2 ring-1 ring-hairline text-sm ${q.answered ? 'opacity-70' : ''}`}>
+                  <span className="shrink-0 rounded-lg bg-surface px-2 py-0.5 text-xs font-bold tabular-nums ring-1 ring-hairline">👍 {q.upvotes}</span>
+                  <p className="flex-1 text-body print-text-dark">{q.text}</p>
+                  <span className="shrink-0 text-[10px] text-muted-2">
+                    {q.answered ? '✅ 답변됨' : !q.approved ? '⏳ 미승인' : ''}
+                  </span>
+                </div>
+              ))}
+              {qaSummary.length === 0 && <p className="text-xs text-muted-2 text-center py-4">들어온 질문이 없습니다.</p>}
+            </div>
+          </div>
         </div>
 
         {/* 4. AI 실습 & Lab 탭 */}

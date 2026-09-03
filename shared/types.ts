@@ -26,7 +26,7 @@ export interface Slide {
   imageUrl?: string;         // 업로드 이미지 경로 (layout === 'image')
 }
 
-export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor';
+export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor' | 'survey' | 'scale' | 'ox';
 
 export interface ChatActivity {
   type: 'chat';
@@ -141,6 +141,52 @@ export interface TutorActivity {
   taskDescription: string;
 }
 
+// ── 강당용 활동 3종 (survey · scale · ox) ──
+
+export type SurveyQuestionKind = 'likert' | 'nps' | 'text';
+
+export interface SurveyQuestion {
+  id: string;
+  kind: SurveyQuestionKind; // likert: 1~5 · nps: 0~10 · text: 주관식
+  text: string;
+  lowLabel?: string;         // 척도 왼쪽 라벨 (예: 전혀 아니다)
+  highLabel?: string;        // 척도 오른쪽 라벨 (예: 매우 그렇다)
+}
+
+/** 다문항 자기 페이스 설문 (만족도 등). 참가자는 한 화면에서 전부 응답 후 1회 제출 */
+export interface SurveyActivity {
+  type: 'survey';
+  id: string;
+  title: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
+  intro?: string;
+  questions: SurveyQuestion[];
+}
+
+/** 1~5 척도 투표 — 큰 버튼 5개, 결과는 분포 막대+평균 */
+export interface ScaleActivity {
+  type: 'scale';
+  id: string;
+  title: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
+  prompt: string;
+  lowLabel?: string;
+  highLabel?: string;
+}
+
+/** O/X 퀵 퀴즈 — 2지선다 대형 버튼. 점수·리더보드는 quiz 엔진 재사용 */
+export interface OxActivity {
+  type: 'ox';
+  id: string;
+  title: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
+  question: string;
+  // answer 는 서버 전용 — 학생에게 전송되는 PublicDeck 에서는 제거됨
+  answer?: 'O' | 'X';
+  timeLimitSec: number;
+  explanation?: string;
+}
+
 export type Activity =
   | ChatActivity
   | ImageActivity
@@ -150,7 +196,10 @@ export type Activity =
   | RoleplayActivity
   | AnalogyActivity
   | WritingActivity
-  | TutorActivity;
+  | TutorActivity
+  | SurveyActivity
+  | ScaleActivity
+  | OxActivity;
 
 export interface Deck {
   id: string;
@@ -215,6 +264,16 @@ export interface OpenActivityState {
     revealed: boolean;    // 결과 공개 여부 (타이머 없는 투표는 처음부터 true)
     autoReveal: boolean;  // 마감 시 자동 공개
   };
+  // 설문 진행 상태 — open: 응답 접수 중 · closed: 마감(결과 공개)
+  survey?: { phase: 'open' | 'closed' };
+  // 덱에 없는 즉석 활동(OX 퀵 퀴즈). 클라이언트는 deck.activities 대신 이걸 사용 (정답 제거된 공개 버전)
+  adhoc?: Activity;
+}
+
+/** Q&A 운영 상태 (강사가 토글) */
+export interface QaSettings {
+  moderation: boolean; // true: 승인 후 공개
+  onScreen: boolean;   // true: 프로젝터에 질문 카드 뷰 표시
 }
 
 /**
@@ -236,6 +295,7 @@ export interface ClassroomSnapshot {
   mode: ClassroomMode;
   anonymity: AnonymityPolicy;
   resultsReveal: ResultsRevealPolicy;
+  qa?: QaSettings;
 }
 
 export interface LeaderboardEntry {
@@ -266,6 +326,23 @@ export interface QuestionItem {
   id: string;
   text: string;
   createdAt: number;
+  upvotes: number;
+  answered: boolean;
+  approved: boolean; // 모더레이션 ON 일 때 강사 승인 전 false — 참가자·프로젝터에는 미전송
+}
+
+/** 설문 집계 (익명 — 개인 식별 정보 없음) */
+export interface SurveySummary {
+  activityId: string;
+  total: number; // 제출한 참가자 수
+  questions: Array<{
+    id: string;
+    kind: SurveyQuestionKind;
+    count: number;                  // 이 문항에 응답한 수
+    avg: number | null;             // likert/nps 평균 (소수 2자리)
+    dist: Record<string, number>;   // 값 -> 인원
+    texts?: string[];               // text 문항: 최근 응답 (최대 50)
+  }>;
 }
 
 // ───────────────────────── Socket 이벤트 ─────────────────────────
@@ -294,7 +371,10 @@ export interface ServerToClientEvents {
   joined: (p: { participantId: string; sessionId: string; nickname: string; score: number }) => void;
   errmsg: (m: { message: string }) => void;
   'question:new': (q: QuestionItem) => void;
+  'question:update': (q: QuestionItem) => void;
+  'question:remove': (p: { id: string }) => void;
   'questions:sync': (qs: QuestionItem[]) => void;
+  'survey:update': (s: SurveySummary) => void;
 }
 
 export interface ClientToServerEvents {
@@ -319,6 +399,15 @@ export interface ClientToServerEvents {
   'instructor:updateSettings': (p: Partial<ClassroomAnonSettings>) => void;
   'viewer:join': (p: { token: string }) => void;
   'student:askQuestion': (p: { text: string }) => void;
+  // ── 강당 활동 (survey · ox 즉석 · Q&A 2.0) ──
+  'student:surveySubmit': (p: { activityId: string; answers: Record<string, number | string> }) => void;
+  'instructor:surveyClose': () => void;
+  'instructor:quickOx': (p: { question: string; answer: 'O' | 'X'; timeLimitSec?: number }) => void;
+  'student:upvoteQuestion': (p: { questionId: string }) => void;
+  'instructor:questionAnswered': (p: { questionId: string; answered: boolean }) => void;
+  'instructor:questionApprove': (p: { questionId: string }) => void;
+  'instructor:questionRemove': (p: { questionId: string }) => void;
+  'instructor:qaSettings': (p: Partial<QaSettings>) => void;
 }
 
 // ───────────────────────── REST DTO ─────────────────────────
@@ -408,5 +497,5 @@ export interface GenerateDeckRequest {
   parts?: number;
   quizPerPart?: number;
   tone?: string;
-  activities?: ('roleplay' | 'analogy' | 'writing' | 'tutor' | 'chat' | 'image' | 'lab')[];
+  activities?: ('roleplay' | 'analogy' | 'writing' | 'tutor' | 'chat' | 'image' | 'lab' | 'survey' | 'scale' | 'ox')[];
 }
