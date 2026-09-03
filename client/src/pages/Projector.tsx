@@ -4,7 +4,7 @@ import type { Deck } from '@shared/types';
 import { loadDeck } from '../lib/deck';
 import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
-import PollView from '../components/PollView';
+import PollView, { AnonBadge, PollHidden } from '../components/PollView';
 import Leaderboard from '../components/Leaderboard';
 import Countdown from '../components/Countdown';
 import { EntryBar, EntryHero } from '../components/EntryBar';
@@ -169,11 +169,15 @@ export default function Projector() {
 
   // 투표
   if (act?.type === 'poll') {
+    const dist = live.polls[act.id] ?? { counts: {}, total: 0, hidden: !live.activity?.revealResults };
     return withDrawer(
       <div className="flex h-full flex-col justify-center p-10 text-center">
         <h1 className="text-4xl font-extrabold text-strong">🗳️ {act.prompt}</h1>
+        {live.activity?.anonymous && (
+          <div className="mt-3"><AnonBadge big /></div>
+        )}
         <div className="mt-8 text-2xl">
-          <PollView activity={act} dist={live.polls[act.id] ?? { counts: {}, total: 0 }} big={auditorium} />
+          {dist.hidden ? <PollHidden total={dist.total} big /> : <PollView activity={act} dist={dist} big={auditorium} />}
         </div>
       </div>,
     );

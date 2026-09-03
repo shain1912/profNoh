@@ -18,6 +18,15 @@ export function persistClassroom(c: ClassroomState) {
   );
 }
 
+export function updateClassroomSettings(c: ClassroomState) {
+  return dbSafe((sb) =>
+    sb.from('axedu_classrooms')
+      .update({ settings: c.settings })
+      .eq('id', c.id)
+      .then((r) => { if (r.error) throw r.error; return true; }),
+  );
+}
+
 export function updateClassroomProgress(c: ClassroomState) {
   return dbSafe((sb) =>
     sb.from('axedu_classrooms')

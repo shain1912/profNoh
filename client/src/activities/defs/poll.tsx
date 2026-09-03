@@ -54,6 +54,7 @@ const def: ActivityDef<PollActivity> = {
     <PollStudent
       activity={activity}
       dist={ctx.live.polls[activity.id] ?? null}
+      state={ctx.live.activity}
       onVote={(v) => ctx.live.socket.emit('student:pollVote', { activityId: activity.id, value: v })}
     />
   ),

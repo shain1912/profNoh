@@ -36,7 +36,15 @@ export default function Student() {
     <div className="flex h-full flex-col">
       {/* 상단바 */}
       <header className="flex items-center justify-between border-b border-hairline bg-surface px-4 py-2 text-sm">
-        <span className="font-bold text-strong">{nickname}</span>
+        <span className="flex items-center gap-2">
+          <span className="font-bold text-strong">{nickname}</span>
+          {/* 세션 전체 익명이거나 현재 열린 활동이 익명이면 뱃지 — 이름이 노출되지 않는다는 신호 */}
+          {(live.snapshot?.anonymity === 'always_anon' || live.activity?.anonymous) && (
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted ring-1 ring-hairline" data-testid="student-anon-badge">
+              🔒 {live.snapshot?.anonymity === 'always_anon' ? '익명 세션' : '익명 활동'}
+            </span>
+          )}
+        </span>
         <span className="flex items-center gap-3">
           <span className="rounded-full bg-brand/10 px-3 py-1 font-bold text-brand">⭐ {myScore}</span>
           <span className={live.connected ? 'text-up' : 'text-down'}>

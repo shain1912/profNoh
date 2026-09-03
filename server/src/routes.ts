@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomRequest, CreateClassroomResponse, ClassroomInfoResponse, GenerateDeckRequest, Deck } from '../../shared/types';
+import { buildReport } from './report';
 import { createClassroom, getByToken, normalizeMode } from './state';
 import { getSessionUser } from './auth/session';
 import { canCreateDeck } from './billing/gate';
@@ -66,6 +67,8 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!deck) return reply.code(400).send({ error: 'bad', message: '존재하지 않는 덱입니다.' });
     // mode: classroom(기본) | auditorium(강당) — 알 수 없는 값은 classroom
     const c = createClassroom(deckId, body.title ?? deck.title, { mode: normalizeMode(body.mode) });
+    // 세션 익명 정책 / 결과 공개 방식 — 강의 시작 UI에서 선택 (기본 named_default / after_close)
+    if (body.settings) c.updateSettings(body.settings);
     await persistClassroom(c); // 강의실을 먼저 기록(참가자 FK 보장)
     const res: CreateClassroomResponse = {
       classroomId: c.id,
@@ -82,7 +85,7 @@ export async function registerRoutes(app: FastifyInstance) {
     const { token } = req.params as { token: string };
     const c = getByToken(token);
     const res: ClassroomInfoResponse = c
-      ? { exists: true, title: c.title, status: c.status, mode: c.mode }
+      ? { exists: true, title: c.title, status: c.status, mode: c.mode, anonymity: c.settings.anonymity, resultsReveal: c.settings.resultsReveal }
       : { exists: false };
     return res;
   });
@@ -753,200 +756,16 @@ export async function registerRoutes(app: FastifyInstance) {
         supabase.from('axedu_lab_runs').select('*').eq('classroom_id', id)
       ]);
 
-      const parts = participants ?? [];
-      const quizzes = quizResponses ?? [];
-      const polls = pollResponses ?? [];
-      const usages = aiUsages ?? [];
-      const labs = labRuns ?? [];
-
-      const participantMap = new Map(parts.map((p) => [p.id, p]));
-
-      // 4. AI 사용량 집계
-      let totalCost = 0;
-      let safetyBlocks = 0;
-      const aiTypeCounts: Record<string, number> = {};
-
-      usages.forEach((u) => {
-        totalCost += Number(u.est_cost ?? 0);
-        if (u.type === 'blocked') {
-          safetyBlocks += 1;
-        } else {
-          aiTypeCounts[u.type] = (aiTypeCounts[u.type] || 0) + (u.units || 1);
-        }
+      // 4. 집계 (익명 정책 적용) — 순수 함수 server/src/report.ts
+      return buildReport({
+        classroom,
+        deck,
+        participants: participants ?? [],
+        quizResponses: quizResponses ?? [],
+        pollResponses: pollResponses ?? [],
+        aiUsages: aiUsages ?? [],
+        labRuns: labRuns ?? [],
       });
-
-      // 참가자별 AI 사용량 요약
-      const participantAiMap: Record<string, { chat: number; image: number; analogy: number; roleplay: number; writing: number; tutor: number; cost: number }> = {};
-      usages.forEach((u) => {
-        if (!u.participant_id) return;
-        const part = participantMap.get(u.participant_id);
-        if (!part) return;
-        if (!participantAiMap[part.nickname]) {
-          participantAiMap[part.nickname] = { chat: 0, image: 0, analogy: 0, roleplay: 0, writing: 0, tutor: 0, cost: 0 };
-        }
-        const pData = participantAiMap[part.nickname];
-        if (u.type === 'chat') pData.chat += u.units;
-        else if (u.type === 'image') pData.image += u.units;
-        else if (u.type === 'analogy') pData.analogy += u.units;
-        else if (u.type === 'roleplay') pData.roleplay += u.units;
-        else if (u.type === 'writing') pData.writing += u.units;
-        else if (u.type === 'tutor') pData.tutor += u.units;
-        pData.cost += Number(u.est_cost ?? 0);
-      });
-
-      // 5. 퀴즈 결과 집계
-      const quizSummary: Record<string, any> = {};
-      if (deck) {
-        Object.values(deck.activities).forEach((act: any) => {
-          if (act.type === 'quiz') {
-            act.questions.forEach((q: any) => {
-              quizSummary[q.id] = {
-                questionText: q.question,
-                options: q.options,
-                correctIndex: q.correctIndex,
-                totalAnswers: 0,
-                correctAnswers: 0,
-                correctRate: 0,
-                answers: {},
-                studentDetails: []
-              };
-            });
-          }
-        });
-      }
-
-      quizzes.forEach((qr) => {
-        let qStat = quizSummary[qr.question_id];
-        if (!qStat) {
-          qStat = {
-            questionText: '삭제된 문제',
-            options: [],
-            correctIndex: -1,
-            totalAnswers: 0,
-            correctAnswers: 0,
-            correctRate: 0,
-            answers: {},
-            studentDetails: []
-          };
-          quizSummary[qr.question_id] = qStat;
-        }
-
-        qStat.totalAnswers += 1;
-        if (qr.is_correct) {
-          qStat.correctAnswers += 1;
-        }
-
-        const ansKey = qr.answer ?? '';
-        qStat.answers[ansKey] = (qStat.answers[ansKey] || 0) + 1;
-
-        const part = participantMap.get(qr.participant_id);
-        qStat.studentDetails.push({
-          nickname: part?.nickname ?? '알 수 없음',
-          answer: qr.answer,
-          isCorrect: qr.is_correct,
-          responseMs: qr.response_ms,
-          points: qr.points
-        });
-      });
-
-      Object.keys(quizSummary).forEach((qid) => {
-        const q = quizSummary[qid];
-        if (q.totalAnswers > 0) {
-          q.correctRate = Math.round((q.correctAnswers / q.totalAnswers) * 100);
-        }
-      });
-
-      // 6. 투표 결과 집계
-      const pollSummary: Record<string, any> = {};
-      if (deck) {
-        Object.values(deck.activities).forEach((act: any) => {
-          if (act.type === 'poll') {
-            pollSummary[act.id] = {
-              prompt: act.prompt,
-              mode: act.mode,
-              options: act.options ?? [],
-              totalVotes: 0,
-              votes: {},
-              studentDetails: []
-            };
-          }
-        });
-      }
-
-      polls.forEach((pr) => {
-        let pStat = pollSummary[pr.activity_id];
-        if (!pStat) {
-          pStat = {
-            prompt: '삭제된 투표',
-            mode: 'choice',
-            options: [],
-            totalVotes: 0,
-            votes: {},
-            studentDetails: []
-          };
-          pollSummary[pr.activity_id] = pStat;
-        }
-
-        pStat.totalVotes += 1;
-        const val = pr.value ?? '';
-        pStat.votes[val] = (pStat.votes[val] || 0) + 1;
-
-        const part = participantMap.get(pr.participant_id);
-        pStat.studentDetails.push({
-          nickname: part?.nickname ?? '알 수 없음',
-          value: val
-        });
-      });
-
-      // 7. 비교 실습(Lab) 집계
-      const labSummary = labs.map((l) => {
-        const part = participantMap.get(l.participant_id);
-        return {
-          nickname: part?.nickname ?? '알 수 없음',
-          labType: l.lab_type,
-          input: l.input,
-          config: l.config,
-          output: l.output,
-          createdAt: l.created_at
-        };
-      });
-
-      return {
-        classroom: {
-          id: classroom.id,
-          token: classroom.token,
-          deckId: classroom.deck_id,
-          title: classroom.title,
-          status: classroom.status,
-          createdAt: classroom.created_at
-        },
-        deckSummary: deck ? {
-          id: deck.id,
-          title: deck.title,
-          slideCount: deck.slides.length
-        } : null,
-        stats: {
-          totalParticipants: parts.length,
-          totalCost: Number(totalCost.toFixed(5)),
-          safetyBlocks,
-          aiTypeCounts
-        },
-        participants: parts.map((p) => ({
-          id: p.id,
-          nickname: p.nickname,
-          score: p.score,
-          // DB 컬럼은 created_at (joined_at 없음) — 리포트 '참가 일자' Invalid Date 버그 수정
-          joinedAt: p.created_at
-        })),
-        quizSummary,
-        pollSummary,
-        labSummary,
-        participantAiUsages: Object.entries(participantAiMap).map(([nickname, data]) => ({
-          nickname,
-          ...data,
-          cost: Number(data.cost.toFixed(5))
-        }))
-      };
     } catch (e) {
       app.log.error(e);
       return reply.code(500).send({ error: 'bad', message: '리포트 집계 중 서버 오류가 발생했습니다.' });

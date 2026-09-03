@@ -145,6 +145,13 @@ export function validateDeck(input: unknown, id: string): Deck {
     }
   }
 
+  // 활동 단위 익명 오버라이드 — 모든 활동 타입 공통. boolean 일 때만 보존 (undefined = 세션 정책 따름)
+  for (const [key, a0] of Object.entries(raw.activities ?? {})) {
+    const v = activities[key];
+    const flag = (a0 as { anonymous?: unknown } | null)?.anonymous;
+    if (v && typeof flag === 'boolean') v.anonymous = flag;
+  }
+
   let slides: Slide[] = (raw.slides ?? []).slice(0, 200).map((s) => {
     const layout: SlideLayout = LAYOUTS.includes(s.layout as SlideLayout) ? (s.layout as SlideLayout) : 'content';
     const blocks = (s.blocks ?? []).slice(0, 12)

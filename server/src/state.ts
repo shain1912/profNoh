@@ -8,8 +8,12 @@ import type {
   ActivityType,
   QuestionItem,
   ClassroomMode,
+  AnonymityPolicy,
+  ResultsRevealPolicy,
+  ClassroomAnonSettings,
 } from '../../shared/types';
-import { getDeck, getQuizActivity } from './decks';
+import { resolveAnonymous, ANONYMITY_POLICIES } from '../../shared/types';
+import { getDeck, getQuizActivity, getActivity } from './decks';
 import { env } from './env';
 
 // 헷갈리는 글자(0,O,1,I,L) 제외한 강의실 토큰
@@ -21,6 +25,8 @@ export interface Participant {
   id: string;
   sessionId: string;
   nickname: string;
+  /** 세션 전체 익명(always_anon)일 때 리더보드 등에 노출되는 안정적 가명 — "익명 3" */
+  alias: string;
   score: number;
   socketId?: string;
 }
@@ -50,6 +56,7 @@ export class ClassroomState {
   private usage = new Map<string, number>(); // `${sessionId}|${activityId}|${type}` -> count
   private roleplayClears = new Set<string>(); // `${sessionId}|${activityId}`
   private questionList: QuestionItem[] = []; // 익명 질문, 최신순
+  private aliasSeq = 0;
   budgetSpent = 0;
 
   settings: {
@@ -58,11 +65,16 @@ export class ClassroomState {
     budgetUsd: number;
     /** 세션 모드 — 기본 classroom(교실). auditorium(강당)이면 입장 바·대기 화면·대형 타이포 */
     mode: ClassroomMode;
+    anonymity: AnonymityPolicy;
+    resultsReveal: ResultsRevealPolicy;
   } = {
     chatQuota: env.QUOTA_CHAT_PER_ACTIVITY,
     imageQuota: env.QUOTA_IMAGE_PER_ACTIVITY,
     budgetUsd: env.CLASSROOM_BUDGET_USD,
     mode: 'classroom',
+    // 익명 정책 기본: 실명 기본(활동별 익명 지정 가능) / 투표 결과는 강사가 공개할 때까지 숨김
+    anonymity: 'named_default',
+    resultsReveal: 'after_close',
   };
 
   constructor(deckId: string, title?: string, opts: { mode?: ClassroomMode } = {}) {
@@ -83,7 +95,8 @@ export class ClassroomState {
       existing.nickname = nickname || existing.nickname;
       return existing;
     }
-    const p: Participant = { id: randomUUID(), sessionId: sid, nickname: nickname || '익명', score: 0 };
+    this.aliasSeq += 1;
+    const p: Participant = { id: randomUUID(), sessionId: sid, nickname: nickname || '익명', alias: `익명 ${this.aliasSeq}`, score: 0 };
     this.participants.set(sid, p);
     return p;
   }
@@ -122,14 +135,52 @@ export class ClassroomState {
       activity: this.activity,
       participantCount: this.participantCount(),
       mode: this.settings.mode,
+      anonymity: this.settings.anonymity,
+      resultsReveal: this.settings.resultsReveal,
     };
+  }
+
+  // ── 익명 정책 ──
+  /** 세션 전체가 익명(always_anon)인지 — 리더보드/리포트 참가자 이름까지 가명 처리 */
+  sessionAnonymous(): boolean {
+    return this.settings.anonymity === 'always_anon';
+  }
+
+  /** 세션 정책 + 활동의 anonymous 오버라이드를 해석한 실제 익명 여부 */
+  isActivityAnonymous(activityId: string): boolean {
+    const act = getActivity(this.deckId, activityId);
+    return resolveAnonymous(this.settings.anonymity, act?.anonymous);
+  }
+
+  /** 참가자 표시 이름 — 세션 익명이면 가명 */
+  displayName(p: Participant): string {
+    return this.sessionAnonymous() ? p.alias : p.nickname;
+  }
+
+  /** 세션 익명/결과 공개 정책 변경. 열린 활동이 있으면 즉시 재해석 */
+  updateSettings(patch: Partial<ClassroomAnonSettings>): ClassroomAnonSettings {
+    if (patch.anonymity && ANONYMITY_POLICIES.includes(patch.anonymity)) this.settings.anonymity = patch.anonymity;
+    if (patch.resultsReveal === 'live' || patch.resultsReveal === 'after_close') this.settings.resultsReveal = patch.resultsReveal;
+    if (this.activity) {
+      this.activity.anonymous = this.isActivityAnonymous(this.activity.activityId);
+      if (this.activity.type === 'poll' && this.settings.resultsReveal === 'live') this.activity.revealResults = true;
+    }
+    return { anonymity: this.settings.anonymity, resultsReveal: this.settings.resultsReveal };
+  }
+
+  /** 투표 결과 공개 — after_close 정책에서는 응답 마감을 겸한다 */
+  revealResults(): boolean {
+    if (!this.activity) return false;
+    this.activity.revealResults = true;
+    if (this.activity.type === 'poll' && this.settings.resultsReveal === 'after_close') this.activity.closed = true;
+    return true;
   }
 
   leaderboard(topN = 100): LeaderboardEntry[] {
     const arr = [...this.participants.values()]
       .filter((p) => p.score > 0 || true)
       .sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname));
-    return arr.slice(0, topN).map((p, i) => ({ nickname: p.nickname, score: p.score, rank: i + 1 }));
+    return arr.slice(0, topN).map((p, i) => ({ nickname: this.displayName(p), score: p.score, rank: i + 1 }));
   }
 
   // ── 슬라이드 / 활동 ──
@@ -139,7 +190,14 @@ export class ClassroomState {
   }
 
   openActivity(activityId: string, type: ActivityType) {
-    this.activity = { activityId, type };
+    this.activity = {
+      activityId,
+      type,
+      anonymous: this.isActivityAnonymous(activityId),
+      // 투표는 정책에 따라 숨김 시작, 나머지 활동은 결과 공개 개념이 없어 항상 true
+      revealResults: type === 'poll' ? this.settings.resultsReveal === 'live' : true,
+      closed: false,
+    };
     if (type === 'quiz') {
       const quiz = getQuizActivity(this.deckId, activityId);
       this.activity.quiz = {
@@ -249,19 +307,37 @@ export class ClassroomState {
   }
 
   // ── 투표 ──
-  recordPoll(sessionId: string, activityId: string, value: string) {
+  /** 응답 기록. 결과 공개로 마감된 투표면 false */
+  recordPoll(sessionId: string, activityId: string, value: string): boolean {
+    if (this.activity?.activityId === activityId && this.activity.closed) return false;
     if (!this.pollAnswers.has(activityId)) this.pollAnswers.set(activityId, new Map());
     this.pollAnswers.get(activityId)!.set(sessionId, value.slice(0, 40));
+    return true;
   }
 
-  pollDistribution(activityId: string): PollDistribution {
+  /**
+   * 투표 분포.
+   * - 익명 활동이면 entries 에서 nickname 을 제거한다 (프로젝터·학생 어디서도 이름이 나가지 않도록 서버에서 차단)
+   * - 결과 미공개 상태에서 강사가 아닌 대상에게는 total 만 담은 hidden 분포를 돌려준다
+   */
+  pollDistribution(activityId: string, opts: { forInstructor?: boolean } = {}): PollDistribution {
     const map = this.pollAnswers.get(activityId) ?? new Map();
+    const isOpen = this.activity?.activityId === activityId;
+    const revealed = !isOpen || this.activity!.revealResults;
+    if (!revealed && !opts.forInstructor) {
+      return { counts: {}, total: map.size, entries: [], hidden: true };
+    }
+    const anonymous = this.isActivityAnonymous(activityId);
     const counts: Record<string, number> = {};
-    const entries: Array<{ nickname: string; value: string }> = [];
+    const entries: Array<{ nickname?: string; value: string }> = [];
     for (const [sessionId, v] of map.entries()) {
       counts[v] = (counts[v] ?? 0) + 1;
-      const nickname = this.participants.get(sessionId)?.nickname ?? '익명';
-      entries.push({ nickname, value: v });
+      if (anonymous) {
+        entries.push({ value: v });
+      } else {
+        const p = this.participants.get(sessionId);
+        entries.push({ nickname: p ? this.displayName(p) : '익명', value: v });
+      }
     }
     return { counts, total: map.size, entries };
   }
