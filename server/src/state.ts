@@ -51,7 +51,7 @@ export interface Participant {
   socketId?: string;
 }
 
-interface QuizAnswer {
+export interface QuizAnswer {
   optionIndex: number;
   ms: number;
   points: number;
@@ -59,7 +59,7 @@ interface QuizAnswer {
 }
 
 export class ClassroomState {
-  id = randomUUID(); // DB uuid 와 정합
+  id: string = randomUUID(); // DB uuid 와 정합 (스냅샷 복원 시 덮어씀)
   token = makeToken();
   instructorSecret = makeSecret();
   deckId: string;
@@ -82,6 +82,12 @@ export class ClassroomState {
   private surveyAnswers = new Map<string, Map<string, Record<string, number | string>>>(); // activityId -> (sessionId -> answers)
   private adhocActivities = new Map<string, Activity>(); // 덱에 없는 즉석 활동 (OX 퀵 퀴즈)
   budgetSpent = 0;
+  /** 강의실을 만든 강사 계정(axedu_users.id). 로그인 없이 만들면 undefined — /teach 재접속 목록의 근거 */
+  ownerId?: string;
+  createdAt = Date.now();
+  /** 스냅샷용 변경 카운터 — markDirty 마다 증가, 저장 성공 시 savedVersion 에 복사 (snapshot.ts) */
+  version = 0;
+  savedVersion = 0;
   /** 투표 분포에 영향을 주는 변경(표·정책·공개·닉네임)마다 증가 — pollDistribution 캐시 키 */
   private pollVersion = 0;
   private pollDistCache = new Map<string, { version: number; dist: PollDistribution }>();
@@ -115,7 +121,11 @@ export class ClassroomState {
   }
 
   // ── 참가자 ──
-  upsertParticipant(sessionId: string | undefined, nickname: string): Participant {
+  /**
+   * seed: 메모리에 없는 세션을 DB(axedu_participants) 행으로 복원할 때 — 같은 participant id 를 써야
+   * 이전 퀴즈/투표 응답 행(FK)이 이어지고 점수가 유지된다 (재시작 후 재입장, R3 리스크 2)
+   */
+  upsertParticipant(sessionId: string | undefined, nickname: string, seed?: { id: string; score: number }): Participant {
     const sid = sessionId && this.participants.has(sessionId) ? sessionId : sessionId || makeId();
     const existing = this.participants.get(sid);
     if (existing) {
@@ -126,7 +136,10 @@ export class ClassroomState {
       return existing;
     }
     this.aliasSeq += 1;
-    const p: Participant = { id: randomUUID(), sessionId: sid, nickname: nickname || '익명', alias: `익명 ${this.aliasSeq}`, score: 0 };
+    const p: Participant = {
+      id: seed?.id ?? randomUUID(), sessionId: sid, nickname: nickname || '익명', alias: `익명 ${this.aliasSeq}`,
+      score: seed && Number.isFinite(seed.score) ? Math.max(0, Math.round(seed.score)) : 0,
+    };
     this.participants.set(sid, p);
     return p;
   }
@@ -681,6 +694,121 @@ export class ClassroomState {
   addCost(usd: number) {
     this.budgetSpent += usd;
   }
+
+  // ── 종료 / 스냅샷 직렬화 (Phase 2 영속화) ──
+  /** 강의 종료 — 재접속 목록·부팅 복원에서 제외된다. 이미 종료면 false */
+  end(): boolean {
+    if (this.status === 'ended') return false;
+    this.status = 'ended';
+    this.activity = null;
+    return true;
+  }
+
+  /**
+   * 메모리 상태 전체를 JSON 으로 — axedu_classroom_snapshots.state.
+   * socketId 처럼 프로세스에 묶인 값은 뺀다. 형식이 바뀌면 v 를 올리고 restore 에서 분기한다.
+   */
+  exportState(): PersistedClassroom {
+    const obj = <V>(m: Map<string, V>): Record<string, V> => Object.fromEntries(m.entries());
+    const nested = <V>(m: Map<string, Map<string, V>>): Record<string, Record<string, V>> =>
+      Object.fromEntries([...m.entries()].map(([k, v]) => [k, obj(v)]));
+    return {
+      v: 1,
+      id: this.id,
+      token: this.token,
+      instructorSecret: this.instructorSecret,
+      deckId: this.deckId,
+      title: this.title,
+      status: this.status,
+      currentSlide: this.currentSlide,
+      activity: this.activity,
+      paused: this.paused,
+      settings: this.settings,
+      qa: this.qa,
+      budgetSpent: this.budgetSpent,
+      ownerId: this.ownerId,
+      createdAt: this.createdAt,
+      aliasSeq: this.aliasSeq,
+      quizStartAt: this.quizStartAt,
+      participants: [...this.participants.values()].map(({ socketId: _s, ...p }) => p),
+      quizAnswers: nested(this.quizAnswers),
+      pollAnswers: nested(this.pollAnswers),
+      usage: obj(this.usage),
+      roleplayClears: [...this.roleplayClears],
+      questions: this.questionList,
+      questionVotes: Object.fromEntries([...this.questionVotes.entries()].map(([k, v]) => [k, [...v]])),
+      surveyAnswers: nested(this.surveyAnswers),
+      adhocActivities: [...this.adhocActivities.values()],
+    };
+  }
+
+  /** exportState 의 역연산. 알 수 없는 형식이면 null (복원 포기 — 강의실은 그냥 없는 것으로) */
+  static restore(data: PersistedClassroom): ClassroomState | null {
+    if (!data || data.v !== 1 || !data.id || !data.token || !data.instructorSecret || !data.deckId) return null;
+    const toMap = <V>(o: Record<string, V> | undefined): Map<string, V> => new Map(Object.entries(o ?? {}));
+    const toNested = <V>(o: Record<string, Record<string, V>> | undefined): Map<string, Map<string, V>> =>
+      new Map(Object.entries(o ?? {}).map(([k, v]) => [k, toMap(v)]));
+    const c = new ClassroomState(data.deckId, data.title, { mode: data.settings?.mode });
+    c.id = data.id;
+    c.token = data.token;
+    c.instructorSecret = data.instructorSecret;
+    c.status = data.status === 'live' || data.status === 'ended' ? data.status : 'waiting';
+    c.currentSlide = Math.max(0, Number(data.currentSlide) || 0);
+    c.activity = data.activity ?? null;
+    c.paused = !!data.paused;
+    c.settings = { ...c.settings, ...(data.settings ?? {}) };
+    c.settings.mode = normalizeMode(c.settings.mode);
+    c.qa = { ...c.qa, ...(data.qa ?? {}) };
+    c.budgetSpent = Number(data.budgetSpent) || 0;
+    c.ownerId = data.ownerId || undefined;
+    c.createdAt = Number(data.createdAt) || Date.now();
+    c.aliasSeq = Number(data.aliasSeq) || 0;
+    c.quizStartAt = Number(data.quizStartAt) || 0;
+    for (const p of data.participants ?? []) {
+      if (!p?.sessionId || !p.id) continue;
+      c.participants.set(p.sessionId, { id: p.id, sessionId: p.sessionId, nickname: p.nickname || '익명', alias: p.alias || `익명 ${p.id.slice(0, 4)}`, score: Number(p.score) || 0 });
+    }
+    c.quizAnswers = toNested(data.quizAnswers);
+    c.pollAnswers = toNested(data.pollAnswers);
+    c.usage = toMap(data.usage);
+    c.roleplayClears = new Set(data.roleplayClears ?? []);
+    c.questionList = Array.isArray(data.questions) ? data.questions : [];
+    c.questionVotes = new Map(Object.entries(data.questionVotes ?? {}).map(([k, v]) => [k, new Set(v)]));
+    c.surveyAnswers = toNested(data.surveyAnswers);
+    for (const a of data.adhocActivities ?? []) if (a?.id) c.adhocActivities.set(a.id, a);
+    c.touchPoll();
+    return c;
+  }
+}
+
+/** axedu_classroom_snapshots.state 의 형식 (서버 내부 전용 — instructorSecret 포함, 클라이언트 노출 금지) */
+export interface PersistedClassroom {
+  v: 1;
+  id: string;
+  token: string;
+  instructorSecret: string;
+  deckId: string;
+  title?: string;
+  status: 'waiting' | 'live' | 'ended';
+  currentSlide: number;
+  activity: OpenActivityState | null;
+  paused: boolean;
+  settings: ClassroomState['settings'];
+  qa: QaSettings;
+  budgetSpent: number;
+  ownerId?: string;
+  createdAt: number;
+  aliasSeq: number;
+  quizStartAt: number;
+  participants: Array<Omit<Participant, 'socketId'>>;
+  quizAnswers: Record<string, Record<string, QuizAnswer>>;
+  pollAnswers: Record<string, Record<string, string>>;
+  usage: Record<string, number>;
+  roleplayClears: string[];
+  questions: QuestionItem[];
+  questionVotes: Record<string, string[]>;
+  surveyAnswers: Record<string, Record<string, Record<string, number | string>>>;
+  adhocActivities: Activity[];
 }
 
 /** 알 수 없는 값은 classroom(기본) 으로 — 클라이언트 입력 방어 */
@@ -694,9 +822,30 @@ const byId = new Map<string, ClassroomState>();
 
 export function createClassroom(deckId: string, title?: string, opts: { mode?: ClassroomMode } = {}): ClassroomState {
   const c = new ClassroomState(deckId, title, opts);
+  // 복원된 강의실과 6자리 코드가 겹치면 다시 뽑는다 (31^6 ≈ 8.9억이라 사실상 없지만 재시작 후 12시간치가 메모리에 있다)
+  while (byToken.has(c.token)) c.token = makeToken();
   byToken.set(c.token, c);
   byId.set(c.id, c);
   return c;
+}
+
+/** 부팅 시 스냅샷에서 복원한 강의실 등록 (snapshot.ts). 같은 id 가 이미 있으면 덮어쓰지 않는다 */
+export function registerRestored(c: ClassroomState): boolean {
+  if (byId.has(c.id) || byToken.has(c.token)) return false;
+  byToken.set(c.token, c);
+  byId.set(c.id, c);
+  return true;
+}
+
+export function allClassrooms(): ClassroomState[] {
+  return [...byId.values()];
+}
+
+/** 로그인한 강사의 진행 중(미종료) 강의실 — 최근 생성순 */
+export function classroomsOwnedBy(userId: string): ClassroomState[] {
+  return allClassrooms()
+    .filter((c) => c.ownerId === userId && c.status !== 'ended')
+    .sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export function getByToken(token: string): ClassroomState | undefined {

@@ -89,6 +89,7 @@ location / {
 - **참가자** `/join?token=<코드>`: 닉네임이 "차분한 수달 42" 처럼 자동으로 채워져 **입장 1탭**(🎲 로 재생성, 직접 수정 가능). 활동이 없을 때는 슬라이드 미러링 대신 "앞 화면을 봐 주세요" 대기 화면(PDF 다운로드 없음).
 - 접속 n명은 **현재 연결 기준**(퇴장 반영). 검증: `node verify-auditorium.mjs http://localhost:5179 http://localhost:8793`
 - 400명 스케일(Phase 2 코어): 역할별 socket room(참가자는 집계·자기 ACK만) + 집계 배치 전송(300/500ms) + HTTP·소켓 rate limit — [`docs/scale-broadcast-ratelimit.md`](docs/scale-broadcast-ratelimit.md). 검증: `node verify-scale.mjs http://localhost:8791` (다른 verify 뒤에)
+- 영속화(Phase 2 #3): 강의실 상태를 `axedu_classroom_snapshots` 에 2~5초 debounce + 30초 주기로 저장, 재기동 시 12시간 이내 스냅샷 복원(코드·슬라이드·점수 유지). 강의실은 로그인 계정에 귀속돼 `/teach` 의 "🔁 진행 중인 강의실"에서 1탭 복귀, 참가자 재입장은 DB 폴백으로 점수 복원 — [`docs/persist-reconnect.md`](docs/persist-reconnect.md). 검증: `node verify-persist.mjs 8796` (서버를 직접 띄웠다 죽임) · `node verify-persist-ui.mjs`
 
 ## 6. 안전 · 비용 제어 (미성년자)
 

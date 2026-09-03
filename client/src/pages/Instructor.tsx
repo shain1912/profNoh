@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import QRCode from 'qrcode';
-import type { ClassroomMode, CreateClassroomRequest, Deck, AnonymityPolicy, ResultsRevealPolicy, ClassroomAnonSettings } from '@shared/types';
-import { apiPost } from '../lib/api';
+import type { ClassroomMode, CreateClassroomRequest, Deck, AnonymityPolicy, ResultsRevealPolicy, ClassroomAnonSettings, MyClassroomSummary } from '@shared/types';
+import { apiGet, apiPost } from '../lib/api';
 import { AnonBadge } from '../components/PollView';
 import { loadDeck } from '../lib/deck';
 import { getMyDecks, listDecks } from '../lib/buildApi';
@@ -102,9 +102,28 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
   // 세션 익명 정책 / 결과 공개 — 강의실 생성 요청에 함께 보낸다
   const [settings, setSettings] = useState<ClassroomAnonSettings>({ anonymity: 'named_default', resultsReveal: 'after_close' });
 
+  // 진행 중인 내 강의실 (Phase 2 영속화) — 새로고침·노트북 절전·서버 재시작 뒤에도 1탭으로 콘솔 복귀
+  const [ongoing, setOngoing] = useState<MyClassroomSummary[]>([]);
+  const [endingId, setEndingId] = useState<string | null>(null);
+  const refreshOngoing = () =>
+    apiGet<{ classrooms: MyClassroomSummary[] }>('/api/classrooms/mine').then((r) => setOngoing(r.classrooms ?? [])).catch(() => {});
+
   useEffect(() => {
     listDecks().then(setDbDecks).catch(() => {});
+    refreshOngoing();
   }, []);
+
+  async function endClassroom(c: MyClassroomSummary) {
+    setEndingId(c.classroomId);
+    try {
+      await apiPost(`/api/classrooms/${c.classroomId}/end`, { instructorSecret: c.instructorSecret });
+      setOngoing((prev) => prev.filter((x) => x.classroomId !== c.classroomId));
+    } catch (e: any) {
+      setErr(e.message ?? '종료 실패');
+    } finally {
+      setEndingId(null);
+    }
+  }
 
   const mine = getMyDecks();
   const mergedDecks = [...dbDecks];
@@ -140,6 +159,58 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
       </div>
 
       {err && <p className="mt-4 text-center text-down text-sm">{err}</p>}
+
+      {/* 진행 중인 내 강의실 — 재접속 1탭 (서버 재시작·새로고침 뒤에도 코드·슬라이드·점수 유지) */}
+      {ongoing.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-up/30 bg-up/5 p-4 shadow-card" data-testid="ongoing-classrooms">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-bold text-strong">🔁 진행 중인 강의실</div>
+            <div className="text-[11px] text-muted-2">같은 코드로 이어서 진행돼요</div>
+          </div>
+          <div className="mt-2 grid gap-2">
+            {ongoing.map((c) => (
+              <div
+                key={c.classroomId}
+                className="flex items-center justify-between gap-3 rounded-xl bg-surface p-3 ring-1 ring-hairline"
+                data-testid={`ongoing-${c.token}`}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-lg bg-brand/10 px-2 py-0.5 font-extrabold tracking-widest text-brand">{c.token}</span>
+                    <span className="truncate text-sm font-bold text-strong">{c.title || '(제목 없음)'}</span>
+                    {c.mode === 'auditorium' && <span className="text-xs">🎤</span>}
+                  </div>
+                  <div className="mt-1 text-[11px] text-muted">
+                    슬라이드 {c.currentSlide + 1} · 접속 {c.participantCount}명 / 누적 {c.totalParticipants}명
+                    {c.activityType ? ` · 활동 진행 중(${c.activityType})` : ''}
+                    {' · '}
+                    {new Date(c.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 시작
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    className="btn btn-primary px-3 py-1.5 text-sm font-semibold"
+                    data-testid={`resume-${c.token}`}
+                    onClick={() => onCreated({ token: c.token, instructorSecret: c.instructorSecret, classroomId: c.classroomId, deckId: c.deckId })}
+                    disabled={busyId !== null || endingId !== null}
+                  >
+                    이어서 진행 ▶
+                  </button>
+                  <button
+                    className="btn btn-ghost px-2 py-1.5 text-xs text-muted"
+                    title="강의 종료 — 목록에서 사라지고 참가자 입장이 막혀요"
+                    data-testid={`end-${c.token}`}
+                    onClick={() => endClassroom(c)}
+                    disabled={endingId !== null}
+                  >
+                    {endingId === c.classroomId ? '종료 중…' : '종료'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 세션 모드 선택 (강의 시작 전) */}
       <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-surface-2 p-1 ring-1 ring-hairline" role="radiogroup" aria-label="세션 모드" data-testid="mode-select">

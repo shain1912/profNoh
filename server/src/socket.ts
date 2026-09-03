@@ -1,12 +1,13 @@
 import type { Server, Socket } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents, ActivityType, QuizReveal } from '../../shared/types';
-import { getByToken, type ClassroomState } from './state';
+import { getByToken, allClassrooms, type ClassroomState } from './state';
 import { msg } from './copy';
 import { env } from './env';
 import { Batcher, TokenBucketSet, SOCKET_EVENT_RULES, SOCKET_GLOBAL_RULE } from './ratelimit';
+import { markDirty } from './snapshot';
 import {
   persistParticipant, persistScore, persistPoll, persistQuizResponse, updateClassroomProgress, updateClassroomSettings,
-  persistSurvey, persistQuestion, deleteQuestionRow,
+  persistSurvey, persistQuestion, deleteQuestionRow, loadParticipantRow,
 } from './persist';
 
 // ── 역할별 room (Phase 2 브로드캐스트 재설계, R3 §2.2) ──
@@ -105,6 +106,7 @@ export function setupSocket(io: IO) {
     emitQuizReveal(c, r);
     broadcastLeaderboard(c);
     broadcastState(c);
+    markDirty(c); // 타이머 경로는 소켓 미들웨어를 안 거친다
   };
   // 문제 시작 (첫 문제 / 다음 문제 공통) — autoReveal 이면 제한시간 종료 시 자동 공개 예약
   const startQuestion = (c: ClassroomState) => {
@@ -123,6 +125,7 @@ export function setupSocket(io: IO) {
       broadcastPoll(c, c.activity.activityId, true);
     }
     broadcastState(c);
+    markDirty(c);
   };
 
   // 설문 집계 브로드캐스트는 제출마다가 아니라 활동당 창(500ms)당 1회 (400명 동시 제출 대비). 개인 식별 정보 없음 → 전원
@@ -148,7 +151,12 @@ export function setupSocket(io: IO) {
       const g = buckets.take('*', SOCKET_GLOBAL_RULE, now);
       const rule = SOCKET_EVENT_RULES[ev];
       const e = rule ? buckets.take(ev, rule, now) : { ok: true, warn: false };
-      if (g.ok && e.ok) return next();
+      if (g.ok && e.ok) {
+        // 스냅샷 dirty 표시 — 강사·참가자 이벤트는 거의 전부 상태를 바꾼다. 핸들러는 next() 뒤에 동기 실행되므로
+        // setImmediate 시점엔 변경이 끝나 있다(join 은 payload 의 token 이라 핸들러가 socket.data 를 채운 뒤 읽는다).
+        setImmediate(() => markDirty(getByToken(socket.data.token ?? '')));
+        return next();
+      }
       if (g.warn || e.warn) socket.emit('errmsg', { message: '요청이 너무 잦아요. 잠시 후 다시 시도해 주세요.' });
     });
 
@@ -174,7 +182,14 @@ export function setupSocket(io: IO) {
     socket.on('student:join', async ({ token, nickname, sessionId }) => {
       const c = getByToken(token);
       if (!c) return socket.emit('errmsg', { message: '입장 코드를 다시 확인해 주세요.' });
-      const p = c.upsertParticipant(sessionId, nickname);
+      if (c.status === 'ended') return socket.emit('errmsg', { message: '종료된 강의실이에요.' });
+      // 재입장 점수 복원: 메모리(스냅샷)에 없는 세션이면 DB 행(participant id·점수)으로 되살린다 (R3 리스크 2)
+      let seed: { id: string; score: number } | undefined;
+      if (sessionId && !c.getBySession(sessionId)) {
+        const row = await loadParticipantRow(c, sessionId);
+        if (row) seed = { id: row.id, score: row.score };
+      }
+      const p = c.upsertParticipant(sessionId, nickname, seed);
       p.socketId = socket.id;
       socket.data.role = 'student';
       socket.data.token = c.token;
@@ -486,6 +501,22 @@ export function setupSocket(io: IO) {
       broadcastParticipants(c);
     });
   });
+
+  // ── 부팅 복원(snapshot.ts)된 강의실의 활동 타이머 재장전 ──
+  // 투표 자동 마감·퀴즈 자동 공개는 setTimeout 이라 스냅샷에 없다. 기한이 이미 지났으면 지금 마감/공개한다.
+  for (const c of allClassrooms()) {
+    const a = c.activity;
+    if (!a) continue;
+    if (a.poll?.endsAt && !a.poll.closed) {
+      if (a.poll.endsAt <= Date.now()) doPollClose(c);
+      else armTimer(c, a.poll.endsAt, () => doPollClose(c));
+    }
+    if ((a.type === 'quiz' || a.type === 'ox') && a.quiz?.phase === 'question' && a.quiz.autoReveal && a.quiz.endsAt) {
+      const at = a.quiz.endsAt + QUIZ_REVEAL_GRACE_MS;
+      if (at <= Date.now()) doQuizReveal(c);
+      else armTimer(c, at, () => doQuizReveal(c));
+    }
+  }
 }
 
 function instructorClassroom(socket: Sock): ClassroomState | undefined {

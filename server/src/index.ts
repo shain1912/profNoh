@@ -14,6 +14,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { env, hasSupabase, hasMiniMax, hasStability } from './env';
 import { registerRoutes } from './routes';
 import { setupSocket } from './socket';
+import { restoreSnapshots, startSnapshotLoop, installShutdownFlush } from './snapshot';
 
 const here = dirname(fileURLToPath(import.meta.url)); // server/src
 const clientDist = resolve(here, '../../client/dist');
@@ -91,6 +92,18 @@ async function main() {
     app.log.info('[static] client/dist 없음 — 개발 모드(Vite 5173)에서 접속하세요.');
   }
 
+  // ── Phase 2 영속화: 소켓을 열기 전에 스냅샷 복원 (재시작 후에도 토큰·슬라이드·점수 유지, 12시간 TTL) ──
+  // DB 지연으로 부팅이 막히지 않도록 10초 상한. 못 읽으면 빈 상태로 시작(기존 동작).
+  const restored = await Promise.race([
+    restoreSnapshots(),
+    new Promise<{ restored: number; skipped: number }>((r) => setTimeout(() => r({ restored: -1, skipped: 0 }), 10_000)),
+  ]);
+  app.log.info(
+    restored.restored < 0
+      ? '[snapshot] 복원 시간 초과 — 빈 상태로 시작'
+      : `[snapshot] 강의실 ${restored.restored}개 복원 (건너뜀 ${restored.skipped})`,
+  );
+
   await app.listen({ port: env.PORT, host: '0.0.0.0' });
 
   const io = new SocketIOServer(app.server, {
@@ -98,7 +111,9 @@ async function main() {
     // 소켓 페이로드는 전부 수 KB 이하(투표·설문·질문) — 기본 1MB 대신 64KB 로 잘라 대형 프레임 남용 차단
     maxHttpBufferSize: 64 * 1024,
   });
-  setupSocket(io as any);
+  setupSocket(io as any); // 복원된 강의실의 활동 타이머도 여기서 재장전
+  startSnapshotLoop();
+  installShutdownFlush();
 
   app.log.info(
     `[ready] :${env.PORT} | Supabase=${hasSupabase ? 'on' : 'off'} | MiniMax=${hasMiniMax ? 'on' : 'demo'} | Stability=${hasStability ? 'on' : 'demo'}`,

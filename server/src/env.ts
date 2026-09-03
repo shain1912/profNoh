@@ -71,6 +71,15 @@ export const env = {
   // 집계 브로드캐스트 배치 창(ms): 스태프(강사·프로젝터) / 참가자
   BROADCAST_BATCH_MS: Number(process.env.BROADCAST_BATCH_MS ?? 300),
   BROADCAST_BATCH_PARTICIPANT_MS: Number(process.env.BROADCAST_BATCH_PARTICIPANT_MS ?? 500),
+
+  // ── Phase 2 영속화: ClassroomState 스냅샷 (R3 리스크 2 — 재시작 = 강연 종료) ──
+  // 변경 후 SNAPSHOT_DEBOUNCE_MS 안에 추가 변경이 없으면 저장, 연속 변경 중에도 SNAPSHOT_MAX_WAIT_MS 마다 1회는 저장.
+  // SNAPSHOT_INTERVAL_MS 주기로 미저장 강의실을 훑고, 부팅 시 SNAPSHOT_TTL_HOURS 안의 스냅샷만 복원한다.
+  SNAPSHOT_DISABLED: process.env.SNAPSHOT_DISABLED === '1',
+  SNAPSHOT_DEBOUNCE_MS: Number(process.env.SNAPSHOT_DEBOUNCE_MS ?? 2000),
+  SNAPSHOT_MAX_WAIT_MS: Number(process.env.SNAPSHOT_MAX_WAIT_MS ?? 5000),
+  SNAPSHOT_INTERVAL_MS: Number(process.env.SNAPSHOT_INTERVAL_MS ?? 30_000),
+  SNAPSHOT_TTL_HOURS: Number(process.env.SNAPSHOT_TTL_HOURS ?? 12),
 };
 
 export const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
