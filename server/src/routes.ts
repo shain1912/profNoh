@@ -740,13 +740,18 @@ export async function registerRoutes(app: FastifyInstance) {
         { data: quizResponses },
         { data: pollResponses },
         { data: aiUsages },
-        { data: labRuns }
+        { data: labRuns },
+        { data: surveyResponses },
+        { data: questionRows },
       ] = await Promise.all([
         supabase.from('axedu_participants').select('*').eq('classroom_id', id),
         supabase.from('axedu_quiz_responses').select('*').eq('classroom_id', id),
         supabase.from('axedu_poll_responses').select('*').eq('classroom_id', id),
         supabase.from('axedu_ai_usage').select('*').eq('classroom_id', id),
-        supabase.from('axedu_lab_runs').select('*').eq('classroom_id', id)
+        supabase.from('axedu_lab_runs').select('*').eq('classroom_id', id),
+        // 강당 활동 테이블은 마이그레이션 전 환경일 수 있어 실패해도 리포트 자체는 막지 않음
+        supabase.from('axedu_survey_responses').select('*').eq('classroom_id', id).then((r) => (r.error ? { data: [] } : r)),
+        supabase.from('axedu_questions').select('*').eq('classroom_id', id).order('upvotes', { ascending: false }).then((r) => (r.error ? { data: [] } : r)),
       ]);
 
       const parts = participants ?? [];
@@ -754,6 +759,8 @@ export async function registerRoutes(app: FastifyInstance) {
       const polls = pollResponses ?? [];
       const usages = aiUsages ?? [];
       const labs = labRuns ?? [];
+      const surveys = surveyResponses ?? [];
+      const questions = questionRows ?? [];
 
       const participantMap = new Map(parts.map((p) => [p.id, p]));
 
@@ -807,6 +814,18 @@ export async function registerRoutes(app: FastifyInstance) {
                 studentDetails: []
               };
             });
+          } else if (act.type === 'ox') {
+            // OX 퀴즈는 quiz 엔진으로 채점되므로 문항 id 는 `${activityId}:q`
+            quizSummary[`${act.id}:q`] = {
+              questionText: act.question,
+              options: ['O', 'X'],
+              correctIndex: act.answer === 'X' ? 1 : 0,
+              totalAnswers: 0,
+              correctAnswers: 0,
+              correctRate: 0,
+              answers: {},
+              studentDetails: []
+            };
           }
         });
       }
@@ -815,8 +834,9 @@ export async function registerRoutes(app: FastifyInstance) {
         let qStat = quizSummary[qr.question_id];
         if (!qStat) {
           qStat = {
-            questionText: '삭제된 문제',
-            options: [],
+            // 즉석 OX 퀴즈(덱에 없음)는 문항 id 형식으로 구분
+            questionText: String(qr.question_id).startsWith('ox_') ? '즉석 OX 퀴즈' : '삭제된 문제',
+            options: String(qr.question_id).startsWith('ox_') ? ['O', 'X'] : [],
             correctIndex: -1,
             totalAnswers: 0,
             correctAnswers: 0,
@@ -865,6 +885,17 @@ export async function registerRoutes(app: FastifyInstance) {
               votes: {},
               studentDetails: []
             };
+          } else if (act.type === 'scale') {
+            pollSummary[act.id] = {
+              prompt: act.prompt,
+              mode: 'scale',
+              options: ['1', '2', '3', '4', '5'],
+              lowLabel: act.lowLabel,
+              highLabel: act.highLabel,
+              totalVotes: 0,
+              votes: {},
+              studentDetails: []
+            };
           }
         });
       }
@@ -893,6 +924,58 @@ export async function registerRoutes(app: FastifyInstance) {
           value: val
         });
       });
+
+      // 6-1. 척도 투표 평균 (mode==='scale' — 마지막 응답만 유효하도록 participant 기준 최신 값 사용)
+      Object.values(pollSummary).forEach((p: any) => {
+        if (p.mode !== 'scale') return;
+        const latest = new Map<string, number>();
+        polls
+          .filter((pr) => pollSummary[pr.activity_id] === p)
+          .forEach((pr) => { const n = Number(pr.value); if (Number.isInteger(n) && n >= 1 && n <= 5) latest.set(pr.participant_id, n); });
+        const vals = [...latest.values()];
+        p.votes = {};
+        vals.forEach((n) => { p.votes[String(n)] = (p.votes[String(n)] || 0) + 1; });
+        p.totalVotes = vals.length;
+        p.avg = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100 : null;
+      });
+
+      // 6-2. 설문 집계 (익명 — 개인 식별 없이 문항별 평균·분포·주관식)
+      const surveySummary: Record<string, any> = {};
+      if (deck) {
+        Object.values(deck.activities).forEach((act: any) => {
+          if (act.type !== 'survey') return;
+          surveySummary[act.id] = {
+            title: act.title,
+            total: 0,
+            questions: act.questions.map((q: any) => ({ id: q.id, kind: q.kind, text: q.text, lowLabel: q.lowLabel, highLabel: q.highLabel, count: 0, avg: null, dist: {}, texts: [] })),
+          };
+        });
+      }
+      surveys.forEach((sr) => {
+        const s = surveySummary[sr.activity_id];
+        if (!s) return;
+        s.total += 1;
+        const answers = (sr.answers ?? {}) as Record<string, unknown>;
+        s.questions.forEach((q: any) => {
+          const v = answers[q.id];
+          if (v === undefined || v === null || v === '') return;
+          if (q.kind === 'text') { if (typeof v === 'string') { q.texts.push(v); q.count += 1; } return; }
+          const n = Number(v);
+          if (!Number.isFinite(n)) return;
+          q.dist[String(n)] = (q.dist[String(n)] || 0) + 1;
+          q.count += 1;
+          q._sum = (q._sum || 0) + n;
+        });
+      });
+      Object.values(surveySummary).forEach((s: any) => s.questions.forEach((q: any) => {
+        if (q.kind !== 'text' && q.count > 0) q.avg = Math.round((q._sum / q.count) * 100) / 100;
+        delete q._sum;
+      }));
+
+      // 6-3. Q&A (익명 질문 — 업보트순)
+      const qaSummary = questions.map((q) => ({
+        id: q.id, text: q.text, upvotes: q.upvotes ?? 0, answered: !!q.answered, approved: q.approved !== false, createdAt: q.created_at,
+      }));
 
       // 7. 비교 실습(Lab) 집계
       const labSummary = labs.map((l) => {
@@ -936,6 +1019,8 @@ export async function registerRoutes(app: FastifyInstance) {
         })),
         quizSummary,
         pollSummary,
+        surveySummary,
+        qaSummary,
         labSummary,
         participantAiUsages: Object.entries(participantAiMap).map(([nickname, data]) => ({
           nickname,

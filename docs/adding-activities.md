@@ -104,8 +104,21 @@ export const ACTIVITY_DEFS = { ..., foo };
 ## 6. 프로젝터 화면 (선택)
 
 프로젝터(`client/src/pages/Projector.tsx`)는 기본적으로 활동이 열려도 **현재 슬라이드**를 크게 보여준다.
-`quiz`(문항·카운트다운·정답 분포·리더보드)와 `poll`(워드클라우드/롤링페이퍼/막대그래프 — `PollView.tsx`)만
-실시간 전용 뷰가 있다. 새 활동에 전용 프로젝터 뷰가 필요할 때만 `Projector.tsx`에 분기를 추가한다.
+실시간 전용 뷰가 있는 활동: `quiz`(문항·카운트다운·정답 분포·리더보드), `poll`(워드클라우드/롤링페이퍼/막대 — `PollView.tsx`),
+`ox`(`OxProjectorView.tsx`), `scale`(`ScaleView.tsx` big), `survey`(응답 수 → 마감 후 `SurveyResultView.tsx`).
+새 활동에 전용 프로젝터 뷰가 필요할 때만 `Projector.tsx`에 분기를 추가하되, 뷰 자체는 `components/*.tsx`로 분리해 페이지 diff를 작게 유지한다.
+
+## 7. 강당용 활동 3종 메모 (survey · scale · ox)
+
+- **서버 실시간 상태를 쓰는 활동**은 `shared/types.ts`의 `OpenActivityState`(예: `survey.phase`)와 소켓 이벤트를 함께 정의하고
+  `server/src/state.ts` → `socket.ts` → `client/src/lib/useClassroom.ts` 순으로 연결한다. 늦게 들어온 소켓 동기화는 `socket.ts`의 `sendCurrentActivityTo`에 분기 추가.
+- **quiz 엔진 재사용**: `ox`는 `state.ts`의 `quizFor()`가 O/X 2지선다 1문항 퀴즈로 합성하므로 채점·점수·리더보드·정답 공개가 그대로 동작한다.
+  정답 같은 서버 전용 필드는 `server/src/decks/index.ts`의 `toPublicActivity`에서 제거.
+- **poll 파이프라인 재사용**: `scale`은 `student:pollVote`/`poll:update`를 그대로 쓰고(값 `'1'~'5'`만 허용) 결과 뷰만 다르다.
+- **즉석 활동(덱 편집 없이 열기)**: `ClassroomState.adhocActivities` + `resolveActivity()`. 서버는 `OpenActivityState.adhoc`에 공개 버전을 실어 보내고,
+  클라이언트 3개 페이지는 `live.activity.adhoc ?? deck.activities[id]`로 활동을 해석한다. (`instructor:quickOx` 참고)
+- **익명 집계**: 설문(`survey:update`)·Q&A(`QuestionItem`)는 닉네임·세션을 절대 싣지 않는다. DB도 `axedu_survey_responses.answers`(참가자 FK는 중복 제출 방지용)·`axedu_questions`(작성자 미기록).
+- 검증: `node verify-auditorium-activities.mjs` (서버 8791 기동 후 — 소켓 4개로 4종 활동 + 리포트까지 31항목)
 
 ## 체크리스트
 
@@ -116,4 +129,4 @@ export const ACTIVITY_DEFS = { ..., foo };
 - [ ] (선택) `GenerateDeckRequest.activities` + `Build.tsx` 체크박스
 - [ ] (선택) `deckAgent.ts` `verifyActivity` 품질 검증
 - [ ] (선택) `Projector.tsx` 전용 뷰
-- [ ] 검증: `node verify-activity-parity.mjs` (서버 8795 기동 후)
+- [ ] 검증: `node verify-activity-parity.mjs` (서버 8795 기동 후) · 실시간 활동이면 `verify-auditorium-activities.mjs` 패턴으로 소켓 검증 추가

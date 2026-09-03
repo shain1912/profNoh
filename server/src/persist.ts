@@ -1,5 +1,6 @@
 import { dbSafe } from './db';
 import type { ClassroomState, Participant } from './state';
+import type { QuestionItem } from '../../shared/types';
 
 // 모든 기록은 best-effort. 실패해도 라이브 진행은 막지 않는다.
 
@@ -62,6 +63,36 @@ export function persistPoll(c: ClassroomState, p: Participant, activityId: strin
     sb.from('axedu_poll_responses').insert(
       { classroom_id: c.id, participant_id: p.id, activity_id: activityId, value },
     ).then((r) => { if (r.error) throw r.error; return true; }),
+  );
+}
+
+/** 설문 응답 — 참가자당 활동 1행(재제출 시 덮어씀). answers 는 {문항id: 값} */
+export function persistSurvey(c: ClassroomState, p: Participant, activityId: string, answers: Record<string, number | string>) {
+  return dbSafe((sb) =>
+    sb.from('axedu_survey_responses').upsert(
+      { classroom_id: c.id, participant_id: p.id, activity_id: activityId, answers, updated_at: new Date().toISOString() },
+      { onConflict: 'classroom_id,participant_id,activity_id' },
+    ).then((r) => { if (r.error) throw r.error; return true; }),
+  );
+}
+
+/** 익명 질문 — 닉네임/참가자 미기록. 업보트·답변완료·승인 변경 시 같은 행 갱신 */
+export function persistQuestion(c: ClassroomState, q: QuestionItem) {
+  return dbSafe((sb) =>
+    sb.from('axedu_questions').upsert(
+      {
+        id: q.id, classroom_id: c.id, text: q.text, upvotes: q.upvotes, answered: q.answered, approved: q.approved,
+        created_at: new Date(q.createdAt).toISOString(), updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    ).then((r) => { if (r.error) throw r.error; return true; }),
+  );
+}
+
+export function deleteQuestionRow(c: ClassroomState, questionId: string) {
+  return dbSafe((sb) =>
+    sb.from('axedu_questions').delete().eq('id', questionId).eq('classroom_id', c.id)
+      .then((r) => { if (r.error) throw r.error; return true; }),
   );
 }
 

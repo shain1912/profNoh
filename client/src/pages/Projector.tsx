@@ -7,6 +7,10 @@ import SlideView from '../components/SlideView';
 import PollView from '../components/PollView';
 import Leaderboard from '../components/Leaderboard';
 import Countdown from '../components/Countdown';
+import ScaleView from '../components/ScaleView';
+import SurveyResultView from '../components/SurveyResultView';
+import OxProjectorView from '../components/OxProjectorView';
+import QaProjectorView from '../components/QaProjectorView';
 
 const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-amber-500', 'bg-emerald-600'];
 const SHAPES = ['▲', '◆', '●', '■'];
@@ -53,7 +57,8 @@ export default function Projector() {
       </div>
     );
 
-  const act = live.activity ? deck.activities[live.activity.activityId] : null;
+  // 즉석 활동(OX 퀵 퀴즈)은 덱에 없으므로 서버가 실어 보낸 adhoc 을 우선 사용
+  const act = live.activity ? (live.activity.adhoc ?? deck.activities[live.activity.activityId]) : null;
 
   // 리더보드 서랍 (L) — 어떤 화면 상태에서도 오른쪽에서 슬라이드 인
   const lbDrawer = (
@@ -80,6 +85,54 @@ export default function Projector() {
       {lbDrawer}
     </div>
   );
+
+  // OX 퀵 퀴즈 — 2지선다 대형 타일 (채점·리더보드는 quiz 이벤트 공용)
+  if (act?.type === 'ox') {
+    return withDrawer(
+      <OxProjectorView question={live.question} reveal={live.reveal} answeredCount={live.answeredCount} leaderboard={live.leaderboard} />,
+    );
+  }
+
+  // 척도 투표 — 분포 막대 + 평균
+  if (act?.type === 'scale') {
+    return withDrawer(
+      <div className="flex h-full flex-col justify-center p-10 text-center">
+        <h1 className="text-4xl font-extrabold text-strong">📏 {act.prompt}</h1>
+        <div className="mt-8">
+          <ScaleView activity={act} dist={live.polls[act.id] ?? { counts: {}, total: 0 }} big />
+        </div>
+      </div>,
+    );
+  }
+
+  // 설문 — 응답 중엔 응답 수만, 마감 후 문항별 평균·분포
+  if (act?.type === 'survey') {
+    const summary = live.surveys[act.id] ?? null;
+    const closed = live.activity?.survey?.phase === 'closed';
+    return withDrawer(
+      <div className="flex h-full flex-col p-10">
+        <div className="flex items-end justify-between">
+          <h1 className="text-4xl font-extrabold text-strong">📝 {act.title}</h1>
+          <span className="text-3xl text-muted">
+            응답 <b className="text-6xl font-extrabold tabular-nums text-brand">{summary?.total ?? 0}</b> / {live.participantCount}명
+          </span>
+        </div>
+        {closed ? (
+          <div className="mt-6 flex-1 overflow-hidden">
+            <SurveyResultView activity={act} summary={summary} big maxTexts={6} />
+          </div>
+        ) : (
+          <div className="grid flex-1 place-items-center text-center">
+            <div>
+              <div className="text-8xl">📱</div>
+              <p className="mt-4 text-3xl text-muted">폰에서 설문에 응답해 주세요 · 익명으로 집계됩니다</p>
+              <p className="mt-2 text-2xl text-muted-2">마감 후 결과가 여기에 공개돼요</p>
+            </div>
+          </div>
+        )}
+      </div>,
+    );
+  }
 
   // 퀴즈
   if (act?.type === 'quiz') {
@@ -141,6 +194,11 @@ export default function Projector() {
         </div>
       </div>
     );
+  }
+
+  // Q&A 카드 뷰 — 강사가 "프로젝터에 질문 카드" 를 켜면 슬라이드 대신 업보트순 질문 카드
+  if (live.snapshot?.qa?.onScreen) {
+    return withDrawer(<QaProjectorView questions={live.questions} />);
   }
 
   // 슬라이드

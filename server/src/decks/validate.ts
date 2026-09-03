@@ -1,7 +1,8 @@
 import { customAlphabet } from 'nanoid';
 import type {
-  Deck, Slide, Activity, QuizActivity, PollActivity, SlideLayout,
+  Deck, Slide, Activity, QuizActivity, PollActivity, SlideLayout, SurveyQuestion,
 } from '../../../shared/types';
+import { SURVEY_PRESET, SURVEY_MAX_QUESTIONS } from '../../../shared/surveyPreset';
 
 export const makeDeckId = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 6);
 export const makePin = customAlphabet('0123456789', 6);
@@ -35,6 +36,23 @@ export function blankPoll(id: string): PollActivity {
   return { type: 'poll', id, title: '새 투표', prompt: '', mode: 'wordcloud', options: [] };
 }
 
+/** 설문 문항 배열 정규화 — 비면 표준 6문항 프리셋 */
+export function normalizeSurveyQuestions(input: unknown): SurveyQuestion[] {
+  const qs = (Array.isArray(input) ? input : []).slice(0, SURVEY_MAX_QUESTIONS).map((q: any, i: number): SurveyQuestion | null => {
+    const text = clamp(q?.text, 200);
+    if (!text) return null;
+    const kind = q?.kind === 'nps' ? 'nps' : q?.kind === 'text' ? 'text' : 'likert';
+    return {
+      id: clamp(q?.id, 40) || `sq${i + 1}_${makeActId()}`,
+      kind,
+      text,
+      lowLabel: kind === 'text' ? undefined : clamp(q?.lowLabel, 30) || undefined,
+      highLabel: kind === 'text' ? undefined : clamp(q?.highLabel, 30) || undefined,
+    };
+  }).filter((q): q is SurveyQuestion => !!q);
+  return qs.length ? qs : SURVEY_PRESET.map((q) => ({ ...q }));
+}
+
 export function blankDeck(id: string, title: string): Deck {
   return {
     id, title: clamp(title, 80) || '제목 없는 강의',
@@ -66,6 +84,23 @@ export function validateDeck(input: unknown, id: string): Deck {
       const mode = a.mode === 'choice' ? 'choice' : 'wordcloud';
       const options = mode === 'choice' ? (a.options ?? []).slice(0, 8).map((o) => clamp(o, 60)).filter(Boolean) : [];
       activities[key] = { type: 'poll', id: key, title: clamp(a.title, 80) || '투표', prompt: clamp(a.prompt, 200), mode, options };
+    } else if (a.type === 'survey') {
+      activities[key] = {
+        type: 'survey', id: key, title: clamp(a.title, 80) || '만족도 설문', intro: clamp(a.intro, 200) || undefined,
+        questions: normalizeSurveyQuestions(a.questions),
+      };
+    } else if (a.type === 'scale') {
+      activities[key] = {
+        type: 'scale', id: key, title: clamp(a.title, 80) || '척도 투표', prompt: clamp(a.prompt, 200),
+        lowLabel: clamp(a.lowLabel, 30) || undefined, highLabel: clamp(a.highLabel, 30) || undefined,
+      };
+    } else if (a.type === 'ox') {
+      let t = typeof a.timeLimitSec === 'number' ? a.timeLimitSec : 20;
+      t = Math.min(120, Math.max(5, t));
+      activities[key] = {
+        type: 'ox', id: key, title: clamp(a.title, 80) || 'OX 퀴즈', question: clamp(a.question, 200),
+        answer: a.answer === 'X' ? 'X' : 'O', timeLimitSec: t, explanation: clamp(a.explanation, 300) || undefined,
+      };
     } else if (a.type === 'roleplay') {
       activities[key] = {
         type: 'roleplay',

@@ -5,6 +5,7 @@ import { loadDeck } from '../lib/deck';
 import { getNickname, getSessionId } from '../lib/session';
 import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
+import QaPanel from '../components/QaPanel';
 import { activityDef } from '../activities/registry';
 
 export default function Student() {
@@ -15,8 +16,6 @@ export default function Student() {
   const sessionId = getSessionId();
   const [deck, setDeck] = useState<Deck | null>(null);
   const [askOpen, setAskOpen] = useState(false);
-  const [askText, setAskText] = useState('');
-  const [askSent, setAskSent] = useState(false);
 
   useEffect(() => {
     if (!token || !nickname) nav(`/join?token=${token}`);
@@ -60,49 +59,28 @@ export default function Student() {
         )}
       </main>
 
-      {/* 언제든 익명으로 질문하기 */}
+      {/* 언제든 익명으로 질문하기 + 질문 목록·👍 (Q&A 2.0) */}
       <button
-        onClick={() => { setAskOpen(true); setAskSent(false); }}
+        onClick={() => setAskOpen(true)}
         className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-on-brand shadow-pop hover:scale-105 active:scale-95 transition-all"
-        title="선생님께 질문하기"
+        title="질문하기 · 질문 보기"
+        data-testid="qa-fab"
       >
         <span className="text-2xl">❓</span>
+        {live.questions.length > 0 && (
+          <span className="absolute -right-1 -top-1 rounded-full bg-down px-1.5 text-[11px] font-bold text-white ring-2 ring-surface">{live.questions.length}</span>
+        )}
       </button>
 
       {askOpen && (
-        <div className="modal-overlay" onClick={() => setAskOpen(false)}>
-          <div className="modal-card max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setAskOpen(false)}>✕</button>
-            <h2 className="text-lg font-bold text-brand">❓ 선생님께 질문하기</h2>
-            <p className="mt-1 text-xs text-muted">닉네임 없이 익명으로 전달돼요. 궁금한 건 뭐든 물어보세요!</p>
-            {askSent ? (
-              <p className="mt-6 text-center text-up font-semibold">질문이 전달됐어요! 🙌</p>
-            ) : (
-              <>
-                <textarea
-                  className="input mt-4 w-full resize-none text-sm"
-                  rows={3}
-                  maxLength={300}
-                  placeholder="예) 아까 말씀하신 부분 다시 설명해주실 수 있나요?"
-                  value={askText}
-                  onChange={(e) => setAskText(e.target.value)}
-                />
-                <button
-                  className="btn-primary mt-3 w-full py-2.5 font-bold disabled:opacity-40"
-                  disabled={!askText.trim()}
-                  onClick={() => {
-                    live.socket.emit('student:askQuestion', { text: askText.trim() });
-                    setAskText('');
-                    setAskSent(true);
-                    setTimeout(() => setAskOpen(false), 1400);
-                  }}
-                >
-                  질문 보내기
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <QaPanel
+          token={token}
+          questions={live.questions}
+          moderation={!!live.snapshot?.qa?.moderation}
+          onAsk={(text) => live.socket.emit('student:askQuestion', { text })}
+          onUpvote={(questionId) => live.socket.emit('student:upvoteQuestion', { questionId })}
+          onClose={() => setAskOpen(false)}
+        />
       )}
     </div>
   );
@@ -119,7 +97,8 @@ function ActivityArea({
   token: string;
   sessionId: string;
 }) {
-  const act = live.activity ? deck.activities[live.activity.activityId] : null;
+  // 즉석 활동(OX 퀵 퀴즈)은 덱에 없으므로 서버가 실어 보낸 adhoc 을 우선 사용
+  const act = live.activity ? (live.activity.adhoc ?? deck.activities[live.activity.activityId]) : null;
 
   if (!act) {
     const slide = deck.slides[live.slideIndex] ?? deck.slides[0];

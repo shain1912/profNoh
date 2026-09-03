@@ -6,6 +6,7 @@ import type {
   QuizReveal,
   PollDistribution,
   QuestionItem,
+  SurveySummary,
 } from '@shared/types';
 import { getSocket, type AppSocket } from './socket';
 import type { QuizQuestionPayload } from '../components/activities/QuizStudent';
@@ -26,6 +27,7 @@ export interface ClassroomLive {
   joined: { participantId: string; sessionId: string; nickname: string; score: number } | null;
   error: string | null;
   questions: QuestionItem[];
+  surveys: Record<string, SurveySummary>;
 }
 
 export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
@@ -47,6 +49,7 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
   const [joined, setJoined] = useState<ClassroomLive['joined']>(null);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [surveys, setSurveys] = useState<Record<string, SurveySummary>>({});
 
   useEffect(() => {
     const onConnect = () => {
@@ -67,7 +70,7 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
     socket.on('activity:opened', (a) => {
       setActivity(a);
       setReveal(null);
-      if (a.type !== 'quiz') setQuestion(null);
+      if (a.type !== 'quiz' && a.type !== 'ox') setQuestion(null);
       setAnsweredCount(0);
     });
     socket.on('activity:closed', () => {
@@ -97,7 +100,13 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
     socket.on('joined', (j) => setJoined(j));
     socket.on('errmsg', (e) => setError(e.message));
     socket.on('questions:sync', (qs) => setQuestions(qs));
-    socket.on('question:new', (q) => setQuestions((prev) => [q, ...prev].slice(0, 200)));
+    // new/update 모두 id 기준 upsert — 강사는 방·강사 room 양쪽에서 같은 이벤트를 받을 수 있어 중복 제거
+    const upsertQuestion = (q: QuestionItem) =>
+      setQuestions((prev) => (prev.some((x) => x.id === q.id) ? prev.map((x) => (x.id === q.id ? q : x)) : [q, ...prev].slice(0, 200)));
+    socket.on('question:new', upsertQuestion);
+    socket.on('question:update', upsertQuestion);
+    socket.on('question:remove', ({ id }) => setQuestions((prev) => prev.filter((x) => x.id !== id)));
+    socket.on('survey:update', (s) => setSurveys((prev) => ({ ...prev, [s.activityId]: s })));
 
     if (socket.connected) {
       setConnected(true);
@@ -122,6 +131,9 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
       socket.off('errmsg');
       socket.off('questions:sync');
       socket.off('question:new');
+      socket.off('question:update');
+      socket.off('question:remove');
+      socket.off('survey:update');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -142,5 +154,6 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
     joined,
     error,
     questions,
+    surveys,
   };
 }

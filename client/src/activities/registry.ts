@@ -9,6 +9,9 @@ import roleplay from './defs/roleplay';
 import analogy from './defs/analogy';
 import writing from './defs/writing';
 import tutor from './defs/tutor';
+import survey from './defs/survey';
+import scale from './defs/scale';
+import ox from './defs/ox';
 
 // ──────────────────────────────────────────────────────────────
 //  활동 레지스트리 — 새 활동은 defs/<type>.tsx 를 만들고 여기 한 줄 등록.
@@ -18,6 +21,7 @@ import tutor from './defs/tutor';
 
 export const ACTIVITY_DEFS: Record<ActivityType, ActivityDef<any>> = {
   chat, image, lab, quiz, poll, roleplay, analogy, writing, tutor,
+  survey, scale, ox,
 };
 
 /** 등록된 모든 활동 타입 (편집기 "＋활동" 버튼 순서) */

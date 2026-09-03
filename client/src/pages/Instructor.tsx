@@ -10,6 +10,10 @@ import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
 import Leaderboard from '../components/Leaderboard';
 import PollView from '../components/PollView';
+import ScaleView from '../components/ScaleView';
+import SurveyResultView from '../components/SurveyResultView';
+import InstructorQa from '../components/InstructorQa';
+import QuickOxModal from '../components/QuickOxModal';
 
 export default function Instructor() {
   const location = useLocation();
@@ -126,6 +130,8 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [qaOpen, setQaOpen] = useState(false);
+  // OX 즉석 출제 모달 (덱 편집 없이 1문항)
+  const [oxOpen, setOxOpen] = useState(false);
   // 발표 모드(F): 화면 100%를 강의자료로 — 모든 UI 숨김 + 브라우저 전체화면
   const [focusMode, setFocusMode] = useState(false);
   // 리더보드 서랍(L): 오른쪽에서 슬라이드되어 화면 위를 덮음
@@ -201,8 +207,12 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   const slide = deck.slides[live.slideIndex] ?? deck.slides[0];
   const total = deck.slides.length;
   const slideAct = slide.activityId ? deck.activities[slide.activityId] : null;
-  const openAct = live.activity ? deck.activities[live.activity.activityId] : null;
-  const quizState = live.activity?.type === 'quiz' ? live.activity.quiz : undefined;
+  // 즉석 활동(OX 퀵 퀴즈)은 덱에 없으므로 서버가 실어 보낸 adhoc 을 우선 사용
+  const openAct = live.activity ? (live.activity.adhoc ?? deck.activities[live.activity.activityId]) : null;
+  const quizState = live.activity?.quiz; // quiz · ox 공통
+  const surveyPhase = live.activity?.survey?.phase;
+  const surveyTotal = live.activity ? (live.surveys[live.activity.activityId]?.total ?? 0) : 0;
+  const pendingQa = live.questions.filter((q) => !q.approved).length;
 
   const projectorLink = `${location.origin}/screen/${creds.token}`;
 
@@ -230,8 +240,9 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   };
 
   // ── 원버튼 진행: 현재 상태로 "다음에 할 일" 하나를 계산 ──
+  // 즉석 활동은 슬라이드에 묶여 있지 않으므로 항상 "여기서 진행 중"으로 취급
   const activeHere =
-    live.activity && live.activity.activityId === slide.activityId ? live.activity : null;
+    live.activity && (live.activity.activityId === slide.activityId || live.activity.adhoc) ? live.activity : null;
   const isLast = live.slideIndex >= total - 1;
   const closeAndNext = () => {
     live.socket.emit('instructor:closeActivity');
@@ -240,14 +251,21 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   type Step = { label: string; primary: boolean; run: () => void; disabled?: boolean };
   const nextStep = (): Step => {
     if (activeHere) {
-      if (openAct?.type === 'quiz' && quizState) {
+      if ((openAct?.type === 'quiz' || openAct?.type === 'ox') && quizState) {
         if (quizState.phase === 'idle')
           return { label: '🎬 문제 시작', primary: true, run: () => live.socket.emit('instructor:quizStart') };
         if (quizState.phase === 'question')
           return { label: `✅ 정답 공개 · ${live.answeredCount}명 응답`, primary: true, run: () => live.socket.emit('instructor:quizReveal') };
         if (quizState.index < quizState.total - 1)
           return { label: '➡ 다음 문제', primary: true, run: () => live.socket.emit('instructor:quizNext') };
+        if (activeHere.adhoc)
+          return { label: '🏁 퀴즈 끝 · 닫기', primary: true, run: () => live.socket.emit('instructor:closeActivity') };
         return { label: '🏁 퀴즈 끝 · 다음으로', primary: true, run: closeAndNext };
+      }
+      if (openAct?.type === 'survey') {
+        if (surveyPhase === 'open')
+          return { label: `📊 설문 마감 · 결과 공개 (${surveyTotal}명 응답)`, primary: true, run: () => live.socket.emit('instructor:surveyClose') };
+        return { label: isLast ? '설문 닫고 마치기 🎉' : '다음으로 ▶', primary: true, run: closeAndNext };
       }
       return { label: isLast ? '활동 닫고 마치기 🎉' : '다음으로 ▶', primary: true, run: closeAndNext };
     }
@@ -306,10 +324,20 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           </Link>
           <button className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm" onClick={onReset}>새 강의실</button>
           <button
+            className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm font-bold"
+            title="OX 즉석 퀴즈 — 덱 편집 없이 1문항 바로 출제"
+            onClick={() => setOxOpen(true)}
+            data-testid="quick-ox"
+          >
+            ⚡ OX
+          </button>
+          <button
             className="btn bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1 text-sm font-bold rounded-lg"
             onClick={() => setQaOpen(true)}
+            data-testid="qa-open"
           >
             ❓ 질문 {live.questions.length > 0 && `(${live.questions.length})`}
+            {pendingQa > 0 && <span className="ml-1 rounded-full bg-warn px-1.5 text-[10px] text-white">{pendingQa}</span>}
           </button>
           <button
             className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm"
@@ -385,10 +413,10 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           {/* 진행 상태줄 (활동이 열렸을 때만) */}
           {activeHere && (
             <div className="rounded-xl bg-surface px-3 py-2 text-center text-sm ring-1 ring-hairline shadow-card">
-              {openAct?.type === 'quiz' && quizState?.phase === 'idle' && (
+              {(openAct?.type === 'quiz' || openAct?.type === 'ox') && quizState?.phase === 'idle' && (
                 <span className="text-muted">준비 완료 — 아래 버튼으로 첫 문제를 띄우세요</span>
               )}
-              {openAct?.type === 'quiz' && quizState?.phase === 'question' && live.question && (
+              {(openAct?.type === 'quiz' || openAct?.type === 'ox') && quizState?.phase === 'question' && live.question && (
                 <div className="space-y-2 text-left">
                   <div className="flex items-center justify-between text-xs text-muted">
                     <span>문제 {live.question.index + 1} / {live.question.total}</span>
@@ -404,7 +432,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                   </div>
                 </div>
               )}
-              {openAct?.type === 'quiz' && quizState?.phase === 'revealed' && live.reveal && (
+              {(openAct?.type === 'quiz' || openAct?.type === 'ox') && quizState?.phase === 'revealed' && live.reveal && (
                 <div className="space-y-2 text-left">
                   <div className="text-xs text-muted">정답 공개됨</div>
                   <div className="text-base font-bold text-strong">{live.question?.question}</div>
@@ -432,6 +460,20 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
               )}
               {openAct?.type === 'poll' && (
                 <PollView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
+              )}
+              {openAct?.type === 'scale' && (
+                <ScaleView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
+              )}
+              {openAct?.type === 'survey' && (
+                <div className="text-left">
+                  <div className="mb-2 flex items-center justify-between text-xs text-muted">
+                    <span>{surveyPhase === 'closed' ? '설문 마감 — 결과 공개됨' : '설문 응답 받는 중…'}</span>
+                    <span>응답 <b className="text-brand">{surveyTotal}</b> / {live.participantCount}명</span>
+                  </div>
+                  <div className="max-h-[40vh] overflow-y-auto custom-scrollbar">
+                    <SurveyResultView activity={openAct} summary={live.surveys[openAct.id] ?? null} maxTexts={5} />
+                  </div>
+                </div>
               )}
               {(openAct?.type === 'chat' || openAct?.type === 'image' || openAct?.type === 'lab') && (
                 <span className="text-muted">학생들이 실습 중이에요 🧑‍💻</span>
@@ -529,36 +571,25 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
         </div>
       )}
 
+      {/* Q&A 2.0 — 업보트순·답변완료·승인 후 공개·프로젝터 카드 뷰 토글 */}
       {qaOpen && (
-        <div className="modal-overlay" onClick={() => setQaOpen(false)}>
-          <div className="modal-card max-w-md" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setQaOpen(false)}>✕</button>
-            <h2 className="text-lg font-bold text-brand">❓ 학생 질문 ({live.questions.length})</h2>
-            <p className="mt-1 text-xs text-muted">닉네임 없이 언제든 도착하는 익명 질문이에요. 최신순으로 보여요.</p>
-            <div className="mt-4 max-h-[50vh] space-y-2 overflow-y-auto custom-scrollbar">
-              {live.questions.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-2">아직 들어온 질문이 없어요.</p>
-              ) : (
-                live.questions.map((q) => (
-                  <div key={q.id} className="rounded-xl bg-surface-2 px-3 py-2.5 text-left ring-1 ring-hairline">
-                    <p className="text-sm leading-relaxed">{q.text}</p>
-                    <p className="mt-1 text-[11px] text-muted-2">{timeAgo(q.createdAt)}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+        <InstructorQa
+          questions={live.questions}
+          qa={live.snapshot?.qa ?? { moderation: false, onScreen: false }}
+          socket={live.socket}
+          onClose={() => setQaOpen(false)}
+        />
+      )}
+
+      {oxOpen && (
+        <QuickOxModal
+          onClose={() => setOxOpen(false)}
+          onOpen={(p) => {
+            live.socket.emit('instructor:quickOx', p);
+            setOxOpen(false);
+          }}
+        />
       )}
     </div>
   );
-}
-
-function timeAgo(ts: number): string {
-  const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (sec < 60) return '방금 전';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분 전`;
-  const hr = Math.floor(min / 60);
-  return `${hr}시간 전`;
 }
