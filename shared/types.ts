@@ -158,6 +158,13 @@ export interface OpenActivityState {
   };
 }
 
+/**
+ * 세션 모드 — classroom: 교실(기본, 기존 동작 그대로) / auditorium: 강당
+ * 강당 모드는 프로젝터 상시 입장 바 + 대형 타이포, 참가자 대기 화면(슬라이드 미러링 없음),
+ * /join 닉네임 자동 생성을 켠다.
+ */
+export type ClassroomMode = 'classroom' | 'auditorium';
+
 export interface ClassroomSnapshot {
   token: string;
   title?: string;
@@ -165,7 +172,9 @@ export interface ClassroomSnapshot {
   deckId: string;
   currentSlide: number;
   activity: OpenActivityState | null;
+  /** 현재 연결 중인 참가자 수 (퇴장 반영) */
   participantCount: number;
+  mode: ClassroomMode;
 }
 
 export interface LeaderboardEntry {
@@ -247,12 +256,21 @@ export interface CreateClassroomResponse {
   token: string;
   instructorSecret: string;
   deckId: string;
+  mode: ClassroomMode;
+}
+
+export interface CreateClassroomRequest {
+  deckId?: string;
+  title?: string;
+  /** 생략 시 classroom */
+  mode?: ClassroomMode;
 }
 
 export interface ClassroomInfoResponse {
   exists: boolean;
   title?: string;
   status?: string;
+  mode?: ClassroomMode;
 }
 
 export interface ChatRequest {

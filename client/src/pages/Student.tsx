@@ -122,6 +122,10 @@ function ActivityArea({
   const act = live.activity ? deck.activities[live.activity.activityId] : null;
 
   if (!act) {
+    // 강당 모드: 청중은 큰 스크린을 보므로 슬라이드를 미러링하지 않는다 (PDF 다운로드 비용 0, R3 결핍 1)
+    if (live.snapshot?.mode === 'auditorium') {
+      return <AuditoriumWaiting token={token} count={live.participantCount} />;
+    }
     const slide = deck.slides[live.slideIndex] ?? deck.slides[0];
     return (
       <div className="card h-full overflow-y-auto">
@@ -137,6 +141,26 @@ function ActivityArea({
   return (
     <div className="card h-full overflow-hidden">
       <StudentView activity={act} ctx={{ token, sessionId, live }} />
+    </div>
+  );
+}
+
+// 강당 참가자 대기 화면 — "지금 할 일" 만. 소리·진동·권한 요청 없음, 개인정보 미수집 1줄 (R2 A8)
+function AuditoriumWaiting({ token, count }: { token: string; count: number }) {
+  return (
+    <div className="card flex h-full flex-col items-center justify-center gap-4 text-center" data-testid="waiting-screen">
+      <div className="text-6xl">👀</div>
+      <h2 className="text-2xl font-extrabold text-strong">앞 화면을 봐 주세요</h2>
+      <p className="text-muted">
+        투표·퀴즈가 시작되면
+        <br />
+        이 화면에 바로 나타나요.
+      </p>
+      <div className="mt-2 flex items-center gap-2 text-sm text-muted">
+        <span className="rounded-full bg-surface-2 px-3 py-1 font-bold tracking-widest text-strong ring-1 ring-hairline">{token}</span>
+        <span className="rounded-full bg-brand/10 px-3 py-1 font-semibold text-brand tabular-nums">접속 {count}명</span>
+      </div>
+      <p className="mt-4 text-xs text-muted-2">🔒 개인정보를 수집하지 않습니다</p>
     </div>
   );
 }

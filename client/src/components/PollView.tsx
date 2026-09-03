@@ -99,9 +99,12 @@ function WordCloud({ counts }: { counts: Record<string, number> }) {
 export default function PollView({
   activity,
   dist,
+  big = false,
 }: {
   activity: PollActivity;
   dist: PollDistribution;
+  /** 강당 프로젝터: 큰 글자 + 두꺼운 막대(8vh) + 막대 안 "62% · 318명" */
+  big?: boolean;
 }) {
   const [view, setView] = useState<'paper' | 'cloud'>('paper');
 
@@ -122,24 +125,35 @@ export default function PollView({
     );
   }
 
-  // choice
+  // choice — 선택지는 색 + 도형(▲◆●■)을 병기해 색약자·원거리에서도 판별 (R2 A4-3), 청중 폰 화면(PollStudent)과 동일
   const options = activity.options ?? [];
   const total = dist.total || 1;
   return (
-    <div className="space-y-3 p-2">
+    <div className={big ? 'space-y-[2vh] p-2' : 'space-y-3 p-2'} data-testid="poll-choice">
       {options.map((opt, i) => {
         const c = dist.counts[String(i)] ?? dist.counts[opt] ?? 0;
         const pct = Math.round((c / total) * 100);
+        const stat = `${pct}% · ${c}명`; // 비율 + 응답 수 동시 표기 (R2 A4-6)
         return (
-          <div key={i}>
-            <div className="mb-1 flex justify-between text-sm">
-              <span>{opt}</span>
-              <span className="text-muted">
-                {c}명 · {pct}%
+          <div key={i} data-testid="poll-option">
+            <div className={['mb-1 flex items-center justify-between gap-3', big ? 'text-2xl' : 'text-sm'].join(' ')}>
+              <span className="flex min-w-0 items-center gap-2 text-left">
+                <span className={['grid shrink-0 place-items-center rounded-md text-white', big ? 'h-9 w-9 text-xl' : 'h-6 w-6 text-xs', CHOICE_COLORS[i % 4]].join(' ')}>
+                  {CHOICE_SHAPES[i % 4]}
+                </span>
+                <span className="truncate">{opt}</span>
               </span>
+              <span className="shrink-0 text-muted tabular-nums" data-testid="poll-stat">{stat}</span>
             </div>
-            <div className="h-6 overflow-hidden rounded-lg bg-surface-3">
-              <div className="h-full rounded-lg bg-brand transition-all" style={{ width: `${pct}%` }} />
+            {/* 강당: 막대 두께 화면 높이 8% 이상 — 뒷줄에서 막대 길이만으로 판독 */}
+            <div className={['overflow-hidden rounded-lg bg-surface-3', big ? 'h-[8vh]' : 'h-6'].join(' ')}>
+              <div
+                className={['flex h-full items-center justify-end overflow-hidden rounded-lg pr-3 font-extrabold text-white transition-all', CHOICE_COLORS[i % 4]].join(' ')}
+                style={{ width: `${Math.max(pct, c > 0 ? 3 : 0)}%` }}
+              >
+                {/* 막대가 충분히 길 때만 안쪽에도 표기 — 짧으면 오른쪽 라벨만 (글자 잘림 방지) */}
+                {big && pct >= 25 && <span className="whitespace-nowrap text-xl tabular-nums drop-shadow">{stat}</span>}
+              </div>
             </div>
           </div>
         );
@@ -147,3 +161,7 @@ export default function PollView({
     </div>
   );
 }
+
+/** 선택지 색·도형 코드 — 퀴즈(QuizStudent/Projector)와 같은 순서 */
+export const CHOICE_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-amber-500', 'bg-emerald-600'];
+export const CHOICE_SHAPES = ['▲', '◆', '●', '■'];

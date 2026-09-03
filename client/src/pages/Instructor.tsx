@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import QRCode from 'qrcode';
-import type { Deck } from '@shared/types';
+import type { ClassroomMode, CreateClassroomRequest, Deck } from '@shared/types';
 import { apiPost } from '../lib/api';
 import { loadDeck } from '../lib/deck';
 import { getMyDecks, listDecks } from '../lib/buildApi';
@@ -39,11 +39,15 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
     }
   });
 
+  // 세션 모드 — 기본 교실(기존 동작 그대로). 강당은 프로젝터 입장 바·대기 화면·대형 타이포·닉네임 자동 생성.
+  const [mode, setMode] = useState<ClassroomMode>('classroom');
+
   async function launch(deckId?: string) {
     setBusyId(deckId ?? 'sample');
     setErr('');
     try {
-      const r = await apiPost<InstructorCreds>('/api/classrooms', deckId ? { deckId } : {});
+      const body: CreateClassroomRequest = deckId ? { deckId, mode } : { mode };
+      const r = await apiPost<InstructorCreds>('/api/classrooms', body);
       onCreated(r);
     } catch (e: any) {
       setErr(e.message ?? '생성 실패');
@@ -61,6 +65,32 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
       </div>
 
       {err && <p className="mt-4 text-center text-down text-sm">{err}</p>}
+
+      {/* 세션 모드 선택 (강의 시작 전) */}
+      <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-surface-2 p-1 ring-1 ring-hairline" role="radiogroup" aria-label="세션 모드" data-testid="mode-select">
+        {(
+          [
+            { v: 'classroom', icon: '🏫', label: '교실', desc: '폰에 슬라이드 미러링 · 실명 닉네임' },
+            { v: 'auditorium', icon: '🎤', label: '강당', desc: '스크린에 QR 상시 · 닉네임 자동 · 대형 글자' },
+          ] as Array<{ v: ClassroomMode; icon: string; label: string; desc: string }>
+        ).map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            role="radio"
+            aria-checked={mode === o.v}
+            data-testid={`mode-${o.v}`}
+            className={[
+              'rounded-xl px-3 py-2.5 text-left transition',
+              mode === o.v ? 'bg-surface shadow-card ring-1 ring-brand/40' : 'hover:bg-surface/60',
+            ].join(' ')}
+            onClick={() => setMode(o.v)}
+          >
+            <div className={['font-bold', mode === o.v ? 'text-brand' : 'text-strong'].join(' ')}>{o.icon} {o.label}</div>
+            <div className="mt-0.5 text-[11px] leading-snug text-muted">{o.desc}</div>
+          </button>
+        ))}
+      </div>
 
       <div className="mt-8 grid gap-2.5">
         {/* 샘플 강의 — 언제나 바로 시작 가능 */}
@@ -282,6 +312,11 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           <button className="rounded-lg bg-brand/10 px-3 py-1 text-2xl font-extrabold tracking-widest text-brand" onClick={() => copy(creds.token, 'code')}>
             {creds.token}
           </button>
+          {live.snapshot?.mode === 'auditorium' && (
+            <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs font-bold text-warn ring-1 ring-warn/30" title="강당 모드 — 프로젝터에 QR 상시 표시, 참가자는 대기 화면" data-testid="mode-badge">
+              🎤 강당 모드
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="rounded-full bg-surface-2 px-3 py-1 ring-1 ring-hairline">👥 {live.participantCount}</span>

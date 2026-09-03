@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomResponse, GenerateDeckRequest, Deck } from '../../shared/types';
-import { createClassroom, getByToken } from './state';
+import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomRequest, CreateClassroomResponse, ClassroomInfoResponse, GenerateDeckRequest, Deck } from '../../shared/types';
+import { createClassroom, getByToken, normalizeMode } from './state';
 import { getSessionUser } from './auth/session';
 import { canCreateDeck } from './billing/gate';
 import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck, unregisterDeck } from './decks';
@@ -60,27 +60,31 @@ export async function registerRoutes(app: FastifyInstance) {
 
   // 강의실 생성 (강사)
   app.post('/api/classrooms', async (req, reply) => {
-    const body = (req.body ?? {}) as { deckId?: string; title?: string };
+    const body = (req.body ?? {}) as CreateClassroomRequest;
     const deckId = body.deckId ?? 'ai-ax-4h';
     const deck = (await ensureDeckLoaded(deckId)) ?? getDeck(deckId);
     if (!deck) return reply.code(400).send({ error: 'bad', message: '존재하지 않는 덱입니다.' });
-    const c = createClassroom(deckId, body.title ?? deck.title);
+    // mode: classroom(기본) | auditorium(강당) — 알 수 없는 값은 classroom
+    const c = createClassroom(deckId, body.title ?? deck.title, { mode: normalizeMode(body.mode) });
     await persistClassroom(c); // 강의실을 먼저 기록(참가자 FK 보장)
     const res: CreateClassroomResponse = {
       classroomId: c.id,
       token: c.token,
       instructorSecret: c.instructorSecret,
       deckId: c.deckId,
+      mode: c.mode,
     };
     return res;
   });
 
-  // 강의실 정보 (학생 입장 화면)
+  // 강의실 정보 (학생 입장 화면) — mode 로 /join 이 닉네임 자동 생성·카피를 결정
   app.get('/api/classrooms/:token', async (req) => {
     const { token } = req.params as { token: string };
     const c = getByToken(token);
-    if (!c) return { exists: false };
-    return { exists: true, title: c.title, status: c.status };
+    const res: ClassroomInfoResponse = c
+      ? { exists: true, title: c.title, status: c.status, mode: c.mode }
+      : { exists: false };
+    return res;
   });
 
   // 공개 덱 (퀴즈 정답 제거본)

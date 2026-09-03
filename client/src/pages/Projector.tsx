@@ -7,22 +7,40 @@ import SlideView from '../components/SlideView';
 import PollView from '../components/PollView';
 import Leaderboard from '../components/Leaderboard';
 import Countdown from '../components/Countdown';
+import { EntryBar, EntryHero } from '../components/EntryBar';
 
 const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-amber-500', 'bg-emerald-600'];
 const SHAPES = ['▲', '◆', '●', '■'];
+
+// 강당 모드 프로젝터 텍스트 배율 (R2 A4-1: ×1.5). Tailwind 글자 크기는 rem 이라 루트 폰트만 키우면
+// 레이아웃(%, vh, grid)은 그대로 두고 텍스트·여백만 커진다.
+const AUDITORIUM_FONT_SCALE = '150%';
 
 export default function Projector() {
   const { token = '' } = useParams();
   const [deck, setDeck] = useState<Deck | null>(null);
   const [lbOpen, setLbOpen] = useState(false);
+  // 강당 모드에서 활동이 없을 때: 기본은 대기 화면(초대형 QR). S 키로 슬라이드 보기와 전환.
+  const [showSlide, setShowSlide] = useState(false);
   const live = useClassroom((s) => s.emit('viewer:join', { token: token.toUpperCase() }));
+  const mode = live.snapshot?.mode ?? 'classroom';
+  const auditorium = mode === 'auditorium';
 
   useEffect(() => {
     const id = live.snapshot?.deckId;
     if (id && !deck) loadDeck(id).then(setDeck).catch(() => {});
   }, [live.snapshot?.deckId, deck]);
 
-  // F 전체화면 / L 리더보드 서랍 (프로젝터 화면)
+  // 강당 모드: 루트 폰트 ×1.5 (페이지를 떠나면 원복)
+  useEffect(() => {
+    if (!auditorium) return;
+    const root = document.documentElement;
+    const prev = root.style.fontSize;
+    root.style.fontSize = AUDITORIUM_FONT_SCALE;
+    return () => { root.style.fontSize = prev; };
+  }, [auditorium]);
+
+  // F 전체화면 / L 리더보드 서랍 / S 대기 화면↔슬라이드 (강당 모드)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
@@ -33,6 +51,9 @@ export default function Projector() {
       } else if (e.code === 'KeyL') {
         e.preventDefault();
         setLbOpen((v) => !v);
+      } else if (e.code === 'KeyS') {
+        e.preventDefault();
+        setShowSlide((v) => !v);
       } else if (e.code === 'Escape') {
         setLbOpen(false);
       }
@@ -54,6 +75,7 @@ export default function Projector() {
     );
 
   const act = live.activity ? deck.activities[live.activity.activityId] : null;
+  const code = live.snapshot?.token ?? token.toUpperCase();
 
   // 리더보드 서랍 (L) — 어떤 화면 상태에서도 오른쪽에서 슬라이드 인
   const lbDrawer = (
@@ -73,30 +95,44 @@ export default function Projector() {
     </div>
   );
 
-  // 교실 대형 스크린: 항상 고대비 다크 스코프로 감싼다
-  const withDrawer = (node: ReactNode) => (
-    <div className="theme-dark h-full bg-canvas text-body">
-      {node}
-      {lbDrawer}
-    </div>
-  );
+  // 교실/강당 대형 스크린: 항상 고대비 다크 스코프로 감싼다.
+  // 강당 모드에선 하단에 상시 입장 바(QR·코드·URL·접속 n명)를 고정하고 본문은 그만큼 위로 올린다.
+  const withDrawer = (node: ReactNode, opts: { entryBar?: boolean } = {}) => {
+    const bar = auditorium && opts.entryBar !== false;
+    return (
+      <div className="theme-dark h-full bg-canvas text-body" data-testid="projector" data-mode={mode}>
+        <div className="h-full" style={bar ? { paddingBottom: '14vh' } : undefined}>{node}</div>
+        {bar && <EntryBar token={code} count={live.participantCount} />}
+        {lbDrawer}
+      </div>
+    );
+  };
 
   // 퀴즈
   if (act?.type === 'quiz') {
     const showReveal = live.reveal && (!live.question || live.reveal.questionId === live.question.questionId);
     if (showReveal && live.reveal) {
       const correctIdx = live.reveal.correctIndex;
+      const dist = live.reveal.distribution;
+      const total = Object.values(dist).reduce((a, b) => a + b, 0);
       return withDrawer(
         <div className="grid h-full grid-cols-3 gap-6 p-8">
           <div className="col-span-2 flex flex-col justify-center">
             <h1 className="text-4xl font-extrabold text-strong">{live.question?.question ?? '정답 공개'}</h1>
             <div className="mt-6 grid grid-cols-2 gap-4">
               {(live.question?.options ?? []).map((opt, i) => {
-                const count = live.reveal!.distribution[String(i)] ?? 0;
+                const count = dist[String(i)] ?? 0;
+                const pct = total ? Math.round((count / total) * 100) : 0;
                 const correct = i === correctIdx;
                 return (
-                  <div key={i} className={['rounded-2xl p-5 text-2xl font-bold ring-2', correct ? 'bg-emerald-600 text-white ring-white' : 'bg-surface-2 ring-transparent opacity-60'].join(' ')}>
-                    {SHAPES[i % 4]} {opt} <span className="float-right">{count}</span>
+                  <div
+                    key={i}
+                    className={['flex items-center gap-3 rounded-2xl p-5 text-2xl font-bold ring-2', correct ? 'bg-emerald-600 text-white ring-white' : 'bg-surface-2 ring-transparent opacity-60'].join(' ')}
+                  >
+                    <span className={['grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white', COLORS[i % 4]].join(' ')}>{SHAPES[i % 4]}</span>
+                    <span className="min-w-0 flex-1">{opt}</span>
+                    {/* 비율 + 응답 수 동시 표기 (R2 A4-6) */}
+                    <span className="shrink-0 tabular-nums" data-testid="quiz-reveal-stat">{pct}% · {count}명</span>
                   </div>
                 );
               })}
@@ -106,7 +142,7 @@ export default function Projector() {
             <h2 className="mb-4 text-3xl font-extrabold text-strong">🏆 순위</h2>
             <Leaderboard entries={live.leaderboard} />
           </div>
-        </div>
+        </div>,
       );
     }
     if (live.question) {
@@ -125,7 +161,7 @@ export default function Projector() {
               </div>
             ))}
           </div>
-        </div>
+        </div>,
       );
     }
     return withDrawer(<div className="grid h-full place-items-center text-3xl text-muted">퀴즈 준비 중… 🎮</div>);
@@ -137,9 +173,18 @@ export default function Projector() {
       <div className="flex h-full flex-col justify-center p-10 text-center">
         <h1 className="text-4xl font-extrabold text-strong">🗳️ {act.prompt}</h1>
         <div className="mt-8 text-2xl">
-          <PollView activity={act} dist={live.polls[act.id] ?? { counts: {}, total: 0 }} />
+          <PollView activity={act} dist={live.polls[act.id] ?? { counts: {}, total: 0 }} big={auditorium} />
         </div>
-      </div>
+      </div>,
+    );
+  }
+
+  // 강당 모드 · 활동 없음: 대기 화면 — QR 화면 높이 40% + 코드 + URL + 접속 카운터 (R2 A1-1)
+  // (S 키로 슬라이드 보기 전환 가능 — 그때는 하단 입장 바가 붙는다)
+  if (auditorium && !showSlide) {
+    return withDrawer(
+      <EntryHero token={code} count={live.participantCount} title={live.snapshot?.title} />,
+      { entryBar: false },
     );
   }
 
