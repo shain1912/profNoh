@@ -8,8 +8,21 @@ import type {
   ActivityType,
   QuestionItem,
 } from '../../shared/types';
-import { getDeck, getQuizActivity } from './decks';
+import { getDeck, getQuizActivity, getActivity } from './decks';
 import { env } from './env';
+import { msg, usageLimitMsg } from './copy';
+
+/** 활동 열기 옵션 — 덱에 저장된 timerSec/autoReveal 대신 이번 실행에만 적용 (즉석 타이머) */
+export interface OpenActivityOptions {
+  timerSec?: number;
+  autoReveal?: boolean;
+}
+
+/** 투표 타이머 범위: 5초~10분. 0/음수/비정상은 "타이머 없음" */
+export function normalizeTimerSec(v: unknown): number | undefined {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return undefined;
+  return Math.min(600, Math.max(5, Math.round(v)));
+}
 
 // 헷갈리는 글자(0,O,1,I,L) 제외한 강의실 토큰
 const makeToken = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 6);
@@ -108,7 +121,7 @@ export class ClassroomState {
     if (this.status === 'waiting') this.status = 'live';
   }
 
-  openActivity(activityId: string, type: ActivityType) {
+  openActivity(activityId: string, type: ActivityType, opts: OpenActivityOptions = {}) {
     this.activity = { activityId, type };
     if (type === 'quiz') {
       const quiz = getQuizActivity(this.deckId, activityId);
@@ -116,12 +129,46 @@ export class ClassroomState {
         index: 0,
         total: quiz?.questions.length ?? 0,
         phase: 'idle',
+        autoReveal: opts.autoReveal ?? quiz?.autoReveal ?? false,
+      };
+    }
+    if (type === 'poll') {
+      const act = getActivity(this.deckId, activityId);
+      const deckTimer = act?.type === 'poll' ? act.timerSec : undefined;
+      const deckAuto = act?.type === 'poll' ? act.autoReveal : undefined;
+      // 즉석 값이 오면(0 포함) 덱 값을 덮어씀. undefined 면 덱 값 사용.
+      const timerSec = normalizeTimerSec(opts.timerSec !== undefined ? opts.timerSec : deckTimer);
+      this.activity.poll = {
+        timerSec,
+        endsAt: timerSec ? Date.now() + timerSec * 1000 : undefined,
+        closed: false,
+        // 타이머 없는 투표는 기존처럼 실시간 공개, 타이머가 있으면 마감 전까지 숨김(밴드왜건 방지)
+        revealed: !timerSec,
+        autoReveal: opts.autoReveal ?? deckAuto ?? false,
       };
     }
   }
 
   closeActivity() {
     this.activity = null;
+  }
+
+  /** 투표 마감 — 추가 응답 차단. autoReveal 이면 결과도 함께 공개. 이미 마감이면 false */
+  pollClose(): boolean {
+    const p = this.activity?.poll;
+    if (!p || p.closed) return false;
+    p.closed = true;
+    p.endsAt = undefined;
+    if (p.autoReveal) p.revealed = true;
+    return true;
+  }
+
+  /** 투표 결과 수동 공개. 이미 공개면 false */
+  pollReveal(): boolean {
+    const p = this.activity?.poll;
+    if (!p || p.revealed) return false;
+    p.revealed = true;
+    return true;
   }
 
   // ── 퀴즈 ──
@@ -219,9 +266,12 @@ export class ClassroomState {
   }
 
   // ── 투표 ──
-  recordPoll(sessionId: string, activityId: string, value: string) {
+  /** 응답 기록. 현재 열린 투표가 마감됐으면 거부(false) */
+  recordPoll(sessionId: string, activityId: string, value: string): boolean {
+    if (this.activity?.activityId === activityId && this.activity.poll?.closed) return false;
     if (!this.pollAnswers.has(activityId)) this.pollAnswers.set(activityId, new Map());
     this.pollAnswers.get(activityId)!.set(sessionId, value.slice(0, 40));
+    return true;
   }
 
   pollDistribution(activityId: string): PollDistribution {
@@ -263,17 +313,12 @@ export class ClassroomState {
 
   // ── 쿼터 / 예산 ──
   checkUsage(sessionId: string, activityId: string, type: 'chat' | 'image'): { ok: boolean; message?: string } {
-    if (this.paused) return { ok: false, message: '강사님이 잠시 AI 실습을 멈췄어요. 곧 다시 열릴 거예요!' };
-    if (this.budgetSpent >= this.settings.budgetUsd)
-      return { ok: false, message: '오늘 강의실 AI 사용량이 가득 찼어요. 강사님께 알려주세요!' };
+    if (this.paused) return { ok: false, message: msg(this, 'usagePaused') };
+    if (this.budgetSpent >= this.settings.budgetUsd) return { ok: false, message: msg(this, 'usageBudget') };
     const limit = type === 'chat' ? this.settings.chatQuota : this.settings.imageQuota;
     const key = `${sessionId}|${activityId}|${type}`;
     const used = this.usage.get(key) ?? 0;
-    if (used >= limit)
-      return {
-        ok: false,
-        message: `이 실습에서 ${type === 'chat' ? '대화' : '이미지'}는 ${limit}번까지 할 수 있어. 다음 실습에서 또 해보자!`,
-      };
+    if (used >= limit) return { ok: false, message: usageLimitMsg(this, type === 'chat' ? '대화' : '이미지', limit) };
     return { ok: true };
   }
 

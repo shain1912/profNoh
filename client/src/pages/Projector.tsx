@@ -113,9 +113,15 @@ export default function Projector() {
       return withDrawer(
         <div className="flex h-full flex-col justify-center p-10 text-center">
           <h1 className="text-5xl font-extrabold leading-tight text-strong">{live.question.question}</h1>
-          <div className="mx-auto my-8 w-1/2">
-            <Countdown endsAt={live.question.endsAt} total={Math.max(1, Math.round((live.question.endsAt - Date.now()) / 1000))} />
-            <p className="mt-2 text-xl text-muted">응답 {live.answeredCount}명</p>
+          <div className="mx-auto my-6">
+            {/* 퀴즈·투표 공통 원형 게이지 (A5-3) */}
+            <Countdown
+              ring
+              size={180}
+              endsAt={live.question.endsAt}
+              total={Math.max(1, Math.round((live.question.endsAt - Date.now()) / 1000))}
+              label={`응답 ${live.answeredCount}명`}
+            />
           </div>
           <div className="grid grid-cols-2 gap-5">
             {live.question.options.map((opt, i) => (
@@ -133,12 +139,43 @@ export default function Projector() {
 
   // 투표
   if (act?.type === 'poll') {
+    const ps = live.activity?.poll;
+    const dist = live.polls[act.id] ?? { counts: {}, total: 0 };
+    const running = !!ps?.endsAt && !ps.closed;
+    const hidden = ps ? !ps.revealed : false; // 타이머 투표는 마감·공개 전까지 결과 숨김
     return withDrawer(
-      <div className="flex h-full flex-col justify-center p-10 text-center">
+      <div
+        className="flex h-full flex-col justify-center p-10 text-center"
+        data-testid="projector-poll"
+        data-poll-closed={ps?.closed ?? false}
+        data-poll-revealed={!hidden}
+      >
         <h1 className="text-4xl font-extrabold text-strong">🗳️ {act.prompt}</h1>
-        <div className="mt-8 text-2xl">
-          <PollView activity={act} dist={live.polls[act.id] ?? { counts: {}, total: 0 }} />
-        </div>
+        {running && (
+          <div className="mx-auto my-8">
+            <Countdown ring size={240} endsAt={ps!.endsAt!} total={ps!.timerSec ?? 1} label={`응답 ${dist.total}명`} />
+          </div>
+        )}
+        {hidden ? (
+          <div className="mt-8" data-testid="poll-hidden">
+            {ps?.closed ? (
+              <p className="text-3xl font-bold text-strong">⏹ 마감 · 결과 공개를 기다리는 중</p>
+            ) : (
+              <p className="text-2xl text-muted">응답이 모이는 중… 마감 후 결과가 공개됩니다</p>
+            )}
+            {!running && (
+              <p className="mt-4 text-6xl font-extrabold text-brand">
+                {dist.total}
+                <span className="text-2xl text-muted"> 명 응답</span>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mt-8 text-2xl" data-testid="poll-results">
+            {ps?.closed && <p className="mb-3 text-lg font-bold text-muted">⏹ 마감 · {dist.total}명 응답</p>}
+            <PollView activity={act} dist={dist} />
+          </div>
+        )}
       </div>
     );
   }

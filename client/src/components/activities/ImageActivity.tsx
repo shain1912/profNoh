@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ImageActivity as ImageAct } from '@shared/types';
 import { apiPost } from '../../lib/api';
 import Thinking from '../Thinking';
+import { useCopy } from '../../lib/copy';
 
 export default function ImageActivity({
   activity,
@@ -12,6 +13,7 @@ export default function ImageActivity({
   token: string;
   sessionId: string;
 }) {
+  const copy = useCopy();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -31,7 +33,7 @@ export default function ImageActivity({
       });
       setImages((arr) => [{ url: r.dataUrl, prompt: p, demo: r.demo }, ...arr]);
     } catch (e: any) {
-      setErr(e.message ?? '오류가 발생했어');
+      setErr(e.message ?? copy.genericError);
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ export default function ImageActivity({
       >
         <input
           className="input"
-          placeholder="그리고 싶은 장면을 글로 묘사해줘…"
+          placeholder={copy.imagePlaceholder}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
         />
@@ -72,7 +74,7 @@ export default function ImageActivity({
 
       {err && <p className="mt-2 text-sm text-down">{err}</p>}
 
-      {loading && <Thinking text="🎨 그리는 중… 최대 20초 정도 걸려요. 잠깐만 기다려줘!" />}
+      {loading && <Thinking text={copy.imageThinking} />}
 
       <div className="mt-4 grid flex-1 grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
         {images.map((im, i) => (

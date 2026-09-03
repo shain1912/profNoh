@@ -2,9 +2,25 @@ import type { Server, Socket } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents, ActivityType } from '../../shared/types';
 import { getByToken, type ClassroomState } from './state';
 import { getActivity } from './decks';
+import { msg } from './copy';
 import {
   persistParticipant, persistScore, persistPoll, persistQuizResponse, updateClassroomProgress,
 } from './persist';
+
+// 활동 타이머 (강의실당 1개): 투표 자동 마감 / 퀴즈 자동 정답 공개.
+// 활동을 닫거나 다른 활동을 열거나 강사가 수동으로 진행하면 해제된다.
+const activityTimers = new Map<string, NodeJS.Timeout>();
+function disarmTimer(c: ClassroomState) {
+  const t = activityTimers.get(c.id);
+  if (t) clearTimeout(t);
+  activityTimers.delete(c.id);
+}
+function armTimer(c: ClassroomState, at: number, fn: () => void) {
+  disarmTimer(c);
+  activityTimers.set(c.id, setTimeout(() => { activityTimers.delete(c.id); fn(); }, Math.max(0, at - Date.now())));
+}
+// 퀴즈 자동 공개 유예: 학생 응답 허용 시간(recordQuizAnswer 의 +1500ms)과 맞춘다
+const QUIZ_REVEAL_GRACE_MS = 1500;
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -20,6 +36,33 @@ export function setupSocket(io: IO) {
   const broadcastLeaderboard = (c: ClassroomState) => io.to(c.id).emit('leaderboard', c.leaderboard());
   const broadcastParticipants = (c: ClassroomState) =>
     io.to(c.id).emit('participants', { count: c.participantCount() });
+  const broadcastPoll = (c: ClassroomState, activityId: string) =>
+    io.to(c.id).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+
+  // 정답 공개 (강사 수동 / 타이머 자동 공통)
+  const doQuizReveal = (c: ClassroomState) => {
+    disarmTimer(c);
+    const r = c.quizReveal();
+    if (!r) return;
+    io.to(c.id).emit('quiz:reveal', { ...r, leaderboard: c.leaderboard() });
+    broadcastLeaderboard(c);
+    broadcastState(c);
+  };
+  // 문제 시작 (첫 문제 / 다음 문제 공통) — autoReveal 이면 제한시간 종료 시 자동 공개 예약
+  const startQuestion = (c: ClassroomState) => {
+    const q = c.quizStartQuestion();
+    if (!q) return false;
+    io.to(c.id).emit('quiz:question', q);
+    if (c.activity?.quiz?.autoReveal) armTimer(c, q.endsAt + QUIZ_REVEAL_GRACE_MS, () => doQuizReveal(c));
+    return true;
+  };
+  // 투표 마감 (강사 수동 / 타이머 자동 공통) — autoReveal 이면 state.pollClose 가 결과도 공개
+  const doPollClose = (c: ClassroomState) => {
+    disarmTimer(c);
+    if (!c.pollClose()) return;
+    if (c.activity) broadcastPoll(c, c.activity.activityId);
+    broadcastState(c);
+  };
 
   io.on('connection', (socket: Sock) => {
     // ── 강사 입장 ──
@@ -40,7 +83,7 @@ export function setupSocket(io: IO) {
     // ── 학생 입장 ──
     socket.on('student:join', async ({ token, nickname, sessionId }) => {
       const c = getByToken(token);
-      if (!c) return socket.emit('errmsg', { message: '강의실 코드를 다시 확인해줘!' });
+      if (!c) return socket.emit('errmsg', { message: '입장 코드를 다시 확인해 주세요.' });
       const p = c.upsertParticipant(sessionId, nickname);
       p.socketId = socket.id;
       socket.data.role = 'student';
@@ -80,22 +123,46 @@ export function setupSocket(io: IO) {
     });
 
     // ── 강사: 활동 열기/닫기 ──
-    socket.on('instructor:openActivity', ({ activityId }) => {
+    socket.on('instructor:openActivity', ({ activityId, timerSec, autoReveal }) => {
       const c = instructorClassroom(socket);
       if (!c) return;
       const act = getActivity(c.deckId, activityId);
       if (!act) return socket.emit('errmsg', { message: '활동을 찾을 수 없습니다.' });
-      c.openActivity(activityId, act.type as ActivityType);
+      disarmTimer(c);
+      c.openActivity(activityId, act.type as ActivityType, {
+        timerSec: typeof timerSec === 'number' ? timerSec : undefined,
+        autoReveal: typeof autoReveal === 'boolean' ? autoReveal : undefined,
+      });
       io.to(c.id).emit('activity:opened', c.activity!);
       broadcastState(c);
-      if (act.type === 'poll') io.to(c.id).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+      if (act.type === 'poll') {
+        broadcastPoll(c, activityId);
+        const endsAt = c.activity?.poll?.endsAt;
+        if (endsAt) armTimer(c, endsAt, () => doPollClose(c));
+      }
     });
 
     socket.on('instructor:closeActivity', () => {
       const c = instructorClassroom(socket);
       if (!c) return;
+      disarmTimer(c);
       c.closeActivity();
       io.to(c.id).emit('activity:closed');
+      broadcastState(c);
+    });
+
+    // ── 강사: 투표 지금 마감 / 결과 공개 ──
+    socket.on('instructor:pollClose', () => {
+      const c = instructorClassroom(socket);
+      if (!c) return;
+      doPollClose(c);
+    });
+
+    socket.on('instructor:pollReveal', () => {
+      const c = instructorClassroom(socket);
+      if (!c) return;
+      if (!c.pollReveal()) return;
+      if (c.activity) broadcastPoll(c, c.activity.activityId);
       broadcastState(c);
     });
 
@@ -103,32 +170,26 @@ export function setupSocket(io: IO) {
     socket.on('instructor:quizStart', () => {
       const c = instructorClassroom(socket);
       if (!c) return;
-      const q = c.quizStartQuestion();
-      if (!q) return;
-      io.to(c.id).emit('quiz:question', q);
+      if (!startQuestion(c)) return;
       broadcastState(c);
     });
 
     socket.on('instructor:quizReveal', () => {
       const c = instructorClassroom(socket);
       if (!c) return;
-      const r = c.quizReveal();
-      if (!r) return;
-      io.to(c.id).emit('quiz:reveal', { ...r, leaderboard: c.leaderboard() });
-      broadcastLeaderboard(c);
-      broadcastState(c);
+      doQuizReveal(c);
     });
 
     socket.on('instructor:quizNext', () => {
       const c = instructorClassroom(socket);
       if (!c) return;
+      disarmTimer(c);
       const moved = c.quizNext();
       if (moved) {
-        const q = c.quizStartQuestion();
-        if (q) io.to(c.id).emit('quiz:question', q);
+        startQuestion(c);
       } else {
         io.to(c.id).emit('leaderboard', c.leaderboard());
-        io.to(c.id).emit('notice', { message: '퀴즈 끝! 최종 순위를 확인하세요 🏆' });
+        io.to(c.id).emit('notice', { message: msg(c, 'quizEnd') });
       }
       broadcastState(c);
     });
@@ -139,7 +200,7 @@ export function setupSocket(io: IO) {
       if (!c) return;
       c.setPaused(action === 'pause');
       io.to(c.id).emit('notice', {
-        message: action === 'pause' ? 'AI 실습이 잠시 멈췄어요 ⏸️' : 'AI 실습이 다시 열렸어요 ▶️',
+        message: msg(c, action === 'pause' ? 'aiPaused' : 'aiResumed'),
         kind: action,
       });
       broadcastState(c);
@@ -166,8 +227,8 @@ export function setupSocket(io: IO) {
       const c = getByToken(socket.data.token ?? '');
       const sid = socket.data.sessionId;
       if (!c || !sid) return;
-      c.recordPoll(sid, activityId, value);
-      io.to(c.id).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+      if (!c.recordPoll(sid, activityId, value)) return socket.emit('errmsg', { message: msg(c, 'pollClosed') });
+      broadcastPoll(c, activityId);
       const p = c.getBySession(sid);
       if (p) persistPoll(c, p, activityId, value);
     });

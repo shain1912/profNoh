@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { QuizReveal } from '@shared/types';
 import Countdown from '../Countdown';
+import { useCopy } from '../../lib/copy';
 
 export interface QuizQuestionPayload {
   questionId: string;
@@ -23,6 +24,7 @@ export default function QuizStudent({
   reveal: QuizReveal | null;
   onAnswer: (optionIndex: number) => void;
 }) {
+  const copy = useCopy();
   const [selected, setSelected] = useState<number | null>(null);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function QuizStudent({
   }, [question?.questionId]);
 
   if (!question && !reveal)
-    return <div className="grid h-full place-items-center text-muted">곧 퀴즈가 시작돼요! 🎮</div>;
+    return <div className="grid h-full place-items-center text-muted">{copy.quizWaiting}</div>;
 
   const showReveal = reveal && (!question || reveal.questionId === question.questionId);
 
@@ -44,10 +46,10 @@ export default function QuizStudent({
             {!answered ? '⏳' : correct ? '🎉' : '😅'}
           </div>
           <h2 className="mt-3 text-2xl font-extrabold text-strong">
-            {!answered ? '시간 초과!' : correct ? '정답!' : '아쉬워요!'}
+            {!answered ? copy.quizTimeout : correct ? copy.quizCorrect : copy.quizWrong}
           </h2>
           <p className="mt-2 text-body">
-            정답: <b className="text-up">{question?.options[reveal.correctIndex] ?? `${reveal.correctIndex + 1}번`}</b>
+            {copy.quizAnswerLabel}: <b className="text-up">{question?.options[reveal.correctIndex] ?? `${reveal.correctIndex + 1}번`}</b>
           </p>
           {reveal.explanation && (
             <p className="mx-auto mt-3 max-w-md rounded-xl bg-surface-2 px-4 py-3 text-sm text-body ring-1 ring-hairline">
@@ -77,8 +79,8 @@ export default function QuizStudent({
         <div className="grid flex-1 place-items-center text-center">
           <div>
             <div className="text-5xl">✅</div>
-            <p className="mt-2 text-lg font-semibold">응답 완료! 결과를 기다려요…</p>
-            <p className="text-muted">고른 답: {question.options[selected]}</p>
+            <p className="mt-2 text-lg font-semibold">{copy.quizAnswered}</p>
+            <p className="text-muted">{copy.quizMyPick}: {question.options[selected]}</p>
           </div>
         </div>
       ) : (

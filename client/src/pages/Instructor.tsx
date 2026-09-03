@@ -10,6 +10,12 @@ import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
 import Leaderboard from '../components/Leaderboard';
 import PollView from '../components/PollView';
+import Countdown from '../components/Countdown';
+
+// 강사 리듬 알림 (R2 A5-5): 마지막 활동 후 경과 분 — 15분 노랑, 20분 빨강
+const RHYTHM_WARN_MIN = 15;
+const RHYTHM_ALERT_MIN = 20;
+const TIMER_CHOICES = [0, 30, 60, 90, 120] as const;
 
 export default function Instructor() {
   const location = useLocation();
@@ -153,6 +159,43 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
     if (live.activity) setLbOpen(false);
   }, [live.activity?.activityId]);
 
+  // ── 활동 타이머 옵션 (즉석): 슬라이드의 활동이 바뀌면 덱에 저장된 기본값으로 리셋 ──
+  const [timerSec, setTimerSec] = useState(0);
+  const [autoReveal, setAutoReveal] = useState(false);
+  const slideActForOpts = deck ? deck.activities[deck.slides[live.slideIndex]?.activityId ?? ''] : undefined;
+  useEffect(() => {
+    if (slideActForOpts?.type === 'poll') {
+      setTimerSec(slideActForOpts.timerSec ?? 0);
+      setAutoReveal(slideActForOpts.autoReveal ?? false);
+    } else if (slideActForOpts?.type === 'quiz') {
+      setTimerSec(0);
+      setAutoReveal(slideActForOpts.autoReveal ?? false);
+    }
+  }, [slideActForOpts?.id, slideActForOpts?.type]);
+
+  // ── 리듬 알림: 활동이 열리거나 닫힐 때마다 시각 갱신, 30초마다 재계산 ──
+  const [lastActivityAt, setLastActivityAt] = useState(() => Date.now());
+  const [hadActivity, setHadActivity] = useState(false);
+  const [, setTick] = useState(0);
+  const activityKey = live.activity?.activityId ?? null;
+  const activityKeyRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (activityKeyRef.current === undefined) {
+      activityKeyRef.current = activityKey; // 첫 렌더(입장 시점)는 활동 전환이 아님
+      return;
+    }
+    if (activityKeyRef.current === activityKey) return;
+    activityKeyRef.current = activityKey;
+    setLastActivityAt(Date.now());
+    setHadActivity(true);
+  }, [activityKey]);
+  useEffect(() => {
+    const t = setInterval(() => setTick((v) => v + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const idleMin = Math.floor((Date.now() - lastActivityAt) / 60_000);
+  const rhythmLevel = idleMin >= RHYTHM_ALERT_MIN ? 'alert' : idleMin >= RHYTHM_WARN_MIN ? 'warn' : 'ok';
+
   const enterPresent = () => {
     setFocusMode(true);
     document.documentElement.requestFullscreen().catch(() => {});
@@ -203,6 +246,8 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   const slideAct = slide.activityId ? deck.activities[slide.activityId] : null;
   const openAct = live.activity ? deck.activities[live.activity.activityId] : null;
   const quizState = live.activity?.type === 'quiz' ? live.activity.quiz : undefined;
+  const pollState = live.activity?.type === 'poll' ? live.activity.poll : undefined;
+  const pollTotal = openAct?.type === 'poll' ? (live.polls[openAct.id]?.total ?? 0) : 0;
 
   const projectorLink = `${location.origin}/screen/${creds.token}`;
 
@@ -249,13 +294,24 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           return { label: '➡ 다음 문제', primary: true, run: () => live.socket.emit('instructor:quizNext') };
         return { label: '🏁 퀴즈 끝 · 다음으로', primary: true, run: closeAndNext };
       }
+      if (openAct?.type === 'poll' && pollState) {
+        // 타이머 투표: 진행 중 → 지금 마감 / 마감 후 비공개 → 결과 공개
+        if (pollState.endsAt && !pollState.closed)
+          return { label: `⏹ 지금 마감 · ${pollTotal}명 응답`, primary: true, run: () => live.socket.emit('instructor:pollClose') };
+        if (pollState.closed && !pollState.revealed)
+          return { label: '📊 결과 공개', primary: true, run: () => live.socket.emit('instructor:pollReveal') };
+      }
       return { label: isLast ? '활동 닫고 마치기 🎉' : '다음으로 ▶', primary: true, run: closeAndNext };
     }
     if (slideAct)
       return {
-        label: `🚀 ${slideAct.title} 시작하기`,
+        label: `🚀 ${slideAct.title} 시작하기${slideAct.type === 'poll' && timerSec ? ` (⏱ ${timerSec}초)` : ''}`,
         primary: true,
-        run: () => live.socket.emit('instructor:openActivity', { activityId: slide.activityId! }),
+        run: () =>
+          live.socket.emit('instructor:openActivity', {
+            activityId: slide.activityId!,
+            ...(slideAct.type === 'poll' ? { timerSec, autoReveal } : slideAct.type === 'quiz' ? { autoReveal } : {}),
+          }),
       };
     if (!isLast) return { label: '다음 ▶', primary: true, run: () => goto(live.slideIndex + 1) };
     return { label: '수업 끝 🎉', primary: false, run: () => {}, disabled: true };
@@ -285,6 +341,22 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="rounded-full bg-surface-2 px-3 py-1 ring-1 ring-hairline">👥 {live.participantCount}</span>
+          {/* 리듬 알림 뱃지 (A5-5): 15분 노랑 · 20분 빨강 */}
+          <span
+            data-testid="rhythm-badge"
+            data-level={rhythmLevel}
+            title="마지막 활동(열기/닫기) 이후 경과 시간 — 15~20분마다 참여 활동을 넣으면 집중이 유지됩니다"
+            className={[
+              'rounded-full px-3 py-1 font-semibold ring-1',
+              rhythmLevel === 'alert'
+                ? 'bg-down/15 text-down ring-down/40 animate-pulse'
+                : rhythmLevel === 'warn'
+                  ? 'bg-warn/15 text-warn ring-warn/40'
+                  : 'bg-surface-2 text-muted ring-hairline',
+            ].join(' ')}
+          >
+            ⏱ {hadActivity ? '마지막 활동 후' : '활동 없이'} {idleMin}분
+          </span>
           <span className={live.connected ? 'text-up' : 'text-down'}>{live.connected ? '● 연결' : '○ 끊김'}</span>
           <button
             className={['btn px-3 py-1 text-sm', paused ? 'bg-up text-white' : 'bg-surface-2 ring-1 ring-hairline hover:bg-surface-3'].join(' ')}
@@ -371,6 +443,9 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                   onClick={() => { if (!action.disabled) action.run(); }}
                 >
                   {live.slideIndex + 1}/{total} · {action.label} <span className="text-white/50">(Space)</span>
+                  {rhythmLevel !== 'ok' && (
+                    <span className={rhythmLevel === 'alert' ? 'ml-2 text-red-300' : 'ml-2 text-amber-300'}>· ⏱ {idleMin}분</span>
+                  )}
                 </button>
               </>
             )}
@@ -431,7 +506,22 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                 </div>
               )}
               {openAct?.type === 'poll' && (
-                <PollView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
+                <div data-testid="poll-status" data-poll-closed={pollState?.closed ?? false} data-poll-revealed={pollState?.revealed ?? true}>
+                  {pollState?.endsAt && !pollState.closed && (
+                    <div className="mx-auto mb-2 max-w-xs">
+                      <Countdown endsAt={pollState.endsAt} total={pollState.timerSec ?? 1} label={`응답 ${pollTotal}명 · 시간이 끝나면 자동 마감${pollState.autoReveal ? ' + 결과 공개' : ''}`} />
+                    </div>
+                  )}
+                  {pollState?.closed && (
+                    <div className="mb-2 text-xs font-bold text-warn">
+                      ⏹ 마감됨 · {pollTotal}명 응답 · {pollState.revealed ? '결과 공개됨' : '결과 비공개 (아래 버튼으로 공개)'}
+                    </div>
+                  )}
+                  {pollState && !pollState.closed && !pollState.revealed && (
+                    <div className="mb-2 text-xs text-muted">🔒 참가자·프로젝터에는 마감 전까지 결과가 보이지 않습니다 (강사만 실시간 확인)</div>
+                  )}
+                  <PollView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
+                </div>
               )}
               {(openAct?.type === 'chat' || openAct?.type === 'image' || openAct?.type === 'lab') && (
                 <span className="text-muted">학생들이 실습 중이에요 🧑‍💻</span>
@@ -442,6 +532,30 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           {/* 큰 "다음 단계" 버튼 — 발표 모드에선 완전히 숨김 (Space/칩으로 진행) */}
           {!focusMode && (
             <>
+              {/* 활동 타이머 옵션 — 투표/퀴즈 슬라이드에서 열기 전에만 (A5-3) */}
+              {!activeHere && slideAct && (slideAct.type === 'poll' || slideAct.type === 'quiz') && (
+                <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted" data-testid="timer-picker">
+                  {slideAct.type === 'poll' && (
+                    <>
+                      <span>⏱ 타이머</span>
+                      {TIMER_CHOICES.map((s) => (
+                        <button
+                          key={s}
+                          data-testid={`timer-${s}`}
+                          className={['btn-ghost px-3 py-1', timerSec === s ? 'text-brand ring-1 ring-brand/40' : ''].join(' ')}
+                          onClick={() => setTimerSec(s)}
+                        >
+                          {s === 0 ? '없음' : `${s}초`}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  <label className="flex items-center gap-1.5">
+                    <input type="checkbox" checked={autoReveal} onChange={(e) => setAutoReveal(e.target.checked)} />
+                    {slideAct.type === 'poll' ? '마감 시 결과 자동 공개' : '시간 종료 시 자동 정답 공개'}
+                  </label>
+                </div>
+              )}
               <button
                 data-testid="next-step"
                 className={[

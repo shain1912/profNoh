@@ -76,6 +76,8 @@ export interface QuizActivity {
   title: string;
   intro?: string;
   questions: QuizQuestion[];
+  // 문항 제한시간이 끝나면 강사 조작 없이 서버가 자동으로 정답을 공개 (강당 A5-3 / R3 결핍 12)
+  autoReveal?: boolean;
 }
 
 export interface PollActivity {
@@ -85,6 +87,11 @@ export interface PollActivity {
   prompt: string;
   mode: 'choice' | 'wordcloud';
   options?: string[];        // mode==='choice' 일 때
+  // 활동 타이머(초). 설정하면 프로젝터에 게이지가 뜨고 종료 시 자동 마감(추가 응답 차단).
+  // 타이머가 있는 투표는 마감 전까지 결과를 숨긴다(밴드왜건 방지) — 없으면 기존처럼 실시간 공개.
+  timerSec?: number;
+  // 마감 시 자동으로 결과 공개. false면 강사가 "결과 공개"를 눌러야 함.
+  autoReveal?: boolean;
 }
 
 export interface RoleplayActivity {
@@ -155,6 +162,15 @@ export interface OpenActivityState {
     phase: 'idle' | 'question' | 'revealed';
     questionId?: string;
     endsAt?: number; // epoch ms
+    autoReveal?: boolean; // 시간 종료 시 서버가 자동 정답 공개
+  };
+  // 투표 타이머/마감 상태 (poll 활동에서만)
+  poll?: {
+    timerSec?: number;
+    endsAt?: number;      // epoch ms — 타이머가 있을 때만
+    closed: boolean;      // 마감: 추가 응답 차단
+    revealed: boolean;    // 결과 공개 여부 (타이머 없는 투표는 처음부터 true)
+    autoReveal: boolean;  // 마감 시 자동 공개
   };
 }
 
@@ -227,8 +243,11 @@ export interface ClientToServerEvents {
   'instructor:join': (p: { token: string; instructorSecret: string }) => void;
   'student:join': (p: { token: string; nickname: string; sessionId?: string }) => void;
   'instructor:goto': (p: { slide: number }) => void;
-  'instructor:openActivity': (p: { activityId: string }) => void;
+  // timerSec/autoReveal 을 주면 덱에 저장된 값 대신 이번 실행에만 적용 (즉석 타이머)
+  'instructor:openActivity': (p: { activityId: string; timerSec?: number; autoReveal?: boolean }) => void;
   'instructor:closeActivity': () => void;
+  'instructor:pollClose': () => void;   // 투표 지금 마감 (타이머 전에)
+  'instructor:pollReveal': () => void;  // 마감된 투표 결과 수동 공개
   'instructor:quizStart': () => void;
   'instructor:quizNext': () => void;
   'instructor:quizReveal': () => void;
