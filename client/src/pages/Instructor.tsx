@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import QRCode from 'qrcode';
-import type { Deck } from '@shared/types';
+import type { Deck, AnonymityPolicy, ResultsRevealPolicy, ClassroomAnonSettings } from '@shared/types';
 import { apiPost } from '../lib/api';
+import { AnonBadge } from '../components/PollView';
 import { loadDeck } from '../lib/deck';
 import { getMyDecks, listDecks } from '../lib/buildApi';
 import { type InstructorCreds } from '../lib/session';
@@ -10,6 +11,68 @@ import { useClassroom } from '../lib/useClassroom';
 import SlideView from '../components/SlideView';
 import Leaderboard from '../components/Leaderboard';
 import PollView from '../components/PollView';
+
+// 세션 익명 정책 4모드 — 강의 시작 화면과 콘솔 설정에서 공용
+export const ANON_OPTIONS: Array<{ value: AnonymityPolicy; label: string; desc: string }> = [
+  { value: 'named_default', label: '🙂 닉네임 기본', desc: '기본은 닉네임, 활동별로 익명 지정 가능' },
+  { value: 'anon_default', label: '🔒 익명 기본', desc: '기본은 익명, 활동별로 닉네임 지정 가능' },
+  { value: 'always_anon', label: '🕶️ 항상 익명', desc: '리더보드·리포트까지 전부 가명 처리' },
+  { value: 'always_named', label: '🪪 항상 닉네임', desc: '활동 설정과 무관하게 항상 닉네임 표시' },
+];
+export const REVEAL_OPTIONS: Array<{ value: ResultsRevealPolicy; label: string; desc: string }> = [
+  { value: 'after_close', label: '🔒 마감 후 공개', desc: '강사가 "결과 공개"를 누를 때까지 참가자에겐 숨김' },
+  { value: 'live', label: '📡 실시간 공개', desc: '응답이 들어오는 대로 모두에게 보임' },
+];
+
+function SettingsPicker({
+  value, onChange, compact = false,
+}: { value: ClassroomAnonSettings; onChange: (v: ClassroomAnonSettings) => void; compact?: boolean }) {
+  return (
+    <div className="space-y-3" data-testid="anon-settings">
+      <div>
+        <div className="mb-1.5 text-xs font-bold text-muted">익명 정책</div>
+        <div className={['grid gap-1.5', compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'].join(' ')}>
+          {ANON_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              data-testid={`anon-${o.value}`}
+              title={o.desc}
+              className={[
+                'rounded-xl px-2 py-1.5 text-xs font-semibold ring-1 transition',
+                value.anonymity === o.value ? 'bg-brand/10 text-brand ring-brand/40' : 'bg-surface-2 text-muted ring-hairline hover:bg-surface-3',
+              ].join(' ')}
+              onClick={() => onChange({ ...value, anonymity: o.value })}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[11px] text-muted-2">{ANON_OPTIONS.find((o) => o.value === value.anonymity)?.desc}</p>
+      </div>
+      <div>
+        <div className="mb-1.5 text-xs font-bold text-muted">투표 결과 공개</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {REVEAL_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              data-testid={`reveal-${o.value}`}
+              title={o.desc}
+              className={[
+                'rounded-xl px-2 py-1.5 text-xs font-semibold ring-1 transition',
+                value.resultsReveal === o.value ? 'bg-brand/10 text-brand ring-brand/40' : 'bg-surface-2 text-muted ring-hairline hover:bg-surface-3',
+              ].join(' ')}
+              onClick={() => onChange({ ...value, resultsReveal: o.value })}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Instructor() {
   const location = useLocation();
@@ -26,6 +89,8 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
   const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState('');
   const [dbDecks, setDbDecks] = useState<Array<{ id: string; title: string; slideCount?: number }>>([]);
+  // 세션 익명 정책 / 결과 공개 — 강의실 생성 요청에 함께 보낸다
+  const [settings, setSettings] = useState<ClassroomAnonSettings>({ anonymity: 'named_default', resultsReveal: 'after_close' });
 
   useEffect(() => {
     listDecks().then(setDbDecks).catch(() => {});
@@ -43,7 +108,7 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
     setBusyId(deckId ?? 'sample');
     setErr('');
     try {
-      const r = await apiPost<InstructorCreds>('/api/classrooms', deckId ? { deckId } : {});
+      const r = await apiPost<InstructorCreds>('/api/classrooms', deckId ? { deckId, settings } : { settings });
       onCreated(r);
     } catch (e: any) {
       setErr(e.message ?? '생성 실패');
@@ -61,6 +126,11 @@ function CreateScreen({ onCreated }: { onCreated: (c: InstructorCreds) => void }
       </div>
 
       {err && <p className="mt-4 text-center text-down text-sm">{err}</p>}
+
+      {/* 세션 익명 정책 — 강당(직장인 청중)에서는 익명이 참여의 전제 */}
+      <div className="mt-6 rounded-2xl border border-hairline bg-surface p-4 shadow-card">
+        <SettingsPicker value={settings} onChange={setSettings} />
+      </div>
 
       <div className="mt-8 grid gap-2.5">
         {/* 샘플 강의 — 언제나 바로 시작 가능 */}
@@ -126,6 +196,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [qaOpen, setQaOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // 발표 모드(F): 화면 100%를 강의자료로 — 모든 UI 숨김 + 브라우저 전체화면
   const [focusMode, setFocusMode] = useState(false);
   // 리더보드 서랍(L): 오른쪽에서 슬라이드되어 화면 위를 덮음
@@ -203,6 +274,11 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   const slideAct = slide.activityId ? deck.activities[slide.activityId] : null;
   const openAct = live.activity ? deck.activities[live.activity.activityId] : null;
   const quizState = live.activity?.type === 'quiz' ? live.activity.quiz : undefined;
+  const anonSettings: ClassroomAnonSettings = {
+    anonymity: live.snapshot?.anonymity ?? 'named_default',
+    resultsReveal: live.snapshot?.resultsReveal ?? 'after_close',
+  };
+  const anonLabel = ANON_OPTIONS.find((o) => o.value === anonSettings.anonymity)?.label ?? '';
 
   const projectorLink = `${location.origin}/screen/${creds.token}`;
 
@@ -249,6 +325,11 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           return { label: '➡ 다음 문제', primary: true, run: () => live.socket.emit('instructor:quizNext') };
         return { label: '🏁 퀴즈 끝 · 다음으로', primary: true, run: closeAndNext };
       }
+      // 투표: 결과가 아직 숨겨져 있으면 "결과 공개"가 다음 단계 (마감 후 공개 정책)
+      if (openAct?.type === 'poll' && !activeHere.revealResults) {
+        const n = live.polls[openAct.id]?.total ?? 0;
+        return { label: `📢 결과 공개 · ${n}명 응답`, primary: true, run: () => live.socket.emit('instructor:revealResults') };
+      }
       return { label: isLast ? '활동 닫고 마치기 🎉' : '다음으로 ▶', primary: true, run: closeAndNext };
     }
     if (slideAct)
@@ -285,6 +366,14 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="rounded-full bg-surface-2 px-3 py-1 ring-1 ring-hairline">👥 {live.participantCount}</span>
+          <button
+            className="rounded-full bg-surface-2 px-3 py-1 ring-1 ring-hairline hover:bg-surface-3"
+            title="세션 익명 정책 / 결과 공개 설정"
+            data-testid="anon-policy-chip"
+            onClick={() => setSettingsOpen(true)}
+          >
+            {anonLabel}
+          </button>
           <span className={live.connected ? 'text-up' : 'text-down'}>{live.connected ? '● 연결' : '○ 끊김'}</span>
           <button
             className={['btn px-3 py-1 text-sm', paused ? 'bg-up text-white' : 'bg-surface-2 ring-1 ring-hairline hover:bg-surface-3'].join(' ')}
@@ -431,7 +520,30 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
                 </div>
               )}
               {openAct?.type === 'poll' && (
-                <PollView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted">
+                    {activeHere.anonymous && <AnonBadge />}
+                    {activeHere.revealResults ? (
+                      <span className="rounded-full bg-up/10 px-2.5 py-0.5 font-semibold text-up" data-testid="poll-revealed">
+                        📢 결과 공개됨{activeHere.closed ? ' · 응답 마감' : ''}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-warn/10 px-2.5 py-0.5 font-semibold text-warn" data-testid="poll-unrevealed">
+                        🔒 참가자에겐 결과 숨김 (강사만 보는 중)
+                      </span>
+                    )}
+                    {!activeHere.revealResults && (
+                      <button
+                        className="rounded-full bg-brand px-3 py-0.5 font-bold text-on-brand hover:opacity-90"
+                        data-testid="reveal-results"
+                        onClick={() => live.socket.emit('instructor:revealResults')}
+                      >
+                        📢 결과 공개
+                      </button>
+                    )}
+                  </div>
+                  <PollView activity={openAct} dist={live.polls[openAct.id] ?? { counts: {}, total: 0 }} />
+                </div>
               )}
               {(openAct?.type === 'chat' || openAct?.type === 'image' || openAct?.type === 'lab') && (
                 <span className="text-muted">학생들이 실습 중이에요 🧑‍💻</span>
@@ -525,6 +637,23 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
             >
               🔗 링크 복사 {copied === 'student' && '✓'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && (
+        <div className="modal-overlay" onClick={() => setSettingsOpen(false)}>
+          <div className="modal-card max-w-md" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSettingsOpen(false)}>✕</button>
+            <h2 className="text-lg font-bold text-brand">🔒 익명 · 결과 공개 설정</h2>
+            <p className="mt-1 text-xs text-muted">수업 중에도 바꿀 수 있어요. 열린 활동에 바로 적용됩니다.</p>
+            <div className="mt-4">
+              <SettingsPicker
+                value={anonSettings}
+                compact
+                onChange={(v) => live.socket.emit('instructor:updateSettings', v)}
+              />
+            </div>
           </div>
         </div>
       )}

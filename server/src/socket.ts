@@ -3,8 +3,11 @@ import type { ClientToServerEvents, ServerToClientEvents, ActivityType } from '.
 import { getByToken, type ClassroomState } from './state';
 import { getActivity } from './decks';
 import {
-  persistParticipant, persistScore, persistPoll, persistQuizResponse, updateClassroomProgress,
+  persistParticipant, persistScore, persistPoll, persistQuizResponse, updateClassroomProgress, updateClassroomSettings,
 } from './persist';
+
+/** 강사 전용 룸 — 결과 미공개 투표의 실제 분포는 이 룸에만 보낸다 */
+const instructorRoom = (c: ClassroomState) => `${c.id}:instructor`;
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -20,6 +23,11 @@ export function setupSocket(io: IO) {
   const broadcastLeaderboard = (c: ClassroomState) => io.to(c.id).emit('leaderboard', c.leaderboard());
   const broadcastParticipants = (c: ClassroomState) =>
     io.to(c.id).emit('participants', { count: c.participantCount() });
+  // 투표 분포 브로드캐스트: 강사에겐 항상 전체 분포, 나머지(학생·프로젝터)에겐 공개 상태에 따라 hidden/전체
+  const broadcastPoll = (c: ClassroomState, activityId: string) => {
+    io.to(instructorRoom(c)).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId, { forInstructor: true }) });
+    io.to(c.id).except(instructorRoom(c)).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+  };
 
   io.on('connection', (socket: Sock) => {
     // ── 강사 입장 ──
@@ -31,6 +39,7 @@ export function setupSocket(io: IO) {
       socket.data.role = 'instructor';
       socket.data.token = c.token;
       socket.join(c.id);
+      socket.join(instructorRoom(c));
       socket.emit('state', c.snapshot());
       socket.emit('leaderboard', c.leaderboard());
       socket.emit('participants', { count: c.participantCount() });
@@ -88,7 +97,34 @@ export function setupSocket(io: IO) {
       c.openActivity(activityId, act.type as ActivityType);
       io.to(c.id).emit('activity:opened', c.activity!);
       broadcastState(c);
-      if (act.type === 'poll') io.to(c.id).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+      if (act.type === 'poll') broadcastPoll(c, activityId);
+    });
+
+    // ── 강사: 투표 결과 공개 (after_close 정책이면 응답 마감 겸함) ──
+    socket.on('instructor:revealResults', () => {
+      const c = instructorClassroom(socket);
+      if (!c || !c.activity) return;
+      if (!c.revealResults()) return;
+      io.to(c.id).emit('activity:updated', c.activity);
+      if (c.activity.type === 'poll') {
+        broadcastPoll(c, c.activity.activityId);
+        io.to(c.id).emit('notice', { message: c.activity.closed ? '응답 마감 · 결과가 공개됐어요 📢' : '결과가 공개됐어요 📢' });
+      }
+      broadcastState(c);
+    });
+
+    // ── 강사: 세션 익명/결과 공개 정책 변경 ──
+    socket.on('instructor:updateSettings', (patch) => {
+      const c = instructorClassroom(socket);
+      if (!c) return;
+      c.updateSettings(patch ?? {});
+      broadcastState(c);
+      broadcastLeaderboard(c);
+      if (c.activity) {
+        io.to(c.id).emit('activity:updated', c.activity);
+        if (c.activity.type === 'poll') broadcastPoll(c, c.activity.activityId);
+      }
+      updateClassroomSettings(c);
     });
 
     socket.on('instructor:closeActivity', () => {
@@ -155,6 +191,8 @@ export function setupSocket(io: IO) {
         io.to(c.id).emit('quiz:answered', { count: c.answeredCount() });
         const p = c.getBySession(sid);
         if (p) {
+          // 세션 익명이면 리더보드가 가명이라 본인 점수를 못 찾으므로 자기 점수를 직접 갱신해 준다
+          socket.emit('joined', { participantId: p.id, sessionId: p.sessionId, nickname: p.nickname, score: p.score });
           persistScore(c, p);
           persistQuizResponse(c, p, questionId, String(optionIndex), ans.correct, ans.ms, ans.points);
         }
@@ -166,8 +204,10 @@ export function setupSocket(io: IO) {
       const c = getByToken(socket.data.token ?? '');
       const sid = socket.data.sessionId;
       if (!c || !sid) return;
-      c.recordPoll(sid, activityId, value);
-      io.to(c.id).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+      if (!c.recordPoll(sid, activityId, value)) {
+        return socket.emit('errmsg', { message: '응답이 마감됐어요. 결과를 확인해 주세요!' });
+      }
+      broadcastPoll(c, activityId);
       const p = c.getBySession(sid);
       if (p) persistPoll(c, p, activityId, value);
     });
@@ -214,7 +254,8 @@ function sendCurrentActivityTo(socket: Sock, c: ClassroomState) {
   if (!c.activity) return;
   socket.emit('activity:opened', c.activity);
   if (c.activity.type === 'poll') {
-    socket.emit('poll:update', { activityId: c.activity.activityId, distribution: c.pollDistribution(c.activity.activityId) });
+    const forInstructor = socket.data.role === 'instructor';
+    socket.emit('poll:update', { activityId: c.activity.activityId, distribution: c.pollDistribution(c.activity.activityId, { forInstructor }) });
   }
   if (c.activity.type === 'quiz' && c.activity.quiz) {
     const phase = c.activity.quiz.phase;

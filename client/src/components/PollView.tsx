@@ -15,7 +15,7 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-function RollingPaper({ entries }: { entries: Array<{ nickname: string; value: string }> }) {
+function RollingPaper({ entries }: { entries: Array<{ nickname?: string; value: string }> }) {
   if (entries.length === 0) {
     return <p className="p-6 text-center text-muted-2">첫 답변을 기다리는 중…</p>;
   }
@@ -26,7 +26,7 @@ function RollingPaper({ entries }: { entries: Array<{ nickname: string; value: s
   return (
     <div className="relative w-full" style={{ height }}>
       {entries.map((e, i) => {
-        const seed = hashStr(`${e.nickname}|${e.value}|${i}`);
+        const seed = hashStr(`${e.nickname ?? ''}|${e.value}|${i}`);
         const col = i % cols;
         const row = Math.floor(i / cols);
         const jitterX = (seededRandom(seed) - 0.5) * (100 / cols) * 0.7;
@@ -47,9 +47,12 @@ function RollingPaper({ entries }: { entries: Array<{ nickname: string; value: s
             }}
           >
             <span className="break-words text-sm font-extrabold leading-snug text-black/85">{e.value}</span>
-            <span className="mt-0.5 w-full truncate border-t border-black/15 pt-1 text-[11px] font-bold text-black/70">
-              – {e.nickname}
-            </span>
+            {/* 익명 활동이면 서버가 nickname 을 빼고 보내므로 서명 줄 자체가 없다 */}
+            {e.nickname && (
+              <span className="mt-0.5 w-full truncate border-t border-black/15 pt-1 text-[11px] font-bold text-black/70" data-testid="paper-signature">
+                – {e.nickname}
+              </span>
+            )}
           </div>
         );
       })}
@@ -96,6 +99,31 @@ function WordCloud({ counts }: { counts: Record<string, number> }) {
   return <canvas ref={canvasRef} className="w-full" style={{ height: Math.max(260, Math.min(420, 80 + entries.length * 28)) }} />;
 }
 
+/** 결과 미공개 상태 — 참여 인원만 보여준다 (밴드왜건 방지) */
+export function PollHidden({ total, big = false }: { total: number; big?: boolean }) {
+  return (
+    <div className={['grid place-items-center rounded-2xl bg-surface-2 text-center ring-1 ring-hairline', big ? 'py-14' : 'py-8'].join(' ')} data-testid="poll-hidden">
+      <div className={big ? 'text-5xl' : 'text-3xl'}>🔒</div>
+      <p className={['mt-2 font-bold text-strong', big ? 'text-2xl' : 'text-sm'].join(' ')}>결과는 마감 후 공개돼요</p>
+      <p className={['mt-1 text-muted', big ? 'text-xl' : 'text-xs'].join(' ')}>
+        지금까지 <b className="text-brand">{total}</b>명 참여
+      </p>
+    </div>
+  );
+}
+
+/** 익명 활동 표시 뱃지 */
+export function AnonBadge({ big = false }: { big?: boolean }) {
+  return (
+    <span
+      className={['inline-flex items-center gap-1 rounded-full bg-surface-2 font-semibold text-muted ring-1 ring-hairline', big ? 'px-4 py-1.5 text-lg' : 'px-2.5 py-0.5 text-xs'].join(' ')}
+      data-testid="anon-badge"
+    >
+      🔒 익명
+    </span>
+  );
+}
+
 export default function PollView({
   activity,
   dist,
@@ -104,6 +132,8 @@ export default function PollView({
   dist: PollDistribution;
 }) {
   const [view, setView] = useState<'paper' | 'cloud'>('paper');
+
+  if (dist.hidden) return <PollHidden total={dist.total} />;
 
   if (activity.mode === 'wordcloud') {
     const entries = dist.entries ?? [];

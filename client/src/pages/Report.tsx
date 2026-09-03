@@ -11,6 +11,7 @@ interface ReportData {
     status: string;
     createdAt: string;
   };
+  anonymity?: { policy: string; sessionAnonymous: boolean };
   deckSummary: {
     id: string;
     title: string;
@@ -34,6 +35,7 @@ interface ReportData {
       questionText: string;
       options: string[];
       correctIndex: number;
+      anonymous?: boolean;
       totalAnswers: number;
       correctAnswers: number;
       correctRate: number;
@@ -53,6 +55,7 @@ interface ReportData {
       prompt: string;
       mode: 'choice' | 'wordcloud';
       options: string[];
+      anonymous?: boolean;
       totalVotes: number;
       votes: Record<string, number>;
       studentDetails: Array<{
@@ -263,6 +266,7 @@ export default function Report() {
           <h1 className="text-3xl font-extrabold text-gray-900 mt-1">{classroom.title}</h1>
           <p className="text-sm text-gray-600 mt-2">
             개설일자: {new Date(classroom.createdAt).toLocaleString()} | 강의실 코드: <b>{classroom.token}</b> | 참여 학생: <b>{participants.length}명</b>
+            {data.anonymity?.sessionAnonymous && <> | <b>🔒 익명 세션 (참가자 가명 처리)</b></>}
           </p>
         </div>
 
@@ -410,6 +414,9 @@ export default function Report() {
                 <div className="flex items-center gap-2">
                   <span className="bg-brand/10 text-brand px-2.5 py-1 rounded-lg text-xs font-bold print-badge-green">Q{idx + 1}</span>
                   <h3 className="font-bold text-strong text-base print-text-dark">{q.questionText}</h3>
+                  {q.anonymous && (
+                    <span className="text-xs bg-surface-2 px-2 py-1 rounded-full text-muted ring-1 ring-hairline print-text-muted" title="익명 활동 — 개별 답변에 이름이 붙지 않습니다" data-testid="report-quiz-anon">🔒 익명 집계</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs text-muted-2 print-text-muted">평균 정답률:</span>
@@ -500,8 +507,15 @@ export default function Report() {
                   <span className="bg-brand/10 text-brand px-2.5 py-1 rounded-lg text-xs font-bold print-badge-green">POLL {idx + 1}</span>
                   <h3 className="font-bold text-strong text-base print-text-dark">{p.prompt}</h3>
                 </div>
-                <span className="text-xs bg-surface-2 px-2 py-1 rounded-full text-muted ring-1 ring-hairline print-text-muted uppercase tracking-wider">
-                  {p.mode === 'choice' ? '객관식 투표' : '워드클라우드'}
+                <span className="flex items-center gap-1.5">
+                  {p.anonymous && (
+                    <span className="text-xs bg-surface-2 px-2 py-1 rounded-full text-muted ring-1 ring-hairline print-text-muted" title="익명 활동 — 개별 응답자 정보 없이 집계만 제공" data-testid="report-poll-anon">
+                      🔒 익명 집계
+                    </span>
+                  )}
+                  <span className="text-xs bg-surface-2 px-2 py-1 rounded-full text-muted ring-1 ring-hairline print-text-muted uppercase tracking-wider">
+                    {p.mode === 'choice' ? '객관식 투표' : '워드클라우드'}
+                  </span>
                 </span>
               </div>
 

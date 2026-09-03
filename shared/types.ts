@@ -31,6 +31,7 @@ export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'rolepla
 export interface ChatActivity {
   type: 'chat';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   systemPrompt?: string;     // 서버 전용이지만 비밀 아님
@@ -40,6 +41,7 @@ export interface ChatActivity {
 export interface ImageActivity {
   type: 'image';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   suggestions?: string[];
@@ -48,6 +50,7 @@ export interface ImageActivity {
 export interface LabActivity {
   type: 'lab';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   labType: 'prompt' | 'context' | 'harness';
   title: string;
   intro?: string;
@@ -73,6 +76,7 @@ export interface QuizQuestion {
 export interface QuizActivity {
   type: 'quiz';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   questions: QuizQuestion[];
@@ -81,6 +85,7 @@ export interface QuizActivity {
 export interface PollActivity {
   type: 'poll';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   prompt: string;
   mode: 'choice' | 'wordcloud';
@@ -90,6 +95,7 @@ export interface PollActivity {
 export interface RoleplayActivity {
   type: 'roleplay';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   systemPrompt: string;
@@ -100,6 +106,7 @@ export interface RoleplayActivity {
 export interface AnalogyActivity {
   type: 'analogy';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   topicPlaceholder?: string;
@@ -110,6 +117,7 @@ export interface AnalogyActivity {
 export interface WritingActivity {
   type: 'writing';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   genre: 'poem' | 'story' | 'essay';
@@ -119,6 +127,7 @@ export interface WritingActivity {
 export interface TutorActivity {
   type: 'tutor';
   id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
   title: string;
   intro?: string;
   subject: 'math' | 'coding' | 'general';
@@ -143,11 +152,45 @@ export interface Deck {
   activities: Record<string, Activity>;
 }
 
+// ───────────────────────── 익명 정책 ─────────────────────────
+
+/**
+ * 세션(강의실) 익명 정책
+ * - named_default: 기본 실명, 활동별로 익명 지정 가능 (기본값)
+ * - anon_default : 기본 익명, 활동별로 실명 지정 가능
+ * - always_anon  : 항상 익명 (활동 설정 무시)
+ * - always_named : 항상 실명 (활동 설정 무시)
+ */
+export type AnonymityPolicy = 'anon_default' | 'named_default' | 'always_anon' | 'always_named';
+export const ANONYMITY_POLICIES: AnonymityPolicy[] = ['named_default', 'anon_default', 'always_anon', 'always_named'];
+
+/** 투표 결과 공개 방식 — after_close: 강사가 "결과 공개"를 누를 때까지 숨김(밴드왜건 방지), live: 실시간 공개 */
+export type ResultsRevealPolicy = 'after_close' | 'live';
+
+export interface ClassroomAnonSettings {
+  anonymity: AnonymityPolicy;
+  resultsReveal: ResultsRevealPolicy;
+}
+
+/** 세션 정책 + 활동 오버라이드 → 실제 익명 여부 */
+export function resolveAnonymous(policy: AnonymityPolicy, activityAnonymous?: boolean): boolean {
+  if (policy === 'always_anon') return true;
+  if (policy === 'always_named') return false;
+  if (typeof activityAnonymous === 'boolean') return activityAnonymous;
+  return policy === 'anon_default';
+}
+
 // ───────────────────────── 실시간 상태 ─────────────────────────
 
 export interface OpenActivityState {
   activityId: string;
   type: ActivityType;
+  /** 이 활동이 익명으로 진행되는지 (세션 정책 + 활동 오버라이드 해석 결과) */
+  anonymous: boolean;
+  /** 투표 결과가 참가자/프로젝터에 공개됐는지. false 면 강사만 결과를 본다 */
+  revealResults: boolean;
+  /** 응답 마감 여부 (after_close 정책에서 "결과 공개" = 마감 + 공개) */
+  closed?: boolean;
   // 퀴즈 진행 상태
   quiz?: {
     index: number;
@@ -166,6 +209,8 @@ export interface ClassroomSnapshot {
   currentSlide: number;
   activity: OpenActivityState | null;
   participantCount: number;
+  anonymity: AnonymityPolicy;
+  resultsReveal: ResultsRevealPolicy;
 }
 
 export interface LeaderboardEntry {
@@ -178,8 +223,10 @@ export interface PollDistribution {
   // choice 모드: optionIndex -> count, wordcloud: word -> count
   counts: Record<string, number>;
   total: number;
-  // wordcloud 모드 전용: 학생별 개별 응답 (롤링페이퍼 뷰에 사용)
-  entries?: Array<{ nickname: string; value: string }>;
+  // wordcloud 모드 전용: 학생별 개별 응답 (롤링페이퍼 뷰에 사용). 익명 활동이면 nickname 이 빠진다
+  entries?: Array<{ nickname?: string; value: string }>;
+  // true 면 결과 미공개 상태 — counts/entries 는 비어 있고 total 만 유효
+  hidden?: boolean;
 }
 
 export interface QuizReveal {
@@ -202,6 +249,8 @@ export interface ServerToClientEvents {
   state: (snap: ClassroomSnapshot) => void;
   'slide:changed': (slide: number) => void;
   'activity:opened': (a: OpenActivityState) => void;
+  /** 열린 활동의 상태(익명/결과 공개/마감)만 바뀜 — 퀴즈 진행 상태는 건드리지 않는다 */
+  'activity:updated': (a: OpenActivityState) => void;
   'activity:closed': () => void;
   'quiz:question': (q: {
     questionId: string;
@@ -236,11 +285,21 @@ export interface ClientToServerEvents {
   'student:pollVote': (p: { activityId: string; value: string }) => void;
   'student:roleplayClear': (p: { activityId: string }) => void;
   'instructor:panic': (p: { action: 'pause' | 'resume' }) => void;
+  /** 투표 결과 공개 (after_close 정책: 응답 마감 + 결과 공개) */
+  'instructor:revealResults': () => void;
+  /** 세션 익명/결과 공개 정책 변경 */
+  'instructor:updateSettings': (p: Partial<ClassroomAnonSettings>) => void;
   'viewer:join': (p: { token: string }) => void;
   'student:askQuestion': (p: { text: string }) => void;
 }
 
 // ───────────────────────── REST DTO ─────────────────────────
+
+export interface CreateClassroomRequest {
+  deckId?: string;
+  title?: string;
+  settings?: Partial<ClassroomAnonSettings>;
+}
 
 export interface CreateClassroomResponse {
   classroomId: string;

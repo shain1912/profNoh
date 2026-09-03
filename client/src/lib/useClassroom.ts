@@ -70,6 +70,7 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
       if (a.type !== 'quiz') setQuestion(null);
       setAnsweredCount(0);
     });
+    socket.on('activity:updated', (a) => setActivity(a));
     socket.on('activity:closed', () => {
       setActivity(null);
       setQuestion(null);
@@ -110,6 +111,7 @@ export function useClassroom(join: (s: AppSocket) => void): ClassroomLive {
       socket.off('state');
       socket.off('slide:changed');
       socket.off('activity:opened');
+      socket.off('activity:updated');
       socket.off('activity:closed');
       socket.off('quiz:question');
       socket.off('quiz:reveal');

@@ -389,10 +389,41 @@ export default function DeckEditor() {
             // 활동 편집 폼은 레지스트리(activities/defs/*.tsx)에서 타입별로 가져온다
             const def = ACTIVITY_DEFS[kind];
             const ActEditor = def.Editor;
+            const act = deck.activities[slide.activityId!];
+            const anonValue: 'default' | 'anon' | 'named' =
+              act.anonymous === true ? 'anon' : act.anonymous === false ? 'named' : 'default';
+            const setAnon = (v: 'default' | 'anon' | 'named') => {
+              const { anonymous: _drop, ...rest } = act as any;
+              const next = v === 'default' ? rest : { ...rest, anonymous: v === 'anon' };
+              setDeck(updateActivity(deck, slide.activityId!, next));
+            };
             return (
               <div className="space-y-3">
                 <div className="text-sm font-bold text-brand">{def.icon} {def.label} 편집</div>
-                <ActEditor act={deck.activities[slide.activityId!]} onChange={(a: any) => setDeck(updateActivity(deck, slide.activityId!, a))} />
+                <ActEditor act={act} onChange={(a: any) => setDeck(updateActivity(deck, slide.activityId!, a))} />
+                {/* 활동 단위 익명 오버라이드 — 세션 정책(강의 시작 시 선택)보다 우선. "항상 익명/항상 닉네임" 세션에서는 무시됨 */}
+                <div className="rounded-xl bg-white/5 p-3">
+                  <div className="mb-1 text-sm text-white/60">🔒 참가자 이름 표시</div>
+                  <div className="flex flex-wrap gap-2 text-sm" data-testid="activity-anon">
+                    {([
+                      ['default', '세션 기본값'],
+                      ['anon', '🔒 익명'],
+                      ['named', '🙂 닉네임'],
+                    ] as const).map(([v, label]) => (
+                      <button
+                        key={v}
+                        data-testid={`activity-anon-${v}`}
+                        className={['btn-ghost px-3 py-1', anonValue === v ? 'text-brand ring-1 ring-brand/40' : ''].join(' ')}
+                        onClick={() => setAnon(v)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-white/40">
+                    익명이면 롤링페이퍼 서명·투표 응답자 이름·리포트 개별 응답이 감춰집니다. 세션이 "항상 익명/항상 닉네임"이면 이 설정은 무시돼요.
+                  </p>
+                </div>
               </div>
             );
           })()}
