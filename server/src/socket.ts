@@ -1,14 +1,29 @@
 import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents, ActivityType } from '../../shared/types';
+import type { ClientToServerEvents, ServerToClientEvents, ActivityType, QuizReveal } from '../../shared/types';
 import { getByToken, type ClassroomState } from './state';
 import { msg } from './copy';
+import { env } from './env';
+import { Batcher, TokenBucketSet, SOCKET_EVENT_RULES, SOCKET_GLOBAL_RULE } from './ratelimit';
 import {
   persistParticipant, persistScore, persistPoll, persistQuizResponse, updateClassroomProgress, updateClassroomSettings,
   persistSurvey, persistQuestion, deleteQuestionRow,
 } from './persist';
 
+// ── 역할별 room (Phase 2 브로드캐스트 재설계, R3 §2.2) ──
+//   c.id            : 전원 — 상태 전이(state/slide/activity/quiz:question/notice)처럼 모두에게 필요한 작은 이벤트
+//   :staff          : 강사 + 프로젝터 — 상세(리더보드 전체·quiz:answered 카운트·투표 entries)
+//   :instructor     : 강사만 — 결과 미공개 투표의 실제 분포, 미승인 질문
+//   :participants   : 참가자 — 집계값(counts/total)·자기 ACK 만
 /** 강사 전용 룸 — 결과 미공개 투표의 실제 분포·미승인 질문 등 강사만 봐야 하는 이벤트 */
 const instructorRoom = (c: ClassroomState) => `${c.id}:instructor`;
+const staffRoom = (c: ClassroomState) => `${c.id}:staff`;
+const participantsRoom = (c: ClassroomState) => `${c.id}:participants`;
+
+// 집계 브로드캐스트 배치 창 — 표마다 전원 전송(O(n²)) 대신 창당 1회
+const STAFF_MS = env.BROADCAST_BATCH_MS;
+const PART_MS = env.BROADCAST_BATCH_PARTICIPANT_MS;
+const batcher = new Batcher();
+
 // 활동 타이머 (강의실당 1개): 투표 자동 마감 / 퀴즈 자동 정답 공개.
 // 활동을 닫거나 다른 활동을 열거나 강사가 수동으로 진행하면 해제된다.
 const activityTimers = new Map<string, NodeJS.Timeout>();
@@ -35,20 +50,59 @@ interface SocketData {
 
 export function setupSocket(io: IO) {
   const broadcastState = (c: ClassroomState) => io.to(c.id).emit('state', c.snapshot());
-  const broadcastLeaderboard = (c: ClassroomState) => io.to(c.id).emit('leaderboard', c.leaderboard());
-  const broadcastParticipants = (c: ClassroomState) =>
-    io.to(c.id).emit('participants', { count: c.participantCount() });
-  // 투표 분포 브로드캐스트: 강사에겐 항상 전체 분포, 나머지(학생·프로젝터)에겐 공개 상태에 따라 hidden/전체
-  const broadcastPoll = (c: ClassroomState, activityId: string) => {
-    io.to(instructorRoom(c)).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId, { forInstructor: true }) });
-    io.to(c.id).except(instructorRoom(c)).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+  // 리더보드 전체(상위 100명)는 스태프룸만 — 참가자는 joined/quiz:reveal.me 로 자기 점수만 받는다
+  const broadcastLeaderboard = (c: ClassroomState) => io.to(staffRoom(c)).emit('leaderboard', c.leaderboard());
+  // 접속 인원: 입장마다 전원 전송(400명 입장 = 16만 프레임) 대신 배치 — 스태프 300ms / 참가자(강당 대기 화면) 500ms
+  const broadcastParticipants = (c: ClassroomState) => {
+    batcher.schedule(`${c.id}|participants|staff`, STAFF_MS, () =>
+      io.to(staffRoom(c)).emit('participants', { count: c.participantCount() }));
+    batcher.schedule(`${c.id}|participants|part`, PART_MS, () =>
+      io.to(participantsRoom(c)).emit('participants', { count: c.participantCount() }));
+  };
+  // 퀴즈 응답 카운트: 강사·프로젝터만 쓰는 정보 — 스태프룸에 배치 전송
+  const broadcastAnswered = (c: ClassroomState) => {
+    batcher.schedule(`${c.id}|answered`, STAFF_MS, () =>
+      io.to(staffRoom(c)).emit('quiz:answered', { count: c.answeredCount() }));
+  };
+  // 투표 분포: 강사=전체 분포 / 프로젝터=공개 상태에 따라 hidden·전체 / 참가자=집계(counts·total)만, entries 없음.
+  // 표마다가 아니라 창당 1회 전송. 활동 열기/마감/공개 같은 전이는 immediate 로 즉시 반영.
+  const broadcastPoll = (c: ClassroomState, activityId: string, immediate = false) => {
+    const sendStaff = () => {
+      io.to(instructorRoom(c)).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId, { forInstructor: true }) });
+      io.to(staffRoom(c)).except(instructorRoom(c)).emit('poll:update', { activityId, distribution: c.pollDistribution(activityId) });
+    };
+    const sendParticipants = () =>
+      io.to(participantsRoom(c)).emit('poll:update', { activityId, distribution: c.pollAggregate(activityId) });
+    const kStaff = `${c.id}|poll|${activityId}|staff`;
+    const kPart = `${c.id}|poll|${activityId}|part`;
+    if (immediate) {
+      batcher.flush(kStaff, sendStaff);
+      batcher.flush(kPart, sendParticipants);
+      return;
+    }
+    batcher.schedule(kStaff, STAFF_MS, sendStaff);
+    batcher.schedule(kPart, PART_MS, sendParticipants);
+  };
+  // 정답 공개 페이로드: 스태프룸엔 리더보드 전체, 참가자에겐 리더보드 없이 자기 점수·순위(me)만
+  const emitQuizReveal = (c: ClassroomState, r: Omit<QuizReveal, 'leaderboard'>) => {
+    io.to(staffRoom(c)).emit('quiz:reveal', { ...r, leaderboard: c.leaderboard() });
+    const ranks = c.rankBySession();
+    const ids = io.sockets.adapter.rooms.get(participantsRoom(c));
+    if (!ids) return;
+    for (const id of ids) {
+      const s = io.sockets.sockets.get(id);
+      if (!s) continue;
+      const me = s.data.sessionId ? ranks.get(s.data.sessionId) : undefined;
+      s.emit('quiz:reveal', { ...r, leaderboard: [], me });
+    }
   };
   // 정답 공개 (강사 수동 / 타이머 자동 공통)
   const doQuizReveal = (c: ClassroomState) => {
     disarmTimer(c);
     const r = c.quizReveal();
     if (!r) return;
-    io.to(c.id).emit('quiz:reveal', { ...r, leaderboard: c.leaderboard() });
+    batcher.cancel(`${c.id}|answered`);
+    emitQuizReveal(c, r);
     broadcastLeaderboard(c);
     broadcastState(c);
   };
@@ -66,34 +120,38 @@ export function setupSocket(io: IO) {
     if (!c.pollClose()) return;
     if (c.activity) {
       io.to(c.id).emit('activity:updated', c.activity);
-      broadcastPoll(c, c.activity.activityId);
+      broadcastPoll(c, c.activity.activityId, true);
     }
     broadcastState(c);
   };
 
-  // 설문 집계 브로드캐스트는 제출마다가 아니라 활동당 최대 2회/초로 묶어서 전송 (400명 동시 제출 대비)
-  const surveyTimers = new Map<string, NodeJS.Timeout>();
+  // 설문 집계 브로드캐스트는 제출마다가 아니라 활동당 창(500ms)당 1회 (400명 동시 제출 대비). 개인 식별 정보 없음 → 전원
   const broadcastSurvey = (c: ClassroomState, activityId: string, immediate = false) => {
-    const key = `${c.id}|${activityId}`;
-    const send = () => {
-      surveyTimers.delete(key);
-      io.to(c.id).emit('survey:update', c.surveySummary(activityId));
-    };
-    if (immediate) {
-      const t = surveyTimers.get(key);
-      if (t) clearTimeout(t);
-      return send();
-    }
-    if (surveyTimers.has(key)) return;
-    surveyTimers.set(key, setTimeout(send, 500));
+    const key = `${c.id}|survey|${activityId}`;
+    const send = () => io.to(c.id).emit('survey:update', c.surveySummary(activityId));
+    if (immediate) return batcher.flush(key, send);
+    batcher.schedule(key, PART_MS, send);
   };
-  // 질문 이벤트: 승인된 질문은 방 전체, 미승인은 강사 room 에만 (강사는 두 room 에 다 있어 클라이언트가 id 로 중복 제거)
+  // 질문 이벤트: 승인된 질문은 방 전체(참가자도 Q&A 패널에서 목록·👍 를 쓴다), 미승인은 강사 room 에만
+  // (강사는 두 room 에 다 있어 클라이언트가 id 로 중복 제거)
   const emitQuestion = (c: ClassroomState, ev: 'question:new' | 'question:update', q: { approved: boolean } & Parameters<ServerToClientEvents['question:new']>[0]) => {
     if (q.approved) io.to(c.id).emit(ev, q);
     else io.to(instructorRoom(c)).emit(ev, q);
   };
 
   io.on('connection', (socket: Sock) => {
+    // ── 소켓 이벤트 토큰 버킷 (R3 결핍 17): 한도 초과 이벤트는 버리고, 첫 초과 때만 안내 1회 ──
+    const buckets = new TokenBucketSet();
+    socket.use((packet, next) => {
+      const ev = String(packet[0] ?? '');
+      const now = Date.now();
+      const g = buckets.take('*', SOCKET_GLOBAL_RULE, now);
+      const rule = SOCKET_EVENT_RULES[ev];
+      const e = rule ? buckets.take(ev, rule, now) : { ok: true, warn: false };
+      if (g.ok && e.ok) return next();
+      if (g.warn || e.warn) socket.emit('errmsg', { message: '요청이 너무 잦아요. 잠시 후 다시 시도해 주세요.' });
+    });
+
     // ── 강사 입장 ──
     socket.on('instructor:join', ({ token, instructorSecret }) => {
       const c = getByToken(token);
@@ -103,6 +161,7 @@ export function setupSocket(io: IO) {
       socket.data.role = 'instructor';
       socket.data.token = c.token;
       socket.join(c.id);
+      socket.join(staffRoom(c));
       socket.join(instructorRoom(c));
       socket.emit('state', c.snapshot());
       socket.emit('leaderboard', c.leaderboard());
@@ -121,6 +180,7 @@ export function setupSocket(io: IO) {
       socket.data.token = c.token;
       socket.data.sessionId = p.sessionId;
       socket.join(c.id);
+      socket.join(participantsRoom(c));
 
       // 참가자를 먼저 DB에 기록 → 이후 AI 사용/퀴즈/랩 기록의 FK 보장
       await persistParticipant(c, p);
@@ -132,15 +192,17 @@ export function setupSocket(io: IO) {
       broadcastParticipants(c);
     });
 
-    // ── 뷰어(프로젝터) 입장: 읽기 전용, 참가자 미생성 ──
+    // ── 뷰어(프로젝터) 입장: 읽기 전용, 참가자 미생성. 상세(리더보드·entries)를 받는 스태프룸 ──
     socket.on('viewer:join', ({ token }) => {
       const c = getByToken(token);
       if (!c) return socket.emit('errmsg', { message: '강의실을 찾을 수 없습니다.' });
       socket.data.role = undefined;
       socket.data.token = c.token;
       socket.join(c.id);
+      socket.join(staffRoom(c));
       socket.emit('state', c.snapshot());
       socket.emit('leaderboard', c.leaderboard());
+      socket.emit('participants', { count: c.participantCount() });
       socket.emit('questions:sync', c.getQuestions(true));
       sendCurrentActivityTo(socket, c);
     });
@@ -168,7 +230,7 @@ export function setupSocket(io: IO) {
       });
       io.to(c.id).emit('activity:opened', c.activity!);
       broadcastState(c);
-      if (act.type === 'poll' || act.type === 'scale') broadcastPoll(c, activityId);
+      if (act.type === 'poll' || act.type === 'scale') broadcastPoll(c, activityId, true);
       if (act.type === 'poll') {
         const endsAt = c.activity?.poll?.endsAt;
         if (endsAt) armTimer(c, endsAt, () => doPollClose(c));
@@ -206,7 +268,7 @@ export function setupSocket(io: IO) {
       if (c.activity.closed) disarmTimer(c); // 마감을 겸했으면 자동 마감 타이머 해제
       io.to(c.id).emit('activity:updated', c.activity);
       if (c.activity.type === 'poll') {
-        broadcastPoll(c, c.activity.activityId);
+        broadcastPoll(c, c.activity.activityId, true);
         io.to(c.id).emit('notice', { message: c.activity.closed ? '응답 마감 · 결과가 공개됐어요 📢' : '결과가 공개됐어요 📢' });
       }
       broadcastState(c);
@@ -221,7 +283,7 @@ export function setupSocket(io: IO) {
       broadcastLeaderboard(c);
       if (c.activity) {
         io.to(c.id).emit('activity:updated', c.activity);
-        if (c.activity.type === 'poll') broadcastPoll(c, c.activity.activityId);
+        if (c.activity.type === 'poll') broadcastPoll(c, c.activity.activityId, true);
       }
       updateClassroomSettings(c);
     });
@@ -230,6 +292,9 @@ export function setupSocket(io: IO) {
       const c = instructorClassroom(socket);
       if (!c) return;
       disarmTimer(c);
+      // 닫힌 활동의 늦은 집계 배치는 보내지 않는다
+      if (c.activity) batcher.cancelPrefix(`${c.id}|poll|${c.activity.activityId}|`);
+      batcher.cancel(`${c.id}|answered`);
       c.closeActivity();
       io.to(c.id).emit('activity:closed');
       broadcastState(c);
@@ -248,7 +313,7 @@ export function setupSocket(io: IO) {
       if (!c.pollReveal()) return;
       if (c.activity) {
         io.to(c.id).emit('activity:updated', c.activity);
-        broadcastPoll(c, c.activity.activityId);
+        broadcastPoll(c, c.activity.activityId, true);
       }
       broadcastState(c);
     });
@@ -275,7 +340,7 @@ export function setupSocket(io: IO) {
       if (moved) {
         startQuestion(c);
       } else {
-        io.to(c.id).emit('leaderboard', c.leaderboard());
+        broadcastLeaderboard(c);
         io.to(c.id).emit('notice', { message: msg(c, 'quizEnd') });
       }
       broadcastState(c);
@@ -300,10 +365,10 @@ export function setupSocket(io: IO) {
       if (!c || !sid) return;
       const ans = c.recordQuizAnswer(sid, questionId, optionIndex);
       if (ans) {
-        io.to(c.id).emit('quiz:answered', { count: c.answeredCount() });
+        broadcastAnswered(c);
         const p = c.getBySession(sid);
         if (p) {
-          // 세션 익명이면 리더보드가 가명이라 본인 점수를 못 찾으므로 자기 점수를 직접 갱신해 준다
+          // 자기 ACK: 세션 익명이면 리더보드가 가명이고, 참가자는 리더보드 자체를 받지 않으므로 자기 점수를 직접 갱신
           socket.emit('joined', { participantId: p.id, sessionId: p.sessionId, nickname: p.nickname, score: p.score });
           persistScore(c, p);
           persistQuizResponse(c, p, questionId, String(optionIndex), ans.correct, ans.ms, ans.points);
@@ -428,13 +493,18 @@ function instructorClassroom(socket: Sock): ClassroomState | undefined {
   return getByToken(socket.data.token ?? '');
 }
 
-// 늦게 들어온 학생/뷰어에게 현재 열린 활동 상태를 동기화
+// 늦게 들어온 학생/뷰어에게 현재 열린 활동 상태를 동기화 (역할별로 같은 필터를 적용)
 function sendCurrentActivityTo(socket: Sock, c: ClassroomState) {
   if (!c.activity) return;
+  const role = socket.data.role;
   socket.emit('activity:opened', c.activity);
   if (c.activity.type === 'poll' || c.activity.type === 'scale') {
-    const forInstructor = socket.data.role === 'instructor';
-    socket.emit('poll:update', { activityId: c.activity.activityId, distribution: c.pollDistribution(c.activity.activityId, { forInstructor }) });
+    const id = c.activity.activityId;
+    const distribution =
+      role === 'instructor' ? c.pollDistribution(id, { forInstructor: true })
+      : role === 'student' ? c.pollAggregate(id)
+      : c.pollDistribution(id);
+    socket.emit('poll:update', { activityId: id, distribution });
   }
   if (c.activity.type === 'survey') {
     socket.emit('survey:update', c.surveySummary(c.activity.activityId));
@@ -446,10 +516,16 @@ function sendCurrentActivityTo(socket: Sock, c: ClassroomState) {
       const q = c.currentQuestionPayload();
       if (q) socket.emit('quiz:question', q);
     }
-    // 정답 공개 상태면 reveal 데이터도 전송 (분포/정답/리더보드)
+    // 정답 공개 상태면 reveal 데이터도 전송 (분포/정답 + 스태프는 리더보드, 참가자는 me)
     if (phase === 'revealed') {
       const r = c.quizReveal();
-      if (r) socket.emit('quiz:reveal', { ...r, leaderboard: c.leaderboard() });
+      if (!r) return;
+      if (role === 'student') {
+        const me = socket.data.sessionId ? c.rankBySession().get(socket.data.sessionId) : undefined;
+        socket.emit('quiz:reveal', { ...r, leaderboard: [], me });
+      } else {
+        socket.emit('quiz:reveal', { ...r, leaderboard: c.leaderboard() });
+      }
     }
   }
 }

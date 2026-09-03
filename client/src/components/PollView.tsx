@@ -139,7 +139,9 @@ export default function PollView({
   if (dist.hidden) return <PollHidden total={dist.total} />;
 
   if (activity.mode === 'wordcloud') {
-    const entries = dist.entries ?? [];
+    // 참가자(폰)에게는 서버가 entries 없이 집계(counts)만 보낸다 — 롤링페이퍼 대신 워드클라우드만 (Phase 2)
+    if (!dist.entries) return <WordCloud counts={dist.counts} />;
+    const entries = dist.entries;
     return (
       <div>
         <div className="mb-2 flex justify-end">

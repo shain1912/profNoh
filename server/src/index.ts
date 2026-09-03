@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyCors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
+import fastifyRateLimit from '@fastify/rate-limit';
 import { registerAuthRoutes } from './auth/authRoutes';
 import { registerAdminRoutes } from './admin/adminRoutes';
 import { registerOrgRoutes } from './orgs/orgRoutes';
@@ -27,6 +28,8 @@ async function main() {
   const app = Fastify({
     logger: { level: 'info', transport: undefined },
     bodyLimit: 50 * 1024 * 1024, // 50MB limit to support large PDF uploads
+    // Cloudflare → Caddy 뒤에서 req.ip 가 X-Forwarded-For 의 클라이언트 IP 가 되도록 (rate limit 키)
+    trustProxy: env.TRUST_PROXY,
   });
 
   await app.register(fastifyCors, {
@@ -34,6 +37,23 @@ async function main() {
     credentials: true,
   });
   await app.register(fastifyCookie);
+
+  // ── HTTP rate limit (R3 §2.6): IP당 전역 상한 + 비싼 경로(강의실 생성·업로드·AI 덱 생성)는 routes.ts 에서 개별 상한 ──
+  // 강당은 400명이 NAT 1개를 공유할 수 있어 전역값은 넉넉히 두고(기본 1200/분), 남용 대상 경로만 엄격히 제한한다.
+  if (!env.RATE_LIMIT_DISABLED) {
+    await app.register(fastifyRateLimit, {
+      global: true,
+      max: env.RATE_LIMIT_PER_MIN,
+      timeWindow: '1 minute',
+      keyGenerator: (req) => req.ip,
+      // 반환 객체가 throw 되므로 statusCode(429/403) 를 실어야 500 이 아닌 429 로 응답한다
+      errorResponseBuilder: (_req, ctx) => ({
+        statusCode: ctx.statusCode,
+        error: 'rate_limited',
+        message: `요청이 너무 많아요. ${Math.max(1, Math.ceil(ctx.ttl / 1000))}초 뒤에 다시 시도해 주세요.`,
+      }),
+    });
+  }
 
   await registerAuthRoutes(app);
   await registerAdminRoutes(app);
@@ -75,6 +95,8 @@ async function main() {
 
   const io = new SocketIOServer(app.server, {
     cors: { origin: env.CLIENT_ORIGIN ? [env.CLIENT_ORIGIN] : true, credentials: true },
+    // 소켓 페이로드는 전부 수 KB 이하(투표·설문·질문) — 기본 1MB 대신 64KB 로 잘라 대형 프레임 남용 차단
+    maxHttpBufferSize: 64 * 1024,
   });
   setupSocket(io as any);
 

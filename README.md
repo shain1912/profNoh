@@ -88,6 +88,7 @@ location / {
 - **프로젝터** `/screen/<코드>`: 활동이 없을 때는 대기 화면(QR 화면 높이 40% + 코드 + URL + 접속 n명), 활동 중에는 하단 상시 입장 바(높이 14%). `S` 키로 대기 화면 ↔ 슬라이드 전환. 텍스트 ×1.5, 투표·퀴즈 선택지는 색+도형(▲◆●■), 막대에 `62% · 318명` 동시 표기.
 - **참가자** `/join?token=<코드>`: 닉네임이 "차분한 수달 42" 처럼 자동으로 채워져 **입장 1탭**(🎲 로 재생성, 직접 수정 가능). 활동이 없을 때는 슬라이드 미러링 대신 "앞 화면을 봐 주세요" 대기 화면(PDF 다운로드 없음).
 - 접속 n명은 **현재 연결 기준**(퇴장 반영). 검증: `node verify-auditorium.mjs http://localhost:5179 http://localhost:8793`
+- 400명 스케일(Phase 2 코어): 역할별 socket room(참가자는 집계·자기 ACK만) + 집계 배치 전송(300/500ms) + HTTP·소켓 rate limit — [`docs/scale-broadcast-ratelimit.md`](docs/scale-broadcast-ratelimit.md). 검증: `node verify-scale.mjs http://localhost:8791` (다른 verify 뒤에)
 
 ## 6. 안전 · 비용 제어 (미성년자)
 

@@ -308,7 +308,8 @@ export interface PollDistribution {
   // choice 모드: optionIndex -> count, wordcloud: word -> count
   counts: Record<string, number>;
   total: number;
-  // wordcloud 모드 전용: 학생별 개별 응답 (롤링페이퍼 뷰에 사용). 익명 활동이면 nickname 이 빠진다
+  // wordcloud 모드 전용: 학생별 개별 응답 (롤링페이퍼 뷰에 사용). 익명 활동이면 nickname 이 빠진다.
+  // 스태프룸(강사·프로젝터)에만 실린다 — 참가자는 counts/total 집계만 받는다 (400명 × 400건 O(n²) 방지)
   entries?: Array<{ nickname?: string; value: string }>;
   // true 면 결과 미공개 상태 — counts/entries 는 비어 있고 total 만 유효
   hidden?: boolean;
@@ -318,7 +319,9 @@ export interface QuizReveal {
   questionId: string;
   correctIndex: number;
   distribution: Record<string, number>; // optionIndex -> count
+  /** 강사·프로젝터(스태프룸)에만 상위 100명. 참가자에게는 빈 배열 + me 로 자기 점수·순위만 (Phase 2 브로드캐스트 재설계) */
   leaderboard: LeaderboardEntry[];
+  me?: { score: number; rank: number };
   explanation?: string;
 }
 

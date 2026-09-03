@@ -26,6 +26,14 @@ import { supabase } from './db';
 const here = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = resolve(here, '../../uploads');
 
+// 경로별 rate limit (IP당) — 전역 상한(index.ts)보다 엄격한 비싼 경로들. 강사 1명이 사람 손으로는 넘지 못하는 값 (R3 §2.6)
+const RL = {
+  classroomCreate: { max: 20, timeWindow: '1 minute' },
+  upload: { max: 10, timeWindow: '1 minute' },        // PDF/이미지 업로드 (본문 최대 50MB)
+  deckCreate: { max: 30, timeWindow: '1 minute' },
+  aiGenerate: { max: 20, timeWindow: '1 minute' },    // AI 덱 생성·에이전트 (외부 API 비용)
+} as const;
+
 // 이미지 슬라이드 업로드 허용 확장자
 const IMAGE_MIME: Record<string, string> = {
   '.png': 'image/png',
@@ -57,11 +65,11 @@ function getPdfPageCount(buffer: Buffer): number {
 }
 
 export async function registerRoutes(app: FastifyInstance) {
-  // 헬스체크
-  app.get('/api/health', async () => ({ ok: true }));
+  // 헬스체크 (모니터링 폴링은 rate limit 제외)
+  app.get('/api/health', { config: { rateLimit: false } }, async () => ({ ok: true }));
 
-  // 강의실 생성 (강사)
-  app.post('/api/classrooms', async (req, reply) => {
+  // 강의실 생성 (강사) — 로그인 없이 호출 가능하므로 IP당 분당 상한 (R3 §2.6)
+  app.post('/api/classrooms', { config: { rateLimit: RL.classroomCreate } }, async (req, reply) => {
     const body = (req.body ?? {}) as CreateClassroomRequest;
     const deckId = body.deckId ?? 'ai-ax-4h';
     const deck = (await ensureDeckLoaded(deckId)) ?? getDeck(deckId);
@@ -230,7 +238,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // ── 덱 저작(빌더) — Phase 1부터 로그인 필수, 덱은 소유자에게 귀속 ──
 
   // 새 빈 덱 생성 → 코드+PIN 발급
-  app.post('/api/decks', async (req, reply) => {
+  app.post('/api/decks', { config: { rateLimit: RL.deckCreate } }, async (req, reply) => {
     const user = await getSessionUser(req);
     if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     // plan gating (TASK C): free 플랜은 덱 3개 제한 — 위반 시 402 + 업그레이드 안내
@@ -248,7 +256,7 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   // AI 생성: 주제 → 초안 덱 생성 후 저장
-  app.post('/api/decks/generate', async (req, reply) => {
+  app.post('/api/decks/generate', { config: { rateLimit: RL.aiGenerate } }, async (req, reply) => {
     const user = await getSessionUser(req);
     if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     const body = (req.body ?? {}) as GenerateDeckRequest;
@@ -335,8 +343,8 @@ export async function registerRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  // 업로드된 파일 다운로드/조회
-  app.get('/api/uploads/:filename', async (req, reply) => {
+  // 업로드된 파일 다운로드/조회 — 이미지 슬라이드는 참가자 400명이 장당 요청하므로 전역 상한에서 제외
+  app.get('/api/uploads/:filename', { config: { rateLimit: false } }, async (req, reply) => {
     const { filename } = req.params as { filename: string };
     const filePath = resolve(uploadsDir, filename);
     if (!existsSync(filePath)) {
@@ -356,8 +364,8 @@ export async function registerRoutes(app: FastifyInstance) {
     return reply.send(buffer);
   });
 
-  // PDF 파일 업로드 및 덱 생성
-  app.post('/api/decks/upload-pdf', async (req, reply) => {
+  // PDF 파일 업로드 및 덱 생성 (50MB 본문 — IP당 분당 상한)
+  app.post('/api/decks/upload-pdf', { config: { rateLimit: RL.upload } }, async (req, reply) => {
     const user = await getSessionUser(req);
     if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     const body = (req.body ?? {}) as { filename: string; base64: string };
@@ -415,7 +423,7 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   // 이미지 여러 장 업로드 → 순서대로 이미지 슬라이드 덱 생성 (PDF 대비 고화질 대안)
-  app.post('/api/decks/upload-images', async (req, reply) => {
+  app.post('/api/decks/upload-images', { config: { rateLimit: RL.upload } }, async (req, reply) => {
     const user = await getSessionUser(req);
     if (!user) return reply.code(401).send({ error: 'auth', message: '로그인이 필요합니다.' });
     const body = (req.body ?? {}) as { title?: string; images?: Array<{ filename: string; base64: string }> };
@@ -476,7 +484,7 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   // AI 강의 제작 조교 에이전트 대화
-  app.post('/api/decks/chat-agent', async (req, reply) => {
+  app.post('/api/decks/chat-agent', { config: { rateLimit: RL.aiGenerate } }, async (req, reply) => {
     const body = (req.body ?? {}) as {
       messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
       deck: Deck;
@@ -502,7 +510,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   // AI 슬라이드 자동 일괄 생성 — 위치 계획(plan) 후 항목별로 병렬 생성(generate)하는 2단계 파이프라인.
   // (단일 호출로 전체를 한번에 만들면 토큰 한도에 걸려 통째로 실패하는 문제가 있어 분리함)
-  app.post('/api/decks/quick-generate', async (req, reply) => {
+  app.post('/api/decks/quick-generate', { config: { rateLimit: RL.aiGenerate } }, async (req, reply) => {
     const body = (req.body ?? {}) as { deck: Deck; pdfText?: string; type: QuickGenType; count: number };
     const validTypes: QuickGenType[] = GEN_TYPES;
     if (!body.deck || !Array.isArray(body.deck.slides) || !validTypes.includes(body.type)) {
