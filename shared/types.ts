@@ -441,6 +441,19 @@ export interface ClassroomInfoResponse {
   resultsReveal?: ResultsRevealPolicy;
 }
 
+/** GET /api/classrooms/mine — 로그인한 강사의 진행 중 강의실 (재접속 1탭). instructorSecret 을 담으므로 owner 에게만 */
+export interface MyClassroomSummary extends CreateClassroomResponse {
+  title?: string;
+  status: 'waiting' | 'live' | 'ended';
+  currentSlide: number;
+  /** 지금 연결 중인 참가자 */
+  participantCount: number;
+  /** 누적 입장 인원 */
+  totalParticipants: number;
+  activityType?: ActivityType;
+  createdAt: number;
+}
+
 export interface ChatRequest {
   token: string;
   sessionId: string;

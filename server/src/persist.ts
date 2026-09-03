@@ -15,7 +15,26 @@ export function persistClassroom(c: ClassroomState) {
       current_slide: c.currentSlide,
       instructor_secret: c.instructorSecret,
       settings: c.settings,
+      owner_id: c.ownerId ?? null,
     }).then((r) => { if (r.error) throw r.error; return true; }),
+  );
+}
+
+/**
+ * 재입장 DB 폴백 — 메모리(스냅샷)에 없는 sessionId 가 이전에 이 강의실에 들어온 적이 있으면
+ * 같은 participant id·점수로 되살린다 (스냅샷 debounce 창 사이에 재시작된 경우 등)
+ */
+export function loadParticipantRow(c: ClassroomState, sessionId: string) {
+  return dbSafe((sb) =>
+    sb.from('axedu_participants')
+      .select('id, nickname, score')
+      .eq('classroom_id', c.id)
+      .eq('session_id', sessionId)
+      .maybeSingle()
+      .then((r) => {
+        if (r.error) throw r.error;
+        return r.data as { id: string; nickname: string | null; score: number } | null;
+      }),
   );
 }
 

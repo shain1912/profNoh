@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { ChatRequest, ImageRequest, LabRequest, CreateClassroomRequest, CreateClassroomResponse, ClassroomInfoResponse, GenerateDeckRequest, Deck } from '../../shared/types';
 import { buildReport } from './report';
-import { createClassroom, getByToken, normalizeMode } from './state';
-import { getSessionUser } from './auth/session';
+import { createClassroom, getByToken, getById, normalizeMode, classroomsOwnedBy, type ClassroomState } from './state';
+import { getSessionUser, getSessionUserId } from './auth/session';
+import { markDirty, flush as flushSnapshot } from './snapshot';
+import type { MyClassroomSummary } from '../../shared/types';
 import { canCreateDeck } from './billing/gate';
 import { getDeck, toPublicDeck, getActivity, ensureDeckLoaded, registerDeck, unregisterDeck } from './decks';
 import { validateDeck, blankDeck, makeDeckId, makePin } from './decks/validate';
@@ -16,7 +18,7 @@ import { classroomMode, msg, audiencePrompt } from './copy';
 import { generateDeck } from './ai/generateDeck';
 import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent';
 import { GEN_TYPES } from './ai/activitySpecs';
-import { persistClassroom, persistUsage, persistLabRun } from './persist';
+import { persistClassroom, persistUsage, persistLabRun, updateClassroomProgress } from './persist';
 import { writeFileSync, readFileSync, existsSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -78,7 +80,10 @@ export async function registerRoutes(app: FastifyInstance) {
     const c = createClassroom(deckId, body.title ?? deck.title, { mode: normalizeMode(body.mode) });
     // 세션 익명 정책 / 결과 공개 방식 — 강의 시작 UI에서 선택 (기본 named_default / after_close)
     if (body.settings) c.updateSettings(body.settings);
+    // 로그인한 강사면 계정 귀속 → /teach 의 "진행 중인 내 강의실" 목록으로 재접속 (로그인 없이도 생성은 가능)
+    c.ownerId = getSessionUserId(req) ?? undefined;
     await persistClassroom(c); // 강의실을 먼저 기록(참가자 FK 보장)
+    markDirty(c); // 첫 스냅샷 예약 — 생성 직후 재시작돼도 토큰이 살아 있도록
     const res: CreateClassroomResponse = {
       classroomId: c.id,
       token: c.token,
@@ -93,10 +98,51 @@ export async function registerRoutes(app: FastifyInstance) {
   app.get('/api/classrooms/:token', async (req) => {
     const { token } = req.params as { token: string };
     const c = getByToken(token);
-    const res: ClassroomInfoResponse = c
+    // 종료된 강의실은 입장 화면에서 "없음" 으로 — 코드가 12시간 동안 메모리에 남아 있어도 새 참가자는 받지 않는다
+    const res: ClassroomInfoResponse = c && c.status !== 'ended'
       ? { exists: true, title: c.title, status: c.status, mode: c.mode, anonymity: c.settings.anonymity, resultsReveal: c.settings.resultsReveal }
       : { exists: false };
     return res;
+  });
+
+  // ── 강사 재접속 (Phase 2 영속화): 로그인 계정에 귀속된 진행 중 강의실 목록 → /teach 에서 1탭 복귀 ──
+  // instructorSecret 을 돌려주므로 반드시 owner 본인(세션 쿠키)에게만. 메모리(부팅 시 스냅샷 복원 포함)가 진실.
+  const toSummary = (c: ClassroomState): MyClassroomSummary => ({
+    classroomId: c.id,
+    token: c.token,
+    instructorSecret: c.instructorSecret,
+    deckId: c.deckId,
+    mode: c.mode,
+    title: c.title,
+    status: c.status,
+    currentSlide: c.currentSlide,
+    participantCount: c.participantCount(),
+    totalParticipants: c.totalParticipants(),
+    activityType: c.activity?.type,
+    createdAt: c.createdAt,
+  });
+  app.get('/api/classrooms/mine', async (req, reply) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return reply.code(401).send({ error: 'unauthorized', message: '로그인이 필요합니다.' });
+    return { classrooms: classroomsOwnedBy(userId).map(toSummary) };
+  });
+
+  // 강의 종료 — 목록·부팅 복원에서 제외. owner 세션 쿠키 또는 instructorSecret 으로 인증
+  app.post('/api/classrooms/:id/end', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as { instructorSecret?: string };
+    const c = getById(id) ?? getByToken(id);
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
+    const userId = getSessionUserId(req);
+    const isOwner = !!userId && c.ownerId === userId;
+    if (!isOwner && body.instructorSecret !== c.instructorSecret)
+      return reply.code(403).send({ error: 'unauthorized', message: '권한이 없습니다.' });
+    if (c.end()) {
+      updateClassroomProgress(c);
+      markDirty(c);
+      await flushSnapshot(c);
+    }
+    return { ok: true, classroomId: c.id, status: c.status };
   });
 
   // 공개 덱 (퀴즈 정답 제거본)
@@ -135,7 +181,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     try {
       const { text, cost } = await chatComplete([...sys, ...history]);
-      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.countUsage(body.sessionId, body.activityId, 'chat'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'chat', 1, cost);
       return { reply: text };
@@ -181,7 +227,7 @@ export async function registerRoutes(app: FastifyInstance) {
       }
 
       const { dataUrl, cost, demo } = await generateImage(safeImagePrompt(enPrompt));
-      c.countUsage(body.sessionId, body.activityId, 'image');
+      c.countUsage(body.sessionId, body.activityId, 'image'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'image', 1, cost);
       return { dataUrl, demo: !!demo };
@@ -217,7 +263,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     try {
       const r = await runLab(act.labType, body.input, classroomMode(c));
-      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.countUsage(body.sessionId, body.activityId, 'chat'); markDirty(c);
       c.addCost(r.cost);
       persistUsage(c, p.id, 'lab', 1, r.cost);
       persistLabRun(c, p.id, act.labType, body.input, { configA: r.configA, configB: r.configB }, { outputA: r.outputA, outputB: r.outputB });
@@ -555,7 +601,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     try {
       const { text, cost } = await chatComplete([...sys, ...history]);
-      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.countUsage(body.sessionId, body.activityId, 'chat'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'roleplay', 1, cost);
 
@@ -610,7 +656,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     try {
       const { text, cost } = await chatComplete([...sys, { role: 'user', content: body.topic }], { temperature: 0.7 });
-      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.countUsage(body.sessionId, body.activityId, 'chat'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'analogy', 1, cost);
 
@@ -665,7 +711,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     try {
       const { text, cost } = await chatComplete([...sys, { role: 'user', content: body.input }], { temperature: 0.8 });
-      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.countUsage(body.sessionId, body.activityId, 'chat'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'writing', 1, cost);
       return { output: text };
@@ -713,7 +759,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     try {
       const { text, cost } = await chatComplete([...sys, { role: 'user', content: body.input }], { temperature: 0.5 });
-      c.countUsage(body.sessionId, body.activityId, 'chat');
+      c.countUsage(body.sessionId, body.activityId, 'chat'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'tutor', 1, cost);
       return { hint: text };
