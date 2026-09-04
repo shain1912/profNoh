@@ -31,6 +31,10 @@ const ALLOWED_HOSTS: Array<{ suffix: string; provider: string }> = [
   { suffix: 'onedrive.live.com', provider: 'OneDrive' },
   { suffix: '1drv.ms', provider: 'OneDrive' },
   { suffix: 'view.officeapps.live.com', provider: 'Office Online' },
+  { suffix: 'github.io', provider: 'GitHub Pages' },       // reveal.js 등 정적 슬라이드 (X-Frame 미차단)
+  { suffix: 'vercel.app', provider: 'Vercel' },            // 정적 슬라이드 배포
+  { suffix: 'netlify.app', provider: 'Netlify' },
+  { suffix: 'pages.dev', provider: 'Cloudflare Pages' },
 ];
 
 // 임베드가 확실히 차단되는 대표 도메인 — 더 구체적인 안내를 위해 별도 처리
