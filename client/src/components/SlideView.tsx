@@ -12,19 +12,27 @@ function EmbedSlideView({ src, title }: { src: string; title?: string }) {
     <div className="relative flex h-full w-full flex-col">
       <div className="relative flex-1">
         <iframe
+          tabIndex={-1}
           src={src}
           title={title || '외부 슬라이드'}
           className="h-full w-full border-0 bg-black/20"
-          style={{ pointerEvents: interactive ? 'auto' : 'none' }}
           allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"
           allowFullScreen
           referrerPolicy="no-referrer"
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
         />
+        {/* 표시 전용 모드: 투명 오버레이가 클릭·포커스를 삼켜 iframe이 방향키를 못 가져간다 → 앱 ←/→ 항상 동작 */}
+        {!interactive && (
+          <div
+            className="absolute inset-0 cursor-default"
+            onMouseDown={(e) => { e.preventDefault(); (e.currentTarget.closest('[tabindex]') as HTMLElement | null)?.focus?.(); window.focus(); }}
+            aria-hidden="true"
+          />
+        )}
         <button
           type="button"
           onClick={() => setInteractive((v) => !v)}
-          className={`absolute right-2 top-2 rounded-full px-3 py-1 text-[11px] font-semibold shadow-md transition ${
+          className={`absolute right-2 top-2 z-10 rounded-full px-3 py-1 text-[11px] font-semibold shadow-md transition ${
             interactive ? 'bg-brand text-white' : 'bg-black/55 text-white/80 hover:bg-black/70'
           }`}
           title="켜면 임베드 안의 버튼·스크롤을 직접 조작할 수 있어요 (이때는 앱 방향키가 임베드에 잡힙니다)"
