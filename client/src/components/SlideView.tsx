@@ -2,23 +2,40 @@ import type { Slide, SlideBlock } from '@shared/types';
 import { useEffect, useRef, useState } from 'react';
 import { isSafeEmbedSrc } from '../lib/embed';
 
-// 외부 슬라이드 임베드 (Google Slides·Canva 등) — 내부 페이지 넘김은 임베드 자체 컨트롤 사용.
-// iframe이 포커스를 가져가면 앱 단축키(←/→/Space/F)가 먹지 않으므로, 키보드 조작 후에는
-// 앱 영역을 한 번 클릭하라는 안내를 툴바에 표시한다.
+// 외부 슬라이드 임베드 (Google Slides·github.io 등).
+// 기본은 "표시 전용": iframe pointer-events를 끄면 클릭해도 포커스를 뺏기지 않아
+// 앱 방향키(←/→/Space)가 항상 동작한다 → 강사가 blend 화살표 하나로 슬라이드+활동을 넘길 수 있다.
+// 원본 내부를 직접 조작(스크롤·버튼·영상)해야 할 때만 "원본 조작" 토글을 켠다.
 function EmbedSlideView({ src, title }: { src: string; title?: string }) {
+  const [interactive, setInteractive] = useState(false);
   return (
-    <div className="flex h-full w-full flex-col">
-      <iframe
-        src={src}
-        title={title || '외부 슬라이드'}
-        className="h-full w-full flex-1 border-0 bg-black/20"
-        allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"
-        allowFullScreen
-        referrerPolicy="no-referrer"
-        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
-      />
+    <div className="relative flex h-full w-full flex-col">
+      <div className="relative flex-1">
+        <iframe
+          src={src}
+          title={title || '외부 슬라이드'}
+          className="h-full w-full border-0 bg-black/20"
+          style={{ pointerEvents: interactive ? 'auto' : 'none' }}
+          allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="no-referrer"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
+        />
+        <button
+          type="button"
+          onClick={() => setInteractive((v) => !v)}
+          className={`absolute right-2 top-2 rounded-full px-3 py-1 text-[11px] font-semibold shadow-md transition ${
+            interactive ? 'bg-brand text-white' : 'bg-black/55 text-white/80 hover:bg-black/70'
+          }`}
+          title="켜면 임베드 안의 버튼·스크롤을 직접 조작할 수 있어요 (이때는 앱 방향키가 임베드에 잡힙니다)"
+        >
+          {interactive ? '✅ 원본 조작 중 — 끄면 방향키 복귀' : '🖱 원본 직접 조작'}
+        </button>
+      </div>
       <div className="shrink-0 bg-black/40 px-3 py-1 text-center text-[10px] text-white/40">
-        임베드 슬라이드 — 페이지 넘김은 임베드 안의 컨트롤을 사용하세요 · 앱 단축키(←/→/F)는 임베드 바깥을 클릭한 뒤 동작합니다
+        {interactive
+          ? '원본 조작 모드 — 임베드 안을 직접 클릭·스크롤할 수 있어요. 다시 앱 방향키로 넘기려면 오른쪽 위 버튼을 끄세요.'
+          : '이 슬라이드는 앱 방향키(←/→/Space)로 넘기세요 · 원본 안의 버튼·영상을 직접 만지려면 오른쪽 위 「원본 직접 조작」'}
       </div>
     </div>
   );
