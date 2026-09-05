@@ -11,7 +11,10 @@ function EmbedSlideView({ src, title }: { src: string; title?: string }) {
   return (
     <div className="relative flex h-full w-full flex-col">
       <div className="relative flex-1">
+        {/* key={src} — 슬라이드가 바뀌어 src의 #페이지만 달라지면 브라우저는 iframe을 리로드하지 않아
+            원본이 첫 페이지에 머문다. key를 바꿔 iframe을 새로 마운트 → 원본이 초기 로드 때 #N을 읽어 해당 페이지로 시작한다. */}
         <iframe
+          key={src}
           tabIndex={-1}
           src={src}
           title={title || '외부 슬라이드'}
