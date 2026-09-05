@@ -8,13 +8,26 @@ import { isSafeEmbedSrc } from '../lib/embed';
 // 원본 내부를 직접 조작(스크롤·버튼·영상)해야 할 때만 "원본 조작" 토글을 켠다.
 function EmbedSlideView({ src, title }: { src: string; title?: string }) {
   const [interactive, setInteractive] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  // 같은 원본(base URL 동일)이면 iframe을 새로 마운트하지 않고(=리로드 없음), 페이지 이동은 postMessage로 부드럽게.
+  // key를 base(해시 제외)로 주면 base가 바뀔 때만 새 원본을 로드한다.
+  const hashIdx = src.indexOf('#');
+  const base = hashIdx >= 0 ? src.slice(0, hashIdx) : src;
+  const page = hashIdx >= 0 ? parseInt(src.slice(hashIdx + 1).replace(/[^0-9]/g, ''), 10) : NaN;
+  useEffect(() => {
+    if (!Number.isFinite(page)) return;
+    // 원본이 로드된 뒤 axedu-goto 를 받으면 리로드 없이 해당 페이지로 이동 (원본에 리스너 필요)
+    const send = () => { try { iframeRef.current?.contentWindow?.postMessage({ type: 'axedu-goto', n: page }, '*'); } catch { /* cross-origin */ } };
+    send();
+    const t = setTimeout(send, 400); // 첫 로드 직후 타이밍 보정
+    return () => clearTimeout(t);
+  }, [page]);
   return (
     <div className="relative flex h-full w-full flex-col">
       <div className="relative flex-1">
-        {/* key={src} — 슬라이드가 바뀌어 src의 #페이지만 달라지면 브라우저는 iframe을 리로드하지 않아
-            원본이 첫 페이지에 머문다. key를 바꿔 iframe을 새로 마운트 → 원본이 초기 로드 때 #N을 읽어 해당 페이지로 시작한다. */}
         <iframe
-          key={src}
+          key={base}
+          ref={iframeRef}
           tabIndex={-1}
           src={src}
           title={title || '외부 슬라이드'}
