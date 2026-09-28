@@ -81,6 +81,10 @@ export class ClassroomState {
   qa: QaSettings = { moderation: false, onScreen: false };
   private surveyAnswers = new Map<string, Map<string, Record<string, number | string>>>(); // activityId -> (sessionId -> answers)
   private adhocActivities = new Map<string, Activity>(); // 덱에 없는 즉석 활동 (OX 퀵 퀴즈)
+  /** 참가자가 생성한 이미지 (sessionId → 최신순, 파일은 uploads/) — 바이브코딩 앱에 넣어 쓴다 */
+  private myImages = new Map<string, MyImage[]>();
+  /** 참가자의 바이브코딩 앱 버전 기록 (sessionId → 오래된→최신, HTML 본문은 uploads/vibe/<appId>.html) */
+  private vibeApps = new Map<string, VibeAppMeta[]>();
   budgetSpent = 0;
   /** 강의실을 만든 강사 계정(axedu_users.id). 로그인 없이 만들면 undefined — /teach 재접속 목록의 근거 */
   ownerId?: string;
@@ -676,17 +680,62 @@ export class ClassroomState {
   }
 
   // ── 쿼터 / 예산 ──
-  checkUsage(sessionId: string, activityId: string, type: 'chat' | 'image'): { ok: boolean; message?: string } {
+  checkUsage(
+    sessionId: string,
+    activityId: string,
+    type: 'chat' | 'image' | 'vibe',
+    limitOverride?: number,
+  ): { ok: boolean; message?: string } {
     if (this.paused) return { ok: false, message: msg(this, 'usagePaused') };
-    if (this.budgetSpent >= this.settings.budgetUsd) return { ok: false, message: msg(this, 'usageBudget') };
-    const limit = type === 'chat' ? this.settings.chatQuota : this.settings.imageQuota;
+    if (this.budgetSpent >= this.budgetCap()) return { ok: false, message: msg(this, 'usageBudget') };
+    const limit = limitOverride ?? (type === 'image' ? this.settings.imageQuota : this.settings.chatQuota);
     const key = `${sessionId}|${activityId}|${type}`;
     const used = this.usage.get(key) ?? 0;
-    if (used >= limit) return { ok: false, message: usageLimitMsg(this, type === 'chat' ? '대화' : '이미지', limit) };
+    const label = type === 'chat' ? '대화' : type === 'image' ? '이미지' : '앱 만들기';
+    if (used >= limit) return { ok: false, message: usageLimitMsg(this, label, limit) };
     return { ok: true };
   }
 
-  countUsage(sessionId: string, activityId: string, type: 'chat' | 'image') {
+  /** 강의실 AI 예산 상한 — 고정 상한과 (참가자 수 × 1인 예산) 중 큰 값. 300명 강당이 $15 에서 멈추지 않게 */
+  budgetCap(): number {
+    return Math.max(this.settings.budgetUsd, this.participants.size * env.CLASSROOM_BUDGET_PER_PARTICIPANT_USD);
+  }
+
+  usedCount(sessionId: string, activityId: string, type: 'chat' | 'image' | 'vibe'): number {
+    return this.usage.get(`${sessionId}|${activityId}|${type}`) ?? 0;
+  }
+
+  // ── 내 이미지 / 바이브코딩 앱 ──
+  addMyImage(sessionId: string, img: MyImage) {
+    const list = [img, ...(this.myImages.get(sessionId) ?? [])].slice(0, 12);
+    this.myImages.set(sessionId, list);
+  }
+
+  getMyImages(sessionId: string): MyImage[] {
+    return this.myImages.get(sessionId) ?? [];
+  }
+
+  addVibeApp(sessionId: string, meta: VibeAppMeta) {
+    const list = [...(this.vibeApps.get(sessionId) ?? []), meta].slice(-20);
+    this.vibeApps.set(sessionId, list);
+  }
+
+  getVibeApps(sessionId: string): VibeAppMeta[] {
+    return this.vibeApps.get(sessionId) ?? [];
+  }
+
+  /** 강사 갤러리 — 참가자별 최신 앱 */
+  vibeGallery(): Array<VibeAppMeta & { nickname: string; versions: number }> {
+    const out: Array<VibeAppMeta & { nickname: string; versions: number }> = [];
+    for (const [sid, list] of this.vibeApps) {
+      const last = list[list.length - 1];
+      if (!last) continue;
+      out.push({ ...last, nickname: this.participants.get(sid)?.nickname ?? '익명', versions: list.length });
+    }
+    return out.sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  countUsage(sessionId: string, activityId: string, type: 'chat' | 'image' | 'vibe') {
     const key = `${sessionId}|${activityId}|${type}`;
     this.usage.set(key, (this.usage.get(key) ?? 0) + 1);
   }
@@ -739,6 +788,8 @@ export class ClassroomState {
       questionVotes: Object.fromEntries([...this.questionVotes.entries()].map(([k, v]) => [k, [...v]])),
       surveyAnswers: nested(this.surveyAnswers),
       adhocActivities: [...this.adhocActivities.values()],
+      myImages: obj(this.myImages),
+      vibeApps: obj(this.vibeApps),
     };
   }
 
@@ -776,6 +827,8 @@ export class ClassroomState {
     c.questionVotes = new Map(Object.entries(data.questionVotes ?? {}).map(([k, v]) => [k, new Set(v)]));
     c.surveyAnswers = toNested(data.surveyAnswers);
     for (const a of data.adhocActivities ?? []) if (a?.id) c.adhocActivities.set(a.id, a);
+    c.myImages = toMap(data.myImages);
+    c.vibeApps = toMap(data.vibeApps);
     c.touchPoll();
     return c;
   }
@@ -809,6 +862,22 @@ export interface PersistedClassroom {
   questionVotes: Record<string, string[]>;
   surveyAnswers: Record<string, Record<string, Record<string, number | string>>>;
   adhocActivities: Activity[];
+  myImages?: Record<string, MyImage[]>;
+  vibeApps?: Record<string, VibeAppMeta[]>;
+}
+
+export interface MyImage {
+  url: string;
+  prompt: string;
+  createdAt: number;
+}
+
+export interface VibeAppMeta {
+  appId: string;
+  activityId: string;
+  title: string;
+  prompt: string;
+  createdAt: number;
 }
 
 /** 알 수 없는 값은 classroom(기본) 으로 — 클라이언트 입력 방어 */

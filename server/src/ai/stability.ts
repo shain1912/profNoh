@@ -18,7 +18,7 @@ async function callOnce(key: string, prompt: string): Promise<string> {
   const url = `${env.STABILITY_BASE_URL}/v2beta/stable-image/generate/core`;
   const form = new FormData();
   form.append('prompt', prompt);
-  form.append('output_format', 'png');
+  form.append('output_format', 'webp');
   form.append('aspect_ratio', '1:1');
 
   const res = await fetch(url, {
@@ -38,7 +38,7 @@ async function callOnce(key: string, prompt: string): Promise<string> {
 
 export async function generateImage(
   prompt: string,
-): Promise<{ dataUrl: string; cost: number; demo?: boolean }> {
+): Promise<{ dataUrl: string; base64?: string; ext?: string; cost: number; demo?: boolean }> {
   if (!hasStability) {
     return { dataUrl: `data:image/png;base64,${PLACEHOLDER_PNG_BASE64}`, cost: 0, demo: true };
   }
@@ -47,7 +47,7 @@ export async function generateImage(
   for (const key of keys) {
     try {
       const b64 = await callOnce(key, prompt);
-      return { dataUrl: `data:image/png;base64,${b64}`, cost: IMAGE_COST_PER_CALL };
+      return { dataUrl: `data:image/webp;base64,${b64}`, base64: b64, ext: 'webp', cost: IMAGE_COST_PER_CALL };
     } catch (e) {
       lastErr = e;
     }

@@ -11,7 +11,8 @@ import { validateDeck, blankDeck, makeDeckId, makePin } from './decks/validate';
 import { loadDeckRow, insertDeckRow, updateDeckRow, deleteDeckRow, listDeckRows } from './decks/store';
 import type { SaveDeckRequest, CreateDeckResponse, DeckEditResponse, DeckSummary } from '../../shared/types';
 import { checkSafety, safeImagePrompt } from './ai/safety';
-import { chatComplete, type ChatMessage } from './ai/minimax';
+import { chatComplete, chatStream, type ChatMessage } from './ai/minimax';
+import { buildVibeMessages, extractHtml, htmlTitle, VIBE_CSP, VIBE_MAX_TOKENS } from './ai/vibe';
 import { generateImage } from './ai/stability';
 import { runLab } from './ai/lab';
 import { classroomMode, msg, audiencePrompt } from './copy';
@@ -19,7 +20,7 @@ import { generateDeck } from './ai/generateDeck';
 import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent';
 import { GEN_TYPES } from './ai/activitySpecs';
 import { persistClassroom, persistUsage, persistLabRun, updateClassroomProgress } from './persist';
-import { writeFileSync, existsSync, unlinkSync, statSync, createReadStream } from 'node:fs';
+import { writeFileSync, existsSync, unlinkSync, statSync, createReadStream, readFileSync, mkdirSync } from 'node:fs';
 import { renderPdfToWebp } from './pdf/render';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,10 @@ import { supabase } from './db';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = resolve(here, '../../uploads');
+// 바이브코딩 앱 HTML — uploads 볼륨 안이라 재배포·재시작에도 남는다
+const vibeDir = resolve(uploadsDir, 'vibe');
+const vibeFile = (appId: string) => resolve(vibeDir, `${appId}.html`);
+const vibeInFlight = new Set<string>(); // `${classroomId}|${sessionId}` — 1인 동시 생성 1개
 
 // 경로별 rate limit (IP당) — 전역 상한(index.ts)보다 엄격한 비싼 경로들. 강사 1명이 사람 손으로는 넘지 못하는 값 (R3 §2.6)
 const RL = {
@@ -205,7 +210,8 @@ export async function registerRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'safety', message: safety.message });
     }
 
-    const quota = c.checkUsage(body.sessionId, body.activityId, 'image');
+    const imgAct = c.resolveActivity(body.activityId);
+    const quota = c.checkUsage(body.sessionId, body.activityId, 'image', imgAct?.type === 'image' ? imgAct.maxImages : undefined);
     if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
 
     try {
@@ -227,11 +233,23 @@ export async function registerRoutes(app: FastifyInstance) {
         /* 번역 실패 시 원문 사용 */
       }
 
-      const { dataUrl, cost, demo } = await generateImage(safeImagePrompt(enPrompt));
+      const { dataUrl, base64, ext, cost, demo } = await generateImage(safeImagePrompt(enPrompt));
+      // 파일로 저장 → 학생 폰에는 URL 만 (300명이 수 MB data URL 을 주고받지 않게) + 바이브코딩 앱에서 재사용
+      let url = dataUrl;
+      if (base64 && ext) {
+        const filename = `gen-${randomUUID()}.${ext}`;
+        try {
+          writeFileSync(resolve(uploadsDir, filename), Buffer.from(base64, 'base64'));
+          url = `/api/uploads/${filename}`;
+          c.addMyImage(body.sessionId, { url, prompt: (body.prompt ?? '').slice(0, 100), createdAt: Date.now() });
+        } catch (e) {
+          app.log.warn(e, '생성 이미지 저장 실패 — data URL 로 응답');
+        }
+      }
       c.countUsage(body.sessionId, body.activityId, 'image'); markDirty(c);
       c.addCost(cost);
       persistUsage(c, p.id, 'image', 1, cost);
-      return { dataUrl, demo: !!demo };
+      return { dataUrl: url, demo: !!demo };
     } catch (e) {
       app.log.error(e);
       const emsg = (e as Error).message ?? '';
@@ -280,6 +298,127 @@ export async function registerRoutes(app: FastifyInstance) {
       app.log.error(e);
       return reply.code(502).send({ error: 'bad', message: msg(c, 'labFailed') });
     }
+  });
+
+  // ── 바이브코딩 ──
+  // 생성은 스트리밍(text/event-stream 에 NDJSON 줄) — 모델이 코드를 쓰는 동안 학생 폰에 실시간으로 보여준다.
+  // 줄 형식: {"t":"d","d":"<조각>"} … {"t":"done","appId","title"} | {"t":"error","message"}
+  app.post('/api/ai/vibe', async (req, reply) => {
+    const body = (req.body ?? {}) as { token?: string; sessionId?: string; activityId?: string; prompt?: string; baseAppId?: string };
+    const c = getByToken(body.token ?? '');
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
+    const sessionId = body.sessionId ?? '';
+    const p = c.getBySession(sessionId);
+    if (!p) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
+    const act = c.resolveActivity(body.activityId ?? '');
+    if (!act || act.type !== 'vibe') return reply.code(400).send({ error: 'bad', message: '바이브코딩 활동을 찾을 수 없어요.' });
+
+    const request = (body.prompt ?? '').trim().slice(0, 600);
+    if (!request) return reply.code(400).send({ error: 'bad', message: '만들고 싶은 앱을 설명해 주세요.' });
+    const safety = checkSafety(request);
+    if (!safety.ok) {
+      persistUsage(c, p.id, 'blocked', 1, 0);
+      return reply.code(400).send({ error: 'safety', message: safety.message });
+    }
+    const limit = act.maxBuilds ?? 8;
+    const quota = c.checkUsage(sessionId, act.id, 'vibe', limit);
+    if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
+
+    // 이어서 고치기 — 내 앱 기록에 있는 appId 만 허용
+    let baseHtml: string | undefined;
+    if (body.baseAppId) {
+      const mine = c.getVibeApps(sessionId).find((a) => a.appId === body.baseAppId);
+      if (!mine) return reply.code(403).send({ error: 'bad', message: '내가 만든 앱만 이어서 고칠 수 있어요.' });
+      try { baseHtml = readFileSync(vibeFile(mine.appId), 'utf8'); } catch { baseHtml = undefined; }
+    }
+    const images = act.useMyImages ? c.getMyImages(sessionId).slice(0, 6) : [];
+
+    // 같은 학생이 연타해 동시에 여러 개 생성하지 않게
+    const lockKey = `${c.id}|${sessionId}`;
+    if (vibeInFlight.has(lockKey)) return reply.code(429).send({ error: 'busy', message: '앱을 만드는 중이에요. 끝날 때까지 기다려 주세요.' });
+    vibeInFlight.add(lockKey);
+
+    reply.hijack();
+    const res = reply.raw;
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'X-Accel-Buffering': 'no',
+    });
+    const send = (o: unknown) => { if (!res.writableEnded) res.write(JSON.stringify(o) + '\n'); };
+    let closed = false;
+    res.on('close', () => { closed = true; }); // req 'close' 는 본문을 다 읽으면 바로 터지므로 응답 쪽으로 판단
+
+    try {
+      const messages = buildVibeMessages({ mode: classroomMode(c), task: act.task, request, baseHtml, images });
+      const r = await chatStream(messages, { temperature: 0.4, maxTokens: VIBE_MAX_TOKENS, timeoutMs: 180_000 }, (d) => {
+        if (!closed) send({ t: 'd', d });
+      });
+      c.addCost(r.cost);
+      const html = extractHtml(r.text);
+      if (!html) {
+        persistUsage(c, p.id, 'vibe', 1, r.cost);
+        send({ t: 'error', message: '앱 코드가 중간에 끊겼어요. 요청을 조금 더 짧게 해서 다시 시도해 주세요.' });
+        return;
+      }
+      const appId = randomUUID().replace(/-/g, '').slice(0, 16);
+      mkdirSync(vibeDir, { recursive: true });
+      writeFileSync(vibeFile(appId), html, 'utf8');
+      const title = htmlTitle(html);
+      c.addVibeApp(sessionId, { appId, activityId: act.id, title, prompt: request.slice(0, 200), createdAt: Date.now() });
+      c.countUsage(sessionId, act.id, 'vibe');
+      markDirty(c);
+      persistUsage(c, p.id, 'vibe', 1, r.cost);
+      send({ t: 'done', appId, title, used: c.usedCount(sessionId, act.id, 'vibe'), limit });
+    } catch (e) {
+      app.log.error(e);
+      send({ t: 'error', message: msg(c, 'aiFailed') });
+    } finally {
+      vibeInFlight.delete(lockKey);
+      res.end();
+    }
+  });
+
+  // 내 앱 기록·내 이미지 (이어서 고치기 / 포트폴리오용)
+  app.get('/api/vibe/mine', async (req, reply) => {
+    const { token, sessionId, activityId } = req.query as { token?: string; sessionId?: string; activityId?: string };
+    const c = getByToken(token ?? '');
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
+    if (!c.getBySession(sessionId ?? '')) return reply.code(403).send({ error: 'notfound', message: msg(c, 'notJoined') });
+    const act = activityId ? c.resolveActivity(activityId) : null;
+    const limit = act && act.type === 'vibe' ? act.maxBuilds ?? 8 : 8;
+    return {
+      apps: c.getVibeApps(sessionId!),
+      images: c.getMyImages(sessionId!),
+      used: activityId ? c.usedCount(sessionId!, activityId, 'vibe') : 0,
+      limit,
+    };
+  });
+
+  // 앱 실행 — CSP sandbox 로 불투명 출처에서만 돈다 (공유 링크로도 사용)
+  app.get('/api/vibe/app/:appId', { config: { rateLimit: false } }, async (req, reply) => {
+    const { appId } = req.params as { appId: string };
+    if (!/^[a-f0-9]{16}$/.test(appId)) return reply.code(400).send({ error: 'bad', message: '잘못된 앱 주소입니다.' });
+    const file = vibeFile(appId);
+    if (!existsSync(file)) return reply.code(404).send({ error: 'notfound', message: '앱을 찾을 수 없습니다.' });
+    reply.header('Content-Type', 'text/html; charset=utf-8');
+    reply.header('Content-Security-Policy', VIBE_CSP);
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('Referrer-Policy', 'no-referrer');
+    reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+    return reply.send(createReadStream(file));
+  });
+
+  // 강사 갤러리 — 참가자별 최신 앱 (owner 세션 또는 instructorSecret)
+  app.get('/api/classrooms/:id/vibe-gallery', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { secret } = req.query as { secret?: string };
+    const c = getById(id) ?? getByToken(id);
+    if (!c) return reply.code(404).send({ error: 'notfound', message: '강의실을 찾을 수 없습니다.' });
+    const userId = getSessionUserId(req);
+    const isOwner = !!userId && c.ownerId === userId;
+    if (!isOwner && secret !== c.instructorSecret) return reply.code(403).send({ error: 'unauthorized', message: '권한이 없습니다.' });
+    return { apps: c.vibeGallery() };
   });
 
   // ── 덱 저작(빌더) — Phase 1부터 로그인 필수, 덱은 소유자에게 귀속 ──

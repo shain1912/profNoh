@@ -17,6 +17,16 @@ function Editor({ act, onChange }: { act: ImageAct; onChange: (a: ImageAct) => v
         addLabel="＋ 예시"
         onChange={(suggestions) => onChange({ ...act, suggestions })}
       />
+      <TextField
+        label="1인당 생성 장수 (비우면 서버 기본값)"
+        value={act.maxImages ? String(act.maxImages) : ''}
+        maxLength={2}
+        placeholder="예: 2"
+        onChange={(v) => {
+          const n = Number(v.replace(/\D/g, ''));
+          onChange({ ...act, maxImages: n ? Math.min(20, Math.max(1, n)) : undefined });
+        }}
+      />
     </div>
   );
 }

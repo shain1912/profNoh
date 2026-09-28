@@ -26,7 +26,7 @@ export interface Slide {
   imageUrl?: string;         // 업로드 이미지 경로 (layout === 'image')
 }
 
-export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor' | 'survey' | 'scale' | 'ox';
+export type ActivityType = 'chat' | 'image' | 'lab' | 'quiz' | 'poll' | 'roleplay' | 'analogy' | 'writing' | 'tutor' | 'survey' | 'scale' | 'ox' | 'vibe';
 
 export interface ChatActivity {
   type: 'chat';
@@ -45,6 +45,7 @@ export interface ImageActivity {
   title: string;
   intro?: string;
   suggestions?: string[];
+  maxImages?: number;        // 1인당 생성 장수 (생략 시 서버 기본 QUOTA_IMAGE_PER_ACTIVITY)
 }
 
 export interface LabActivity {
@@ -187,6 +188,24 @@ export interface OxActivity {
   explanation?: string;
 }
 
+/**
+ * 바이브코딩 — 말로 설명하면 AI가 폰에서 바로 도는 한 페이지 웹앱(HTML)을 만든다.
+ * continueMode 'continue' 면 이 강의실에서 내가 마지막으로 만든 앱을 불러와 이어서 고친다
+ * (교시마다 같은 앱을 키워 가는 수업 흐름용).
+ */
+export interface VibeActivity {
+  type: 'vibe';
+  id: string;
+  anonymous?: boolean;     // 활동 단위 익명 오버라이드 (undefined = 세션 정책 따름)
+  title: string;
+  intro?: string;
+  task: string;              // 학생에게 주는 미션 설명
+  ideas?: string[];          // 원클릭 아이디어 칩
+  continueMode?: 'new' | 'continue';
+  useMyImages?: boolean;     // 이 강의실에서 내가 생성한 이미지를 앱에 넣을 수 있게
+  maxBuilds?: number;        // 1인당 생성·수정 횟수 (기본 8)
+}
+
 export type Activity =
   | ChatActivity
   | ImageActivity
@@ -199,7 +218,8 @@ export type Activity =
   | TutorActivity
   | SurveyActivity
   | ScaleActivity
-  | OxActivity;
+  | OxActivity
+  | VibeActivity;
 
 export interface Deck {
   id: string;

@@ -132,6 +132,26 @@ export const ACTIVITY_GEN_SPECS: Record<GenType, ActivityGenSpec> = {
     }),
   },
 
+  vibe: {
+    label: '바이브코딩',
+    fields:
+      'title, intro(학생 안내 문구), task(학생이 말로 설명해 만들 한 페이지 웹앱 미션 — 원문 주제와 연결, 폰에서 도는 작은 앱 규모), ' +
+      'ideas(원클릭 앱 아이디어 4~6개 배열 — 각 항목은 "무엇을 하는 앱 + 화면 모습" 한 문장), continueMode("new"), maxBuilds(4~8)',
+    example: '{"title":"...","intro":"...","task":"...","ideas":["...","...","..."],"continueMode":"new","maxBuilds":6}',
+    oneShot: '"task": string(앱 만들기 미션), "ideas": [string×4~6](앱 아이디어)',
+    normalize: (a) => {
+      const task = clamp(a?.task, 400);
+      if (!task) return null;
+      const mb = typeof a.maxBuilds === 'number' ? Math.round(a.maxBuilds) : 6;
+      return {
+        title: clamp(a.title, 80) || '바이브코딩', intro: clamp(a.intro, 200) || undefined, task,
+        ideas: strArr(a.ideas, 8, 100),
+        continueMode: a.continueMode === 'continue' ? 'continue' : 'new',
+        maxBuilds: Math.min(20, Math.max(1, mb)),
+      };
+    },
+  },
+
   tutor: {
     label: 'AI 튜터',
     fields: 'title, intro, subject("math"|"coding"|"general"), taskDescription',

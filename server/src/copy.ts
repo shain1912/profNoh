@@ -33,7 +33,7 @@ export function msg(c: { settings: object }, key: MessageKey): string {
   return MESSAGES[key][classroomMode(c) === 'auditorium' ? 1 : 0];
 }
 
-export function usageLimitMsg(c: { settings: object }, kind: '대화' | '이미지', limit: number): string {
+export function usageLimitMsg(c: { settings: object }, kind: '대화' | '이미지' | '앱 만들기', limit: number): string {
   return classroomMode(c) === 'auditorium'
     ? `이 실습에서 ${kind}는 ${limit}회까지 이용하실 수 있습니다.`
     : `이 실습에서 ${kind}는 ${limit}번까지 할 수 있어. 다음 실습에서 또 해보자!`;

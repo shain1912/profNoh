@@ -143,6 +143,19 @@ export function validateDeck(input: unknown, id: string): Deck {
         genre: ['poem', 'story', 'essay'].includes(a.genre) ? a.genre : 'poem',
         promptPlaceholder: clamp(a.promptPlaceholder, 100) || undefined,
       };
+    } else if (a.type === 'vibe') {
+      const mb = typeof a.maxBuilds === 'number' ? Math.round(a.maxBuilds) : 8;
+      activities[key] = {
+        type: 'vibe',
+        id: key,
+        title: clamp(a.title, 80) || '바이브코딩',
+        intro: clamp(a.intro, 200) || undefined,
+        task: clamp(a.task, 400) || '말로 설명해서 나만의 앱을 만들어 보자.',
+        ideas: Array.isArray(a.ideas) ? a.ideas.slice(0, 8).map((m: unknown) => clamp(m, 100)).filter(Boolean) : undefined,
+        continueMode: a.continueMode === 'continue' ? 'continue' : 'new',
+        useMyImages: a.useMyImages === true ? true : undefined,
+        maxBuilds: Math.min(20, Math.max(1, mb)),
+      };
     } else if (a.type === 'tutor') {
       activities[key] = {
         type: 'tutor',
@@ -168,6 +181,7 @@ export function validateDeck(input: unknown, id: string): Deck {
         title: clamp(a.title, 80) || '이미지 생성',
         intro: clamp(a.intro, 200) || undefined,
         suggestions: Array.isArray(a.suggestions) ? a.suggestions.map((s) => clamp(s, 100)) : undefined,
+        maxImages: typeof a.maxImages === 'number' ? Math.min(20, Math.max(1, Math.round(a.maxImages))) : undefined,
       };
     } else if (a.type === 'lab') {
       activities[key] = {

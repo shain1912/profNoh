@@ -41,12 +41,19 @@ export const env = {
   MINIMAX_BASE_URL: process.env.MINIMAX_BASE_URL ?? 'https://api.minimaxi.chat/v1',
   MINIMAX_MODEL: process.env.MINIMAX_MODEL ?? 'MiniMax-Text-01',
 
+  // DeepSeek (OpenAI 호환) — 키가 있으면 텍스트 AI 1순위, MiniMax 는 폴백
+  DEEPSEEK_API_KEYS: collectKeys('DEEPSEEK_API_KEY'),
+  DEEPSEEK_BASE_URL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com',
+  DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
+
   STABILITY_API_KEYS: collectKeys('STABILITY_API_KEY'),
   STABILITY_BASE_URL: process.env.STABILITY_BASE_URL ?? 'https://api.stability.ai',
 
   QUOTA_CHAT_PER_ACTIVITY: Number(process.env.QUOTA_CHAT_PER_ACTIVITY ?? 8),
   QUOTA_IMAGE_PER_ACTIVITY: Number(process.env.QUOTA_IMAGE_PER_ACTIVITY ?? 4),
   CLASSROOM_BUDGET_USD: Number(process.env.CLASSROOM_BUDGET_USD ?? 15),
+  // 참가자 1인당 추가 예산(USD) — 상한 = max(CLASSROOM_BUDGET_USD, 참가자 수 × 이 값). 0 이면 고정 상한만
+  CLASSROOM_BUDGET_PER_PARTICIPANT_USD: Number(process.env.CLASSROOM_BUDGET_PER_PARTICIPANT_USD ?? 0),
 
   // ── 인증 (구글 원클릭 로그인) ──
   AUTH_JWT_SECRET: req('AUTH_JWT_SECRET'),
@@ -84,4 +91,6 @@ export const env = {
 
 export const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
 export const hasMiniMax = env.MINIMAX_API_KEYS.length > 0;
+export const hasDeepSeek = env.DEEPSEEK_API_KEYS.length > 0;
+export const hasTextAI = hasDeepSeek || hasMiniMax;
 export const hasStability = env.STABILITY_API_KEYS.length > 0;

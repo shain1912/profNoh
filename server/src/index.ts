@@ -11,7 +11,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
-import { env, hasSupabase, hasMiniMax, hasStability } from './env';
+import { env, hasSupabase, hasMiniMax, hasDeepSeek, hasStability } from './env';
 import { registerRoutes } from './routes';
 import { setupSocket } from './socket';
 import { restoreSnapshots, startSnapshotLoop, installShutdownFlush } from './snapshot';
@@ -116,7 +116,7 @@ async function main() {
   installShutdownFlush();
 
   app.log.info(
-    `[ready] :${env.PORT} | Supabase=${hasSupabase ? 'on' : 'off'} | MiniMax=${hasMiniMax ? 'on' : 'demo'} | Stability=${hasStability ? 'on' : 'demo'}`,
+    `[ready] :${env.PORT} | Supabase=${hasSupabase ? 'on' : 'off'} | DeepSeek=${hasDeepSeek ? 'on' : 'off'} | MiniMax=${hasMiniMax ? 'on' : 'off'} | Stability=${hasStability ? 'on' : 'demo'}`,
   );
 }
 

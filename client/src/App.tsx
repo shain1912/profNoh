@@ -12,6 +12,7 @@ import OrgPage from './pages/OrgPage';
 import Pricing from './pages/Pricing';
 import Checkout from './pages/Checkout';
 import Billing from './pages/Billing';
+import VibeGallery from './pages/VibeGallery';
 import GuideFloatingMenu from './components/GuideFloatingMenu';
 import AuthGate from './components/AuthGate';
 
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/build" element={<AuthGate><Build /></AuthGate>} />
         <Route path="/build/:deckId" element={<AuthGate><DeckEditor /></AuthGate>} />
         <Route path="/report/:classroomId" element={<Report />} />
+        <Route path="/gallery/:classroomId" element={<VibeGallery />} />
         <Route path="/admin" element={<AuthGate><Admin /></AuthGate>} />
         <Route path="/org" element={<AuthGate><OrgPage /></AuthGate>} />
         <Route path="/pricing" element={<Pricing />} />

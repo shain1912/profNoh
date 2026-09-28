@@ -374,6 +374,7 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
   const idleMin = Math.floor((Date.now() - lastActivityAt) / 60_000);
   const rhythmLevel = idleMin >= RHYTHM_ALERT_MIN ? 'alert' : idleMin >= RHYTHM_WARN_MIN ? 'warn' : 'ok';
 
+  const deckHasVibe = !!deck && Object.values(deck.activities).some((a) => a.type === 'vibe');
   const enterPresent = () => {
     setFocusMode(true);
     document.documentElement.requestFullscreen().catch(() => {});
@@ -621,6 +622,15 @@ function Console({ creds, onReset }: { creds: InstructorCreds; onReset: () => vo
           >
             📊 리포트
           </button>
+          {deckHasVibe && (
+            <button
+              className="btn bg-surface-2 ring-1 ring-hairline hover:bg-surface-3 px-3 py-1 text-sm"
+              title="학생들이 만든 바이브코딩 앱 모아 보기 (프로젝터용 새 창)"
+              onClick={() => window.open(`/gallery/${creds.classroomId}?secret=${creds.instructorSecret}`, '_blank')}
+            >
+              💻 앱 갤러리
+            </button>
+          )}
         </div>
       </header>
 
