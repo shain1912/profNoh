@@ -16,6 +16,10 @@ export interface ChatOpts {
   temperature?: number;
   maxTokens?: number;
   timeoutMs?: number;
+  /** 호출자 취소 (학생이 연결을 끊으면 AI 요청도 즉시 중단) */
+  signal?: AbortSignal;
+  /** 이 제공자는 건너뜀 (스트림에서 이미 실패한 제공자로 다시 시도하지 않게) */
+  skip?: ProviderName[];
 }
 
 // 예산 추적용 근사 비용(USD)
@@ -82,8 +86,9 @@ function providers(): ProviderName[] {
   return list;
 }
 
-function withTimeout(ms: number | undefined) {
-  return AbortSignal.timeout(ms ?? 60_000);
+function withTimeout(ms: number | undefined, signal?: AbortSignal) {
+  const t = AbortSignal.timeout(ms ?? 60_000);
+  return signal ? AbortSignal.any([t, signal]) : t;
 }
 
 // ── DeepSeek (OpenAI 호환) ──
@@ -92,7 +97,7 @@ async function deepseekOnce(key: string, messages: ChatMessage[], opts: ChatOpts
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: deepseekBody(messages, opts, false),
-    signal: withTimeout(opts.timeoutMs),
+    signal: withTimeout(opts.timeoutMs, opts.signal),
   });
   if (!res.ok) throw classifyHttp('DeepSeek', res.status, await res.text().catch(() => ''));
   const data: any = await res.json();
@@ -118,7 +123,7 @@ async function minimaxOnce(key: string, messages: ChatMessage[], opts: ChatOpts)
       temperature: opts.temperature ?? 0.7,
       max_tokens: opts.maxTokens ?? 1024,
     }),
-    signal: withTimeout(opts.timeoutMs),
+    signal: withTimeout(opts.timeoutMs, opts.signal),
   });
   if (!res.ok) throw classifyHttp('MiniMax', res.status, await res.text().catch(() => ''));
   const data: any = await res.json();
@@ -147,7 +152,8 @@ function demoReply(messages: ChatMessage[]) {
 export async function chatComplete(messages: ChatMessage[], opts: ChatOpts = {}): Promise<{ text: string; cost: number }> {
   if (!hasTextAI) return demoReply(messages);
   let lastErr: unknown;
-  for (const p of providers()) {
+  for (const p of providers().filter((x) => !opts.skip?.includes(x))) {
+    if (opts.signal?.aborted) break;
     for (const key of usableKeys(p).slice(0, MAX_TRIES_PER_PROVIDER)) {
       try {
         return p === 'deepseek' ? await deepseekOnce(key, messages, opts) : await minimaxOnce(key, messages, opts);
@@ -178,7 +184,7 @@ export async function chatStream(
           method: 'POST',
           headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
           body: deepseekBody(messages, opts, true),
-          signal: withTimeout(opts.timeoutMs ?? 180_000),
+          signal: withTimeout(opts.timeoutMs ?? 180_000, opts.signal),
         });
         if (!res.ok || !res.body) throw classifyHttp('DeepSeek', res.status, await res.text().catch(() => ''));
         const decoder = new TextDecoder();
@@ -211,13 +217,14 @@ export async function chatStream(
         if (!text) throw new KeyError('DeepSeek 빈 스트림', 'cool');
         return { text, cost: deepseekCost(usage) };
       } catch (e) {
-        if (started) throw e;
+        if (started || opts.signal?.aborted) throw e;
         rest(key, e);
         if (!(e instanceof KeyError) || e.kind === 'other') break;
       }
     }
   }
-  const r = await chatComplete(messages, opts);
+  // 스트림으로 DeepSeek 키를 이미 시도했으면 폴백에서는 DeepSeek 을 다시 두드리지 않는다
+  const r = await chatComplete(messages, hasDeepSeek ? { ...opts, skip: [...(opts.skip ?? []), 'deepseek'] } : opts);
   onDelta(r.text);
   return r;
 }

@@ -31,6 +31,7 @@ export function sanitizeSvg(raw: string): string | null {
   s = s.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
   // 외부·javascript 참조 제거 (내부 #id 참조와 data: 는 허용)
   s = s.replace(/\s(xlink:)?href\s*=\s*("|')(?!#|data:image\/)[^"']*\2/gi, '');
+  s = s.replace(/\s(xlink:)?href\s*=\s*(?!["'])(?!#)[^\s>]+/gi, ''); // 따옴표 없는 속성값
   s = s.replace(/url\(\s*(['"]?)(?!#)[^)]*\1\s*\)/gi, 'none');
   if (!/xmlns=/.test(s)) s = s.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
   return s.length > 200_000 ? null : s;

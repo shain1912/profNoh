@@ -22,6 +22,7 @@ import { quickGenerate, chatWithAgent, type QuickGenType } from './ai/deckAgent'
 import { GEN_TYPES } from './ai/activitySpecs';
 import { persistClassroom, persistUsage, persistLabRun, updateClassroomProgress } from './persist';
 import { writeFileSync, existsSync, unlinkSync, statSync, createReadStream, readFileSync, mkdirSync } from 'node:fs';
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { renderPdfToWebp } from './pdf/render';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -222,7 +223,7 @@ export async function registerRoutes(app: FastifyInstance) {
         const r = await generateSvg((body.prompt ?? '').slice(0, 300), classroomMode(c));
         if (!r) return reply.code(502).send({ error: 'bad', message: msg(c, 'imageFailed') });
         const filename = `gen-${randomUUID()}.svg`;
-        writeFileSync(resolve(uploadsDir, filename), r.svg, 'utf8');
+        await writeFile(resolve(uploadsDir, filename), r.svg, 'utf8');
         const url = `/api/uploads/${filename}`;
         c.addMyImage(body.sessionId, { url, prompt: (body.prompt ?? '').slice(0, 100), createdAt: Date.now() });
         c.countUsage(body.sessionId, body.activityId, 'image'); markDirty(c);
@@ -350,7 +351,7 @@ export async function registerRoutes(app: FastifyInstance) {
     if (body.baseAppId) {
       const mine = c.getVibeApps(sessionId).find((a) => a.appId === body.baseAppId);
       if (!mine) return reply.code(403).send({ error: 'bad', message: '내가 만든 앱만 이어서 고칠 수 있어요.' });
-      try { baseHtml = readFileSync(vibeFile(mine.appId), 'utf8'); } catch { baseHtml = undefined; }
+      try { baseHtml = await readFile(vibeFile(mine.appId), 'utf8'); } catch { baseHtml = undefined; }
     }
     const images = act.useMyImages ? c.getMyImages(sessionId).slice(0, 6) : [];
 
@@ -368,15 +369,26 @@ export async function registerRoutes(app: FastifyInstance) {
     });
     const send = (o: unknown) => { if (!res.writableEnded) res.write(JSON.stringify(o) + '\n'); };
     let closed = false;
-    res.on('close', () => { closed = true; }); // req 'close' 는 본문을 다 읽으면 바로 터지므로 응답 쪽으로 판단
+    const ac = new AbortController(); // 학생이 페이지를 닫으면 AI 요청도 끊어 비용·락을 즉시 돌려준다
+    res.on('close', () => { closed = true; if (!res.writableFinished) ac.abort(); }); // req 'close' 는 본문을 다 읽으면 바로 터지므로 응답 쪽으로 판단
 
     try {
       const messages = buildVibeMessages({ mode: classroomMode(c), task: act.task, request, baseHtml, images });
-      const r = await chatStream(messages, { temperature: 0.4, maxTokens: VIBE_MAX_TOKENS, timeoutMs: 180_000 }, (d) => {
-        if (!closed) send({ t: 'd', d });
-      });
+      const streamOnce = () =>
+        chatStream(messages, { temperature: 0.4, maxTokens: VIBE_MAX_TOKENS, timeoutMs: 180_000, signal: ac.signal }, (d) => {
+          if (!closed) send({ t: 'd', d });
+        });
+      let r = await streamOnce();
       c.addCost(r.cost);
-      const html = extractHtml(r.text);
+      let html = extractHtml(r.text);
+      // 드물게(부하 시 ~1%) 모델 스트림이 끝맺음 없이 닫힌다 → 학생 횟수를 쓰지 않고 한 번 자동 재시도
+      if (!html && !closed) {
+        app.log.warn({ len: r.text.length, tail: r.text.slice(-80) }, 'vibe: 완결된 HTML 없음 — 재시도');
+        send({ t: 'reset' });
+        r = await streamOnce();
+        c.addCost(r.cost);
+        html = extractHtml(r.text);
+      }
       if (!html) {
         app.log.warn({ len: r.text.length, head: r.text.slice(0, 80), tail: r.text.slice(-80) }, 'vibe: 완결된 HTML 없음');
         persistUsage(c, p.id, 'vibe', 1, r.cost);
@@ -384,8 +396,8 @@ export async function registerRoutes(app: FastifyInstance) {
         return;
       }
       const appId = randomUUID().replace(/-/g, '').slice(0, 16);
-      mkdirSync(vibeDir, { recursive: true });
-      writeFileSync(vibeFile(appId), html, 'utf8');
+      await mkdir(vibeDir, { recursive: true });
+      await writeFile(vibeFile(appId), html, 'utf8');
       const title = htmlTitle(html);
       c.addVibeApp(sessionId, { appId, activityId: act.id, title, prompt: request.slice(0, 200), createdAt: Date.now() });
       c.countUsage(sessionId, act.id, 'vibe');
@@ -393,7 +405,7 @@ export async function registerRoutes(app: FastifyInstance) {
       persistUsage(c, p.id, 'vibe', 1, r.cost);
       send({ t: 'done', appId, title, used: c.usedCount(sessionId, act.id, 'vibe'), limit });
     } catch (e) {
-      app.log.error(e);
+      if (!ac.signal.aborted) app.log.error(e); // 학생이 페이지를 떠난 건 오류가 아님
       send({ t: 'error', message: msg(c, 'aiFailed') });
     } finally {
       vibeInFlight.delete(lockKey);

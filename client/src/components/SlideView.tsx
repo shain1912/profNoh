@@ -224,7 +224,7 @@ function getYouTubeEmbedUrl(url?: string): string | null {
       return m ? Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0) : 0;
     };
     let params: URLSearchParams;
-    try { params = new URL(url).searchParams; } catch { params = new URLSearchParams(); }
+    try { params = new URL(url, 'https://www.youtube.com').searchParams; } catch { params = new URLSearchParams(); }
     const start = toSec(params.get('start') ?? params.get('t'));
     const end = toSec(params.get('end'));
     const q = [start ? `start=${start}` : '', end > start ? `end=${end}` : '', 'rel=0'].filter(Boolean).join('&');

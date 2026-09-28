@@ -87,6 +87,7 @@ export default function VibeStudent({
           if (!line.trim()) continue;
           const m = JSON.parse(line);
           if (m.t === 'd') setCode((c) => c + m.d);
+          else if (m.t === 'reset') setCode(''); // 서버 자동 재시도 — 코드 화면을 비우고 다시 받는다
           else if (m.t === 'done') done = m;
           else if (m.t === 'error') throw new Error(m.message);
         }
