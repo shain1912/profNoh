@@ -20,7 +20,7 @@ async function shot(p: Page, caption: string) {
   console.log('📸', file, caption);
 }
 const slideOf = (actId: string) => deck.slides.findIndex((s) => s.activityId === actId);
-const slideById = (id: string) => deck.slides.findIndex((s) => s.id === id);
+const slideByTitle = (prefix: string) => deck.slides.findIndex((s) => (s.title ?? '').startsWith(prefix));
 
 // ── 강의실 + 강사 로그인 ──
 const login = await fetch(API + '/api/auth/dev-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'shain1912@gmail.com', name: '조성호' }) });
@@ -149,7 +149,7 @@ try {
 
   // ═══ 1교시 ═══
   scene = '1교시 · 바이브코딩';
-  await goto(slideById('g1-4')); await sleep(800);
+  await goto(slideByTitle('AI 그림 코딩 =')); await sleep(800);
   await shot(proj, '슬라이드 — AI 그림 코딩 = 모양 + 색 + 글자');
   await open('image-future-aircraft');
   await phone.getByText(/남색 원 안에/).first().click();
@@ -159,7 +159,7 @@ try {
   await shot(phone, 'AI 그림 코딩 — 말로 설명한 엠블럼을 SVG 코드로 그림 (약 4초)');
   await close();
 
-  await goto(slideById('g1-7')); await sleep(600);
+  await goto(slideByTitle('좋은 요청 공식')); await sleep(600);
   await shot(proj, '슬라이드 — 좋은 요청 공식');
   await open('vibe-lv1');
   await shot(phone, '바이브코딩 Lv.1 — 미션과 아이디어 칩');
@@ -181,7 +181,7 @@ try {
 
   // ═══ 2교시 ═══
   scene = '2교시 · AI 윤리';
-  await goto(slideById('g2-3')); await sleep(800);
+  await goto(slideByTitle('환각')); await sleep(800);
   await shot(proj, '슬라이드 — 환각(Hallucination)');
   await quiz('ox-hallucination', 1);
   await close();
@@ -194,7 +194,7 @@ try {
   await shot(phone, 'AI 사고 조사위원회 역할극 — 학생이 조사위원, AI가 정비사');
   await close();
 
-  await quiz('quiz-deepfake', 1);
+  await quiz('quiz-ethics2', 1);
   await close();
 
   await open('vibe-lv2');

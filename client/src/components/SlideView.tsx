@@ -216,7 +216,19 @@ function getYouTubeEmbedUrl(url?: string): string | null {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
   const match = url.match(regExp);
   if (match && match[2].length === 11) {
-    return `https://www.youtube.com/embed/${match[2]}`;
+    // 구간 재생: ?t=295 · &start=295 · &end=400 (초, 또는 4m55s) → embed ?start=&end=
+    const toSec = (v: string | null) => {
+      if (!v) return 0;
+      if (/^\d+$/.test(v)) return Number(v);
+      const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(v);
+      return m ? Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0) : 0;
+    };
+    let params: URLSearchParams;
+    try { params = new URL(url).searchParams; } catch { params = new URLSearchParams(); }
+    const start = toSec(params.get('start') ?? params.get('t'));
+    const end = toSec(params.get('end'));
+    const q = [start ? `start=${start}` : '', end > start ? `end=${end}` : '', 'rel=0'].filter(Boolean).join('&');
+    return `https://www.youtube.com/embed/${match[2]}?${q}`;
   }
   return null;
 }
@@ -244,9 +256,9 @@ export default function SlideView({ slide, big = false }: { slide: Slide; big?: 
   const embedUrl = getYouTubeEmbedUrl(slide.youtubeUrl);
 
   return (
-    // 모든 슬라이드를 수직·수평 중앙 정렬 → 슬라이드 전환 시 위치가 튀지 않음
-    <div className={['flex h-full w-full flex-col items-center justify-center overflow-y-auto', big ? 'p-12' : 'p-6'].join(' ')}>
-      <div className="w-full max-w-3xl text-center">
+    // 수직 중앙 정렬은 자식의 my-auto 로 — justify-center 는 내용이 넘치면 위쪽이 잘려 스크롤로도 못 본다 (유튜브+인용 슬라이드)
+    <div className={['flex h-full w-full flex-col items-center overflow-y-auto', big ? 'p-12' : 'p-6'].join(' ')}>
+      <div className="my-auto w-full max-w-3xl text-center">
         <div className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-brand/80 sm:text-sm">
           PART {slide.part} · {slide.partTitle}
         </div>

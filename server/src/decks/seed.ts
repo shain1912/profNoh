@@ -7,6 +7,12 @@ import { validateDeck, makePin } from './validate';
 import { loadDeckRow, insertDeckRow, updateDeckRow } from './store';
 import { gyeongnamAviation3h } from './gyeongnam-aviation-3h';
 import type { Deck } from '../../../shared/types';
+import { existsSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url)); // server/src/decks
+const uploadsDir = resolve(here, '../../../uploads'); // routes.ts 와 같은 위치
 
 const DECKS: Record<string, Deck> = { gyeongnamAviation3h };
 
@@ -20,6 +26,15 @@ async function main() {
   if (!supabase) throw new Error('Supabase 설정 없음 (.env)');
   const u = await supabase.from('axedu_users').select('id,email').eq('email', email.toLowerCase()).maybeSingle();
   if (u.error || !u.data) throw new Error(`axedu_users 에서 ${email} 을 찾지 못함 — 먼저 한 번 로그인해야 함`);
+
+  // 덱 전용 이미지(assets/<deckId>/*) → uploads/ (이미지 슬라이드가 /api/uploads/<파일> 로 참조)
+  const assetDir = resolve(here, 'assets', src.id);
+  if (existsSync(assetDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
+    const files = readdirSync(assetDir);
+    for (const f of files) copyFileSync(resolve(assetDir, f), resolve(uploadsDir, f));
+    console.log(`[seed] 이미지 ${files.length}개 → uploads/`);
+  }
 
   const deck = validateDeck(src, src.id);
   const existing = await loadDeckRow(deck.id);
