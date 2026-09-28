@@ -60,7 +60,7 @@ const CASES = [
   ['AI 튜터', '과목'],
 ];
 for (const [label, formMarker] of CASES) {
-  const btn = page.getByTitle(`${label} 추가`);
+  const btn = page.getByTitle(`${label} 추가`, { exact: true }); // "퀴즈 추가" 가 "OX 퀴즈 추가" 와도 부분 일치하지 않게
   const visible = await btn.isVisible().catch(() => false);
   if (!visible) { check(`＋${label} 버튼`, false); continue; }
   await btn.click();

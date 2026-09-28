@@ -4,8 +4,8 @@ import { io, type Socket } from 'socket.io-client';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { gyeongnamAviation3h as deck } from './server/src/decks/gyeongnam-aviation-3h';
 
-const API = 'http://localhost:8796';
-const WEB = 'http://localhost:5181';
+const API = process.env.API ?? 'http://localhost:8796';
+const WEB = process.env.WEB ?? 'http://localhost:5181';
 const OUT = process.argv[2];
 mkdirSync(`${OUT}/shots`, { recursive: true });
 mkdirSync(`${OUT}/video`, { recursive: true });
