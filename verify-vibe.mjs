@@ -36,7 +36,7 @@ const deck = (await api('GET', '/api/decks/gnaero')).data;
 const vibes = Object.values(deck.activities).filter((a) => a.type === 'vibe');
 check('공개 덱: vibe 활동 3개', vibes.length === 3, vibes.map((v) => `${v.id}:${v.continueMode}`).join(', '));
 const imgActs = Object.values(deck.activities).filter((a) => a.type === 'image');
-check('공개 덱: image maxImages=2', imgActs.every((a) => a.maxImages === 2));
+check('공개 덱: image SVG 엔진·1인 3장', imgActs.length === 2 && imgActs.every((a) => a.engine === 'svg' && a.maxImages === 3));
 
 const sA = 'sess-vA-' + Date.now();
 const sB = 'sess-vB-' + Date.now();
@@ -48,7 +48,7 @@ const img = await api('POST', '/api/ai/image', { token, sessionId: sA, activityI
 check('이미지 생성 → /api/uploads URL', img.status === 200 && img.data.dataUrl?.startsWith('/api/uploads/gen-'), img.data.dataUrl ?? JSON.stringify(img.data));
 if (img.data.dataUrl?.startsWith('/api/')) {
   const f = await fetch(BASE + img.data.dataUrl);
-  check('저장된 이미지 서빙 (image/webp)', f.status === 200 && f.headers.get('content-type') === 'image/webp', `${(await f.arrayBuffer()).byteLength} bytes`);
+  check('저장된 이미지 서빙 (webp/svg)', f.status === 200 && /^image\/(webp|svg\+xml)/.test(f.headers.get('content-type') ?? ''), `${(await f.arrayBuffer()).byteLength} bytes`);
 }
 
 // 2) 새 앱 (Lv1)
