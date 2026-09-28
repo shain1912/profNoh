@@ -14,6 +14,7 @@ import { checkSafety, safeImagePrompt } from './ai/safety';
 import { chatComplete, chatStream, type ChatMessage } from './ai/minimax';
 import { buildVibeMessages, extractHtml, htmlTitle, VIBE_CSP, VIBE_MAX_TOKENS } from './ai/vibe';
 import { generateImage } from './ai/stability';
+import { generateSvg } from './ai/svgArt';
 import { runLab } from './ai/lab';
 import { classroomMode, msg, audiencePrompt } from './copy';
 import { generateDeck } from './ai/generateDeck';
@@ -49,6 +50,7 @@ const IMAGE_MIME: Record<string, string> = {
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
 };
 
 function getPdfPageCount(buffer: Buffer): number {
@@ -213,6 +215,25 @@ export async function registerRoutes(app: FastifyInstance) {
     const imgAct = c.resolveActivity(body.activityId);
     const quota = c.checkUsage(body.sessionId, body.activityId, 'image', imgAct?.type === 'image' ? imgAct.maxImages : undefined);
     if (!quota.ok) return reply.code(429).send({ error: 'quota', message: quota.message });
+
+    // SVG 엔진 — 텍스트 AI 가 코드로 그림 (사진 생성 API 비용 없이)
+    if (imgAct?.type === 'image' && imgAct.engine === 'svg') {
+      try {
+        const r = await generateSvg((body.prompt ?? '').slice(0, 300), classroomMode(c));
+        if (!r) return reply.code(502).send({ error: 'bad', message: msg(c, 'imageFailed') });
+        const filename = `gen-${randomUUID()}.svg`;
+        writeFileSync(resolve(uploadsDir, filename), r.svg, 'utf8');
+        const url = `/api/uploads/${filename}`;
+        c.addMyImage(body.sessionId, { url, prompt: (body.prompt ?? '').slice(0, 100), createdAt: Date.now() });
+        c.countUsage(body.sessionId, body.activityId, 'image'); markDirty(c);
+        c.addCost(r.cost);
+        persistUsage(c, p.id, 'image', 1, r.cost);
+        return { dataUrl: url, demo: false };
+      } catch (e) {
+        app.log.error(e);
+        return reply.code(502).send({ error: 'bad', message: msg(c, 'imageFailed') });
+      }
+    }
 
     try {
       // 한글 프롬프트 → 간결한 영어 프롬프트로 변환 (Stability 품질↑ & 오탐 모더레이션↓)
@@ -553,6 +574,8 @@ export async function registerRoutes(app: FastifyInstance) {
     reply.header('ETag', etag);
     reply.header('Last-Modified', st.mtime.toUTCString());
     reply.header('Accept-Ranges', 'bytes');
+    // SVG 는 문서로 직접 열려도 스크립트가 못 돌게 (생성 시 정리하지만 이중 방어)
+    if (ext === '.svg') reply.header('Content-Security-Policy', "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:");
 
     const inm = req.headers['if-none-match'];
     if (inm && inm.split(',').map((v) => v.trim()).includes(etag)) {
@@ -686,7 +709,7 @@ export async function registerRoutes(app: FastifyInstance) {
     }
     for (const img of images) {
       const ext = (img.filename ?? '').slice((img.filename ?? '').lastIndexOf('.')).toLowerCase();
-      if (!img.filename || !img.base64 || !IMAGE_MIME[ext]) {
+      if (!img.filename || !img.base64 || !IMAGE_MIME[ext] || ext === '.svg') {
         return reply.code(400).send({ error: 'bad', message: '이미지 파일(png/jpg/webp/gif)만 업로드할 수 있습니다.' });
       }
     }

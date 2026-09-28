@@ -1,6 +1,6 @@
 import type { ImageActivity as ImageAct } from '@shared/types';
 import type { ActivityDef } from '../types';
-import { TextField, StringListEditor, clampStr, strArr } from '../editorKit';
+import { TextField, StringListEditor, ChoiceChips, clampStr, strArr } from '../editorKit';
 import ImageActivity from '../../components/activities/ImageActivity';
 
 function Editor({ act, onChange }: { act: ImageAct; onChange: (a: ImageAct) => void }) {
@@ -16,6 +16,15 @@ function Editor({ act, onChange }: { act: ImageAct; onChange: (a: ImageAct) => v
         placeholder="예: 숲속 도서관, 따뜻한 햇살, 지브리풍 일러스트"
         addLabel="＋ 예시"
         onChange={(suggestions) => onChange({ ...act, suggestions })}
+      />
+      <ChoiceChips
+        label="그림 방식"
+        value={act.engine ?? 'photo'}
+        options={[
+          { value: 'photo', label: '📷 사진풍 (이미지 생성 API)' },
+          { value: 'svg', label: '✏️ SVG 코드 그림 (저렴·빠름, 엠블럼·일러스트)' },
+        ]}
+        onChange={(v) => onChange({ ...act, engine: v === 'svg' ? 'svg' : undefined })}
       />
       <TextField
         label="1인당 생성 장수 (비우면 서버 기본값)"

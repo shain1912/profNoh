@@ -182,6 +182,7 @@ export function validateDeck(input: unknown, id: string): Deck {
         intro: clamp(a.intro, 200) || undefined,
         suggestions: Array.isArray(a.suggestions) ? a.suggestions.map((s) => clamp(s, 100)) : undefined,
         maxImages: typeof a.maxImages === 'number' ? Math.min(20, Math.max(1, Math.round(a.maxImages))) : undefined,
+        engine: a.engine === 'svg' ? 'svg' : undefined,
       };
     } else if (a.type === 'lab') {
       activities[key] = {

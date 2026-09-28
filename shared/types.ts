@@ -46,6 +46,7 @@ export interface ImageActivity {
   intro?: string;
   suggestions?: string[];
   maxImages?: number;        // 1인당 생성 장수 (생략 시 서버 기본 QUOTA_IMAGE_PER_ACTIVITY)
+  engine?: 'photo' | 'svg';  // photo = Stability 사진 생성(기본) / svg = 텍스트 AI 가 코드로 그리는 벡터 그림(저렴·빠름)
 }
 
 export interface LabActivity {
