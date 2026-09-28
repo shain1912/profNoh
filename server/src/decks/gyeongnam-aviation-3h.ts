@@ -380,7 +380,6 @@ function buildSlides(): Slide[] {
       title: '경남항공고 AI 특강',
       subtitle: 'AI의 이해 · AI 윤리 · 항공 AI 진로 · 바이브코딩 | 50분 × 3교시',
       blocks: [
-        { kind: 'p', text: '일시 : 확정 후 기입 · 장소 : 확정 후 기입' },
         { kind: 'p', text: '대상 : 경남항공고등학교 학생' },
         { kind: 'p', text: '강사 조성호 · 부산대학교 AI융합교육원 강사 / KODE KOREA(코드코리아) 대표' },
       ],
