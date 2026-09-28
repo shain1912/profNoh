@@ -7,7 +7,7 @@ import type { ClassroomMode } from '../../../shared/types';
 //  axedu 쿠키·API 에 접근할 수 없고, 외부 네트워크(connect-src)도 막힌다.
 // ──────────────────────────────────────────────────────────────
 
-export const VIBE_MAX_TOKENS = 6000;
+export const VIBE_MAX_TOKENS = 12000; // 긴 앱이 잘리지 않게 (deepseek-flash 출력 한도는 훨씬 큼 — 실제 앱은 보통 2~4천 토큰)
 
 /** 앱 HTML 응답 헤더용 CSP — sandbox 로 불투명 출처, 네트워크·폼 전송 차단 */
 export const VIBE_CSP = [

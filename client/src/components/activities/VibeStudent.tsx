@@ -237,7 +237,7 @@ export default function VibeStudent({
           disabled={busy}
         />
         <button className="btn-primary" disabled={busy || !prompt.trim() || left <= 0}>
-          {busy ? '만드는 중… (30초~1분)' : left <= 0 ? '횟수를 다 썼어요' : editing ? '🔧 고치기' : '🚀 앱 만들기'}
+          {busy ? '만드는 중… (10~20초)' : left <= 0 ? '횟수를 다 썼어요' : editing ? '🔧 고치기' : '🚀 앱 만들기'}
         </button>
       </form>
 

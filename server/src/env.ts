@@ -21,7 +21,7 @@ function collectKeys(prefix: string): string[] {
   const keys: string[] = [];
   const single = process.env[prefix];
   if (single) keys.push(single);
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= 200; i++) {
     const k = process.env[`${prefix}${i}`];
     if (k) keys.push(k);
   }
@@ -44,7 +44,9 @@ export const env = {
   // DeepSeek (OpenAI 호환) — 키가 있으면 텍스트 AI 1순위, MiniMax 는 폴백
   DEEPSEEK_API_KEYS: collectKeys('DEEPSEEK_API_KEY'),
   DEEPSEEK_BASE_URL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com',
-  DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
+  DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL ?? 'deepseek-flash',
+  // 'disabled' 면 thinking 끄기 (기본 — 바이브코딩·대화 응답 속도·비용). 'enabled' 면 모델 기본 동작
+  DEEPSEEK_THINKING: process.env.DEEPSEEK_THINKING === 'enabled' ? 'enabled' : 'disabled',
 
   STABILITY_API_KEYS: collectKeys('STABILITY_API_KEY'),
   STABILITY_BASE_URL: process.env.STABILITY_BASE_URL ?? 'https://api.stability.ai',

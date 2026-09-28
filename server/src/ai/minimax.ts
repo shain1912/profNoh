@@ -20,10 +20,24 @@ export interface ChatOpts {
 
 // 예산 추적용 근사 비용(USD)
 const MINIMAX_COST_PER_CALL = 0.002;
-const DEEPSEEK_IN_PER_TOKEN = 0.27 / 1_000_000;
-const DEEPSEEK_OUT_PER_TOKEN = 1.1 / 1_000_000;
+// deepseek-flash 피크 시간 단가(2026-09) — 오프피크는 절반이라 예산 추적은 보수적으로 잡힌다
+const DEEPSEEK_IN_PER_TOKEN = 0.3 / 1_000_000;
+const DEEPSEEK_OUT_PER_TOKEN = 1.2 / 1_000_000;
+
+function deepseekBody(messages: ChatMessage[], opts: ChatOpts, stream: boolean) {
+  return JSON.stringify({
+    model: env.DEEPSEEK_MODEL,
+    messages,
+    temperature: opts.temperature ?? 0.7,
+    max_tokens: opts.maxTokens ?? 1024,
+    ...(env.DEEPSEEK_THINKING === 'disabled' ? { thinking: { type: 'disabled' } } : {}),
+    ...(stream ? { stream: true, stream_options: { include_usage: true } } : {}),
+  });
+}
 
 const DEAD_MS = 30 * 60_000;
+// 한 요청에서 제공자당 시도할 키 수 — 키가 80개여도 한 학생 요청이 80번 재시도하지 않게
+const MAX_TRIES_PER_PROVIDER = 4;
 const COOL_MS = 20_000;
 
 type ProviderName = 'deepseek' | 'minimax';
@@ -77,12 +91,7 @@ async function deepseekOnce(key: string, messages: ChatMessage[], opts: ChatOpts
   const res = await fetch(`${env.DEEPSEEK_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: env.DEEPSEEK_MODEL,
-      messages,
-      temperature: opts.temperature ?? 0.7,
-      max_tokens: opts.maxTokens ?? 1024,
-    }),
+    body: deepseekBody(messages, opts, false),
     signal: withTimeout(opts.timeoutMs),
   });
   if (!res.ok) throw classifyHttp('DeepSeek', res.status, await res.text().catch(() => ''));
@@ -139,12 +148,13 @@ export async function chatComplete(messages: ChatMessage[], opts: ChatOpts = {})
   if (!hasTextAI) return demoReply(messages);
   let lastErr: unknown;
   for (const p of providers()) {
-    for (const key of usableKeys(p)) {
+    for (const key of usableKeys(p).slice(0, MAX_TRIES_PER_PROVIDER)) {
       try {
         return p === 'deepseek' ? await deepseekOnce(key, messages, opts) : await minimaxOnce(key, messages, opts);
       } catch (e) {
         rest(key, e);
         lastErr = e;
+        if (!(e instanceof KeyError) || e.kind === 'other') break; // 요청 자체 문제(400·타임아웃 등)는 다른 키로도 같다
       }
     }
   }
@@ -161,20 +171,13 @@ export async function chatStream(
   onDelta: (text: string) => void,
 ): Promise<{ text: string; cost: number }> {
   if (hasDeepSeek) {
-    for (const key of usableKeys('deepseek')) {
+    for (const key of usableKeys('deepseek').slice(0, MAX_TRIES_PER_PROVIDER)) {
       let started = false;
       try {
         const res = await fetch(`${env.DEEPSEEK_BASE_URL}/chat/completions`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: env.DEEPSEEK_MODEL,
-            messages,
-            temperature: opts.temperature ?? 0.7,
-            max_tokens: opts.maxTokens ?? 1024,
-            stream: true,
-            stream_options: { include_usage: true },
-          }),
+          body: deepseekBody(messages, opts, true),
           signal: withTimeout(opts.timeoutMs ?? 180_000),
         });
         if (!res.ok || !res.body) throw classifyHttp('DeepSeek', res.status, await res.text().catch(() => ''));
@@ -210,6 +213,7 @@ export async function chatStream(
       } catch (e) {
         if (started) throw e;
         rest(key, e);
+        if (!(e instanceof KeyError) || e.kind === 'other') break;
       }
     }
   }

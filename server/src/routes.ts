@@ -357,6 +357,7 @@ export async function registerRoutes(app: FastifyInstance) {
       c.addCost(r.cost);
       const html = extractHtml(r.text);
       if (!html) {
+        app.log.warn({ len: r.text.length, head: r.text.slice(0, 80), tail: r.text.slice(-80) }, 'vibe: 완결된 HTML 없음');
         persistUsage(c, p.id, 'vibe', 1, r.cost);
         send({ t: 'error', message: '앱 코드가 중간에 끊겼어요. 요청을 조금 더 짧게 해서 다시 시도해 주세요.' });
         return;
